@@ -267,36 +267,38 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                                 )}
                             </div>
                         </TabsContent>
-                        <TabsContent value="totals" className="space-y-4 pt-4 relative">
-                            <p className="text-sm text-muted-foreground">Enter the nutritional values per serving.</p>
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="manualServingSize">Serving Size</Label>
-                                    <Input id="manualServingSize" type="number" value={manualServingSize} onChange={(e) => setManualServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                        <TabsContent value="totals" className="pt-4 relative">
+                            <div className="space-y-4">
+                                <p className="text-sm text-muted-foreground">Enter the nutritional values per serving.</p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="manualServingSize">Serving Size</Label>
+                                        <Input id="manualServingSize" type="number" value={manualServingSize} onChange={(e) => setManualServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="manualServingUnit">Unit</Label>
+                                        <Input id="manualServingUnit" value={manualServingUnit} onChange={(e) => setManualServingUnit(e.target.value)} />
+                                    </div>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="manualServingUnit">Unit</Label>
-                                    <Input id="manualServingUnit" value={manualServingUnit} onChange={(e) => setManualServingUnit(e.target.value)} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="calories">Calories (kcal)</Label>
+                                        <Input id="calories" type="number" value={manualCalories} onChange={(e) => setManualCalories(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="protein">Protein (g)</Label>
+                                        <Input id="protein" type="number" value={manualProtein} onChange={(e) => setManualProtein(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                    </div>
                                 </div>
-                            </div>
-                             <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="calories">Calories (kcal)</Label>
-                                    <Input id="calories" type="number" value={manualCalories} onChange={(e) => setManualCalories(e.target.value === '' ? '' : parseFloat(e.target.value))} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="protein">Protein (g)</Label>
-                                    <Input id="protein" type="number" value={manualProtein} onChange={(e) => setManualProtein(e.target.value === '' ? '' : parseFloat(e.target.value))} />
-                                </div>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="carbs">Carbs (g)</Label>
-                                    <Input id="carbs" type="number" value={manualCarbs} onChange={(e) => setManualCarbs(e.target.value === '' ? '' : parseFloat(e.target.value))} />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="fats">Fats (g)</Label>
-                                    <Input id="fats" type="number" value={manualFats} onChange={(e) => setManualFats(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="carbs">Carbs (g)</Label>
+                                        <Input id="carbs" type="number" value={manualCarbs} onChange={(e) => setManualCarbs(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="fats">Fats (g)</Label>
+                                        <Input id="fats" type="number" value={manualFats} onChange={(e) => setManualFats(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                    </div>
                                 </div>
                             </div>
                         </TabsContent>
