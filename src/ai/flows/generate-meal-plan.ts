@@ -67,7 +67,7 @@ const prompt = ai.definePrompt({
   output: { schema: GenerateMealPlanOutputSchema },
   prompt: `You are an expert nutritionist and meal planner. Your task is to create a daily meal plan for a user based on their nutritional goals and the food items and pre-made meals they have available.
 
-Your primary instruction is to stay as close as possible to the user's nutritional targets. DO NOT significantly exceed the goals. It is better to be slightly under than to be over.
+Your primary instruction is to stay as close as possible to the user's nutritional targets. DO NOT significantly exceed the goals. It is much better to be slightly under than to be over. The total calories should not exceed the calorie goal.
 
 The user's goals are:
 - Calories: {{{calorieGoal}}} kcal
@@ -88,11 +88,11 @@ Available pre-made meals:
 
 Instructions:
 1.  Create a full-day meal plan distributed across "Breakfast", "Lunch", "Dinner", and "Snacks".
-2.  You MUST adjust the 'quantity' of individual ingredients to meet the nutritional targets. Do not just use the default serving size. For example, if you need fewer calories, use a smaller quantity of an ingredient.
+2.  You MUST adjust the 'quantity' of individual ingredients to meet the nutritional targets precisely. Do not just use the default serving size. For example, if you need fewer calories, use a smaller quantity of an ingredient. Calculate the correct quantity.
 3.  You can use any combination of the available meals and individual ingredients.
-4.  Get as close as possible to the user's target for calories, protein, carbs, and fats. A small deviation is acceptable, but prioritize staying under the goal if you cannot meet it exactly.
+4.  Get as close as possible to the user's target for calories, protein, carbs, and fats without going over.
 5.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
-6.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId' and the 'quantity' you decided on.
+6.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId' and the calculated 'quantity' you decided on.
 7.  Do not invent new foods. Only use the ones provided in the available foods and meals lists.
 
 Return the final meal plan in the specified JSON format.
