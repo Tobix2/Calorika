@@ -14,3 +14,13 @@ export type Meal = {
   name: MealName;
   items: FoodItem[];
 };
+
+export type CustomMeal = {
+  id: string;
+  name: string;
+  items: FoodItem[];
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFats: number;
+};

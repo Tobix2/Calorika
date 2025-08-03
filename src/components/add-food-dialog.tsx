@@ -11,9 +11,11 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import type { FoodItem } from '@/lib/types';
+import type { FoodItem, CustomMeal } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 
 const MOCK_FOOD_DATABASE: FoodItem[] = [
   { id: '1', name: 'Apple', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, serving: '1 medium' },
@@ -31,11 +33,13 @@ const MOCK_FOOD_DATABASE: FoodItem[] = [
 ];
 
 interface AddFoodDialogProps {
+  customMeals: CustomMeal[];
   onAddFood: (food: FoodItem) => void;
+  onAddCustomMeal: (meal: CustomMeal) => void;
   children: React.ReactNode;
 }
 
-export default function AddFoodDialog({ onAddFood, children }: AddFoodDialogProps) {
+export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals, children }: AddFoodDialogProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -43,41 +47,76 @@ export default function AddFoodDialog({ onAddFood, children }: AddFoodDialogProp
     food.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const handleAdd = (food: FoodItem) => {
+  const filteredCustomMeals = customMeals.filter(meal =>
+    meal.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const handleAddFood = (food: FoodItem) => {
     onAddFood({ ...food, id: crypto.randomUUID() });
     setOpen(false);
     setSearchTerm('');
   };
+
+  const handleAddMeal = (meal: CustomMeal) => {
+    onAddCustomMeal(meal);
+    setOpen(false);
+    setSearchTerm('');
+  }
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>{children}</DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Add Food</DialogTitle>
+          <DialogTitle>Add to Meal</DialogTitle>
         </DialogHeader>
         <div className="py-4">
           <Input
-            placeholder="Search for a food..."
+            placeholder="Search for a food or meal..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
             className="mb-4"
           />
-          <ScrollArea className="h-72">
-            <div className="space-y-2 pr-4">
-              {filteredFoods.map(food => (
-                <div key={food.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
-                  <div>
-                    <p className="font-semibold">{food.name}</p>
-                    <p className="text-sm text-muted-foreground">{food.serving} &bull; {food.calories} kcal</p>
-                  </div>
-                  <Button size="icon" variant="ghost" onClick={() => handleAdd(food)}>
-                    <Plus className="h-4 w-4" />
-                  </Button>
+          <Tabs defaultValue="foods">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="foods">Foods</TabsTrigger>
+              <TabsTrigger value="meals">My Meals</TabsTrigger>
+            </TabsList>
+            <ScrollArea className="h-72 mt-4">
+              <TabsContent value="foods">
+                <div className="space-y-2 pr-4">
+                  {filteredFoods.map(food => (
+                    <div key={food.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                      <div>
+                        <p className="font-semibold">{food.name}</p>
+                        <p className="text-sm text-muted-foreground">{food.serving} &bull; {food.calories} kcal</p>
+                      </div>
+                      <Button size="icon" variant="ghost" onClick={() => handleAddFood(food)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </ScrollArea>
+              </TabsContent>
+              <TabsContent value="meals">
+                <div className="space-y-2 pr-4">
+                  {filteredCustomMeals.length > 0 ? filteredCustomMeals.map(meal => (
+                    <div key={meal.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
+                      <div>
+                        <p className="font-semibold">{meal.name}</p>
+                        <p className="text-sm text-muted-foreground">{meal.items.length} items &bull; {meal.totalCalories.toFixed(0)} kcal</p>
+                      </div>
+                      <Button size="icon" variant="ghost" onClick={() => handleAddMeal(meal)}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )) : (
+                    <p className="text-sm text-muted-foreground text-center py-4">You haven&apos;t created any meals yet.</p>
+                  )}
+                </div>
+              </TabsContent>
+            </ScrollArea>
+          </Tabs>
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>

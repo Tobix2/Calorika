@@ -1,10 +1,12 @@
+
 "use client";
 
 import { useState, useMemo } from 'react';
-import type { Meal, MealName, FoodItem } from '@/lib/types';
+import type { Meal, MealName, FoodItem, CustomMeal } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
+import CreateMealDialog from './create-meal-dialog';
 import { Leaf } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
@@ -20,11 +22,20 @@ const initialMeals: Meal[] = [
 export default function Dashboard() {
   const [meals, setMeals] = useState<Meal[]>(initialMeals);
   const [calorieGoal, setCalorieGoal] = useState<number>(2200);
+  const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
   
   const handleAddFood = (mealName: MealName, food: FoodItem) => {
     setMeals(prevMeals =>
       prevMeals.map(meal =>
         meal.name === mealName ? { ...meal, items: [...meal.items, food] } : meal
+      )
+    );
+  };
+
+  const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal) => {
+    setMeals(prevMeals =>
+      prevMeals.map(meal =>
+        meal.name === mealName ? { ...meal, items: [...meal.items, ...customMeal.items.map(item => ({...item, id: crypto.randomUUID()}))] } : meal
       )
     );
   };
@@ -42,6 +53,10 @@ export default function Dashboard() {
   const handleSetGoal = (output: CalorieRecommendationOutput) => {
     setCalorieGoal(output.recommendedCalories);
   };
+
+  const handleCreateMeal = (newMeal: CustomMeal) => {
+    setCustomMeals(prev => [...prev, newMeal]);
+  }
 
   const { totalCalories, totalProtein, totalCarbs, totalFats } = useMemo(() => {
     return meals.reduce(
@@ -75,6 +90,7 @@ export default function Dashboard() {
               <Leaf className="h-8 w-8 text-primary" />
               <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
             </div>
+            <CreateMealDialog onCreateMeal={handleCreateMeal} />
           </div>
         </div>
       </header>
@@ -90,7 +106,9 @@ export default function Dashboard() {
             />
             <MealList
               meals={meals}
+              customMeals={customMeals}
               onAddFood={handleAddFood}
+              onAddCustomMeal={handleAddCustomMeal}
               onRemoveFood={handleRemoveFood}
             />
           </div>

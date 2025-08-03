@@ -1,13 +1,15 @@
 "use client";
 
-import type { Meal, MealName, FoodItem } from '@/lib/types';
+import type { Meal, MealName, FoodItem, CustomMeal } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AddFoodDialog from './add-food-dialog';
 import { Apple, Salad, Drumstick, Cookie, Flame, Trash2, PlusCircle } from 'lucide-react';
 
 interface MealListProps {
   meals: Meal[];
+  customMeals: CustomMeal[];
   onAddFood: (mealName: MealName, food: FoodItem) => void;
+  onAddCustomMeal: (mealName: MealName, customMeal: CustomMeal) => void;
   onRemoveFood: (mealName: MealName, foodId: string) => void;
 }
 
@@ -18,7 +20,7 @@ const mealIcons: Record<MealName, React.ReactNode> = {
   Snacks: <Cookie className="h-6 w-6 text-orange-400" />,
 };
 
-export default function MealList({ meals, onAddFood, onRemoveFood }: MealListProps) {
+export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, onAddCustomMeal }: MealListProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {meals.map(meal => {
@@ -54,7 +56,11 @@ export default function MealList({ meals, onAddFood, onRemoveFood }: MealListPro
                   <p className="text-sm text-muted-foreground text-center py-4">No food logged yet.</p>
                 )}
               </div>
-              <AddFoodDialog onAddFood={(food) => onAddFood(meal.name, food)}>
+              <AddFoodDialog
+                onAddFood={(food) => onAddFood(meal.name, food)}
+                onAddCustomMeal={(customMeal) => onAddCustomMeal(meal.name, customMeal)}
+                customMeals={customMeals}
+              >
                  <button className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md border-2 border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-accent hover:border-accent-foreground hover:text-accent-foreground transition-colors">
                     <PlusCircle className="h-4 w-4" />
                     Add Food
