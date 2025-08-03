@@ -13,8 +13,10 @@ export async function getCustomMeals(): Promise<CustomMeal[]> {
 
 export async function addCustomMeal(meal: Omit<CustomMeal, 'id'>): Promise<CustomMeal> {
     try {
-        const docRef = await addDoc(mealCollection, meal);
-        return { id: docRef.id, ...meal };
+        // Sanitize the object to ensure it's Firestore-compatible
+        const cleanMeal = JSON.parse(JSON.stringify(meal));
+        const docRef = await addDoc(mealCollection, cleanMeal);
+        return { id: docRef.id, ...cleanMeal };
     } catch (error) {
         console.error("Error adding document to Firestore: ", error);
         // Re-throw the error to be caught by the calling function
@@ -24,5 +26,3 @@ export async function addCustomMeal(meal: Omit<CustomMeal, 'id'>): Promise<Custo
         throw new Error('An unknown error occurred while saving to Firestore.');
     }
 }
-
-    
