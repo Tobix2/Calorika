@@ -75,7 +75,7 @@ export default function Dashboard() {
             protein: customMeal.totalProtein,
             carbs: customMeal.totalCarbs,
             fats: customMeal.totalFats,
-            quantity: servings,
+            quantity: servings * (customMeal.servingSize || 1), // Multiply servings by base serving size
             servingSize: customMeal.servingSize || 1, 
             servingUnit: customMeal.servingUnit || 'serving(s)',
         };
