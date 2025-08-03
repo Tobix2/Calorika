@@ -15,12 +15,13 @@ export async function getRecommendationAction(
   prevState: any,
   formData: FormData
 ): Promise<{ data: CalorieRecommendationOutput | null; error: string | null }> {
+  // Ensure all form data has valid defaults to prevent serialization errors
   const rawFormData = {
-    age: Number(formData.get('age')),
-    weight: Number(formData.get('weight')),
-    height: Number(formData.get('height')),
-    activityLevel: formData.get('activityLevel'),
-    goal: formData.get('goal'),
+    age: Number(formData.get('age')) || 25,
+    weight: Number(formData.get('weight')) || 70,
+    height: Number(formData.get('height')) || 175,
+    activityLevel: formData.get('activityLevel') || 'lightlyActive',
+    goal: formData.get('goal') || 'maintainWeight',
   };
 
   try {
