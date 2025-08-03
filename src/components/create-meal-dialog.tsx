@@ -177,137 +177,135 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
           </DialogDescription>
         </DialogHeader>
         
-        <div className="flex-grow overflow-hidden">
-            <ScrollArea className="h-full pr-6">
-                <div className="space-y-4 py-2">
-                    <div className="space-y-2">
-                        <Label htmlFor="meal-name">Meal Name</Label>
-                        <Input
-                            id="meal-name"
-                            placeholder="e.g., Post-Workout Shake"
-                            value={mealName}
-                            onChange={(e) => setMealName(e.target.value)}
-                        />
-                    </div>
+        <div className="flex-grow py-4 overflow-y-auto">
+            <div className="space-y-4 px-1">
+                <div className="space-y-2">
+                    <Label htmlFor="meal-name">Meal Name</Label>
+                    <Input
+                        id="meal-name"
+                        placeholder="e.g., Post-Workout Shake"
+                        value={mealName}
+                        onChange={(e) => setMealName(e.target.value)}
+                    />
+                </div>
 
-                    <Tabs value={creationMode} onValueChange={(value) => setCreationMode(value as any)} className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="ingredients">From Ingredients</TabsTrigger>
-                            <TabsTrigger value="totals">Enter Totals</TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="ingredients" className="space-y-4 pt-4 relative">
-                            <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                    <Label>Ingredients</Label>
-                                    <AddIngredientDialog onAddIngredient={handleAddIngredient}>
-                                        <Button variant="link" size="sm" className="p-0 h-auto">
-                                            Add New
-                                        </Button>
-                                    </AddIngredientDialog>
+                <Tabs value={creationMode} onValueChange={(value) => setCreationMode(value as any)} className="w-full">
+                    <TabsList className="grid w-full grid-cols-2">
+                        <TabsTrigger value="ingredients">From Ingredients</TabsTrigger>
+                        <TabsTrigger value="totals">Enter Totals</TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="ingredients" className="space-y-4 pt-4">
+                        <div className="space-y-2">
+                            <div className="flex justify-between items-center">
+                                <Label>Ingredients</Label>
+                                <AddIngredientDialog onAddIngredient={handleAddIngredient}>
+                                    <Button variant="link" size="sm" className="p-0 h-auto">
+                                        Add New
+                                    </Button>
+                                </AddIngredientDialog>
+                            </div>
+                            <Input
+                                placeholder="Search for an ingredient..."
+                                value={searchTerm}
+                                onChange={e => setSearchTerm(e.target.value)}
+                                className="mb-2"
+                            />
+                            <ScrollArea className="h-40 rounded-md border">
+                                <div className="p-2 space-y-1">
+                                {filteredFoods.map(food => (
+                                    <div
+                                        key={food.id}
+                                        className="flex items-center justify-between p-2 rounded-md cursor-pointer hover:bg-muted"
+                                        onClick={() => addFoodToMeal(food)}
+                                    >
+                                        <div>
+                                            <p className="font-semibold">{food.name}</p>
+                                            <p className="text-sm text-muted-foreground">{food.calories} kcal / {food.servingSize} {food.servingUnit}</p>
+                                        </div>
+                                        <Plus className="h-5 w-5 text-primary" />
+                                    </div>
+                                ))}
                                 </div>
-                                <Input
-                                    placeholder="Search for an ingredient..."
-                                    value={searchTerm}
-                                    onChange={e => setSearchTerm(e.target.value)}
-                                    className="mb-2"
-                                />
+                            </ScrollArea>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <Label>Selected Ingredients</Label>
+                            {selectedItems.length > 0 ? (
                                 <ScrollArea className="h-40 rounded-md border">
-                                    <div className="p-2 space-y-1">
-                                    {filteredFoods.map(food => (
-                                        <div
-                                            key={food.id}
-                                            className="flex items-center justify-between p-2 rounded-md cursor-pointer hover:bg-muted"
-                                            onClick={() => addFoodToMeal(food)}
-                                        >
-                                            <div>
-                                                <p className="font-semibold">{food.name}</p>
-                                                <p className="text-sm text-muted-foreground">{food.calories} kcal / {food.servingSize} {food.servingUnit}</p>
+                                    <div className="p-2 space-y-2">
+                                    {selectedItems.map(item => (
+                                        <div key={item.mealItemId} className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
+                                            <div className="flex-grow">
+                                                <p className="font-semibold">{item.name}</p>
+                                                <p className="text-sm text-muted-foreground">
+                                                {(item.calories * (item.quantity / item.servingSize)).toFixed(0)} kcal
+                                                </p>
                                             </div>
-                                            <Plus className="h-5 w-5 text-primary" />
+                                            <div className="flex items-center gap-2">
+                                                <Input
+                                                type="number"
+                                                value={item.quantity}
+                                                onChange={(e) => updateItemQuantity(item.mealItemId, parseFloat(e.target.value))}
+                                                className="w-20 h-8"
+                                                min="0"
+                                                />
+                                                <span className="text-sm text-muted-foreground">{item.servingUnit}</span>
+                                            </div>
+                                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeFoodFromMeal(item.mealItemId)}>
+                                            <Trash2 className="h-4 w-4 text-destructive" />
+                                            </Button>
                                         </div>
                                     ))}
                                     </div>
                                 </ScrollArea>
-                            </div>
-                            
-                            <div className="space-y-2">
-                                <Label>Selected Ingredients</Label>
-                                {selectedItems.length > 0 ? (
-                                    <ScrollArea className="h-40 rounded-md border">
-                                        <div className="p-2 space-y-2">
-                                        {selectedItems.map(item => (
-                                            <div key={item.mealItemId} className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
-                                                <div className="flex-grow">
-                                                    <p className="font-semibold">{item.name}</p>
-                                                    <p className="text-sm text-muted-foreground">
-                                                    {(item.calories * (item.quantity / item.servingSize)).toFixed(0)} kcal
-                                                    </p>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <Input
-                                                    type="number"
-                                                    value={item.quantity}
-                                                    onChange={(e) => updateItemQuantity(item.mealItemId, parseFloat(e.target.value))}
-                                                    className="w-20 h-8"
-                                                    min="0"
-                                                    />
-                                                    <span className="text-sm text-muted-foreground">{item.servingUnit}</span>
-                                                </div>
-                                                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeFoodFromMeal(item.mealItemId)}>
-                                                <Trash2 className="h-4 w-4 text-destructive" />
-                                                </Button>
-                                            </div>
-                                        ))}
-                                        </div>
-                                    </ScrollArea>
-                                ) : (
-                                    <div className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-md">
-                                        Search and click on an ingredient to add it.
-                                    </div>
-                                )}
-                            </div>
-                        </TabsContent>
-                        <TabsContent value="totals" className="pt-4 relative">
-                            <div className="space-y-4">
-                                <p className="text-sm text-muted-foreground">Enter the nutritional values per serving.</p>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="manualServingSize">Serving Size</Label>
-                                        <Input id="manualServingSize" type="number" value={manualServingSize} onChange={(e) => setManualServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="manualServingUnit">Unit</Label>
-                                        <Input id="manualServingUnit" value={manualServingUnit} onChange={(e) => setManualServingUnit(e.target.value)} />
-                                    </div>
+                            ) : (
+                                <div className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-md">
+                                    Search and click on an ingredient to add it.
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="calories">Calories (kcal)</Label>
-                                        <Input id="calories" type="number" value={manualCalories} onChange={(e) => setManualCalories(e.target.value === '' ? '' : parseFloat(e.target.value))} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="protein">Protein (g)</Label>
-                                        <Input id="protein" type="number" value={manualProtein} onChange={(e) => setManualProtein(e.target.value === '' ? '' : parseFloat(e.target.value))} />
-                                    </div>
+                            )}
+                        </div>
+                    </TabsContent>
+                    <TabsContent value="totals" className="pt-4">
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">Enter the nutritional values per serving.</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="manualServingSize">Serving Size</Label>
+                                    <Input id="manualServingSize" type="number" value={manualServingSize} onChange={(e) => setManualServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} />
                                 </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="carbs">Carbs (g)</Label>
-                                        <Input id="carbs" type="number" value={manualCarbs} onChange={(e) => setManualCarbs(e.target.value === '' ? '' : parseFloat(e.target.value))} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="fats">Fats (g)</Label>
-                                        <Input id="fats" type="number" value={manualFats} onChange={(e) => setManualFats(e.target.value === '' ? '' : parseFloat(e.target.value))} />
-                                    </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="manualServingUnit">Unit</Label>
+                                    <Input id="manualServingUnit" value={manualServingUnit} onChange={(e) => setManualServingUnit(e.target.value)} />
                                 </div>
                             </div>
-                        </TabsContent>
-                    </Tabs>
-                </div>
-            </ScrollArea>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="calories">Calories (kcal)</Label>
+                                    <Input id="calories" type="number" value={manualCalories} onChange={(e) => setManualCalories(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="protein">Protein (g)</Label>
+                                    <Input id="protein" type="number" value={manualProtein} onChange={(e) => setManualProtein(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label htmlFor="carbs">Carbs (g)</Label>
+                                    <Input id="carbs" type="number" value={manualCarbs} onChange={(e) => setManualCarbs(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="fats">Fats (g)</Label>
+                                    <Input id="fats" type="number" value={manualFats} onChange={(e) => setManualFats(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                                </div>
+                            </div>
+                        </div>
+                    </TabsContent>
+                </Tabs>
+            </div>
         </div>
        
-        <DialogFooter className="border-t pt-4">
+        <DialogFooter className="border-t pt-4 mt-auto">
             <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
             <Button onClick={handleCreateMeal} disabled={!isFormValid}>
                 <Plus className="mr-2" />
