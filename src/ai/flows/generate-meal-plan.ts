@@ -10,7 +10,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import type { GenerateMealPlanInput, GenerateMealPlanOutput } from '@/lib/types';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput, MealItem, FoodItem, CustomMeal, Meal } from '@/lib/types';
 
 // Schemas mirroring the types in src/lib/types.ts
 const FoodItemSchema = z.object({
@@ -65,9 +65,7 @@ const prompt = ai.definePrompt({
   name: 'generateMealPlanPrompt',
   input: { schema: GenerateMealPlanInputSchema },
   output: { schema: GenerateMealPlanOutputSchema },
-  prompt: `You are an expert nutritionist and meal planner. Your task is to create a daily meal plan for a user based on their nutritional goals and the food items and pre-made meals they have available.
-
-Your primary instruction is to stay as close as possible to the user's nutritional targets. The total calories for the entire day MUST NOT exceed the calorie goal. It is much better to be slightly under the goal than to be over.
+  prompt: `You are an expert nutritionist and meal planner. Your task is to create a template for a daily meal plan based on the user's nutritional goals, using only the food items and pre-made meals they have available. Your main job is to select appropriate foods and distribute them across meals.
 
 The user's goals are:
 - Calories: {{{calorieGoal}}} kcal
@@ -88,14 +86,13 @@ Available pre-made meals:
 
 Instructions:
 1.  Create a full-day meal plan distributed across "Breakfast", "Lunch", "Dinner", and "Snacks".
-2.  You MUST adjust the 'quantity' of individual ingredients to meet the nutritional targets precisely. Do not just use the default serving size. For example, if you need fewer calories, use a smaller quantity of an ingredient. Calculate the correct quantity.
-3.  You can use any combination of the available meals and individual ingredients.
-4.  Get as close as possible to the user's target for calories, protein, carbs, and fats without going over. The total calories MUST NOT exceed the calorie goal.
-5.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
-6.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId' and the calculated 'quantity' you decided on.
-7.  Do not invent new foods. Only use the ones provided in the available foods and meals lists.
+2.  Select a variety of items from the available foods and meals to create a balanced plan.
+3.  For each individual food item you select, you MUST set the initial 'quantity' to be equal to its 'servingSize'. The final adjustment will be done later.
+4.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
+5.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId' and the initial 'quantity'.
+6.  Do not invent new foods. Only use the ones provided in the available foods and meals lists.
 
-Return the final meal plan in the specified JSON format.
+Return the final meal plan template in the specified JSON format. The quantities will be adjusted programmatically later.
 `,
 });
 
@@ -106,7 +103,48 @@ const generateMealPlanFlow = ai.defineFlow(
     outputSchema: GenerateMealPlanOutputSchema,
   },
   async (input) => {
-    const { output } = await prompt(input);
-    return output!;
+    const { output: planTemplate } = await prompt(input);
+
+    if (!planTemplate) {
+        throw new Error('AI failed to generate a meal plan template.');
+    }
+
+    let totalCalories = 0;
+    for (const meal of planTemplate) {
+        for (const item of meal.items) {
+            const ratio = item.quantity / item.servingSize;
+            totalCalories += item.calories * ratio;
+        }
+    }
+
+    if (totalCalories === 0) {
+        return planTemplate; // Avoid division by zero if no items were returned
+    }
+    
+    // Calculate the scaling factor. If total calories are over the goal, this will be < 1.
+    const scalingFactor = input.calorieGoal / totalCalories;
+
+    const adjustedPlan: Meal[] = [];
+
+    // If the plan is already under or at the goal, we can still apply a slight adjustment or just return as is.
+    // We will scale down if over, but not scale up if under, to respect the "do not exceed" rule.
+    if (scalingFactor < 1) {
+        for (const meal of planTemplate) {
+            const adjustedMeal: Meal = { ...meal, items: [] };
+            for (const item of meal.items) {
+                // Adjust quantity based on the scaling factor to meet the calorie goal.
+                const adjustedQuantity = item.quantity * scalingFactor;
+                adjustedMeal.items.push({
+                    ...item,
+                    quantity: Math.round(adjustedQuantity > 0 ? adjustedQuantity : 1), // Ensure quantity is at least 1
+                });
+            }
+            adjustedPlan.push(adjustedMeal);
+        }
+        return adjustedPlan;
+    }
+
+    // If the initial plan is already under the goal, return it as is.
+    return planTemplate;
   }
 );
