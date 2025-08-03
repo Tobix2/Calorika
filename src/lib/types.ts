@@ -30,6 +30,8 @@ export type CustomMeal = {
   totalProtein: number;
   totalCarbs: number;
   totalFats: number;
+  servingSize?: number;
+  servingUnit?: string;
 };
 
 export type GenerateMealPlanInput = {

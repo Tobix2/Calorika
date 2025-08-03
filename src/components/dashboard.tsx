@@ -76,8 +76,8 @@ export default function Dashboard() {
             carbs: customMeal.totalCarbs,
             fats: customMeal.totalFats,
             quantity: servings,
-            servingSize: 1, // Serving size is 1 for a manual meal
-            servingUnit: 'serving(s)',
+            servingSize: customMeal.servingSize || 1, 
+            servingUnit: customMeal.servingUnit || 'serving(s)',
         };
         setMeals(prevMeals => 
             prevMeals.map(meal => 

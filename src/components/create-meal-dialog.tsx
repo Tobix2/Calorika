@@ -53,6 +53,8 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
   const [manualProtein, setManualProtein] = useState<number | ''>('');
   const [manualCarbs, setManualCarbs] = useState<number | ''>('');
   const [manualFats, setManualFats] = useState<number | ''>('');
+  const [manualServingSize, setManualServingSize] = useState<number | ''>(100);
+  const [manualServingUnit, setManualServingUnit] = useState('g');
 
 
   const filteredFoods = foodDatabase.filter(food =>
@@ -106,7 +108,7 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
             };
             onCreateMeal(newMeal);
             resetState();
-        } else if (creationMode === 'totals' && manualCalories !== '' && manualProtein !== '' && manualCarbs !== '' && manualFats !== '') {
+        } else if (creationMode === 'totals' && manualCalories !== '' && manualProtein !== '' && manualCarbs !== '' && manualFats !== '' && manualServingSize !== '' && manualServingUnit !== '') {
              const newMeal: CustomMeal = {
                 id: crypto.randomUUID(),
                 name: mealName,
@@ -115,6 +117,8 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
                 totalProtein: Number(manualProtein),
                 totalCarbs: Number(manualCarbs),
                 totalFats: Number(manualFats),
+                servingSize: Number(manualServingSize),
+                servingUnit: manualServingUnit,
             };
             onCreateMeal(newMeal);
             resetState();
@@ -132,6 +136,8 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
     setManualProtein('');
     setManualCarbs('');
     setManualFats('');
+    setManualServingSize(100);
+    setManualServingUnit('g');
   }
 
 
@@ -148,7 +154,7 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
   }
 
   const isIngredientsFormValid = mealName.trim() && selectedItems.length > 0;
-  const isTotalsFormValid = mealName.trim() && manualCalories !== '' && manualProtein !== '' && manualCarbs !== '' && manualFats !== '';
+  const isTotalsFormValid = mealName.trim() && manualCalories !== '' && manualProtein !== '' && manualCarbs !== '' && manualFats !== '' && manualServingSize !== '' && manualServingUnit !== '';
   const isFormValid = creationMode === 'ingredients' ? isIngredientsFormValid : isTotalsFormValid;
 
 
@@ -257,6 +263,17 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
                     </div>
                 </TabsContent>
                 <TabsContent value="totals" className="space-y-4 pt-4">
+                    <p className="text-sm text-muted-foreground">Enter the nutritional values per serving.</p>
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="manualServingSize">Serving Size</Label>
+                            <Input id="manualServingSize" type="number" value={manualServingSize} onChange={(e) => setManualServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="manualServingUnit">Unit</Label>
+                            <Input id="manualServingUnit" value={manualServingUnit} onChange={(e) => setManualServingUnit(e.target.value)} />
+                        </div>
+                    </div>
                      <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="calories">Calories (kcal)</Label>
