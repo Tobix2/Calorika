@@ -18,6 +18,7 @@ import type { FoodItem, CustomMeal, MealItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, UtensilsCrossed, Trash2 } from 'lucide-react';
 import AddIngredientDialog from './add-ingredient-dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const MOCK_FOOD_DATABASE: FoodItem[] = [
@@ -41,11 +42,18 @@ interface CreateMealDialogProps {
 
 export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps) {
   const [open, setOpen] = useState(false);
-  const [step, setStep] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
   const [mealName, setMealName] = useState('');
   const [selectedItems, setSelectedItems] = useState<MealItem[]>([]);
   const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>(MOCK_FOOD_DATABASE);
+  const [creationMode, setCreationMode] = useState<'ingredients' | 'totals'>('ingredients');
+
+  // Manual totals state
+  const [manualCalories, setManualCalories] = useState<number | ''>('');
+  const [manualProtein, setManualProtein] = useState<number | ''>('');
+  const [manualCarbs, setManualCarbs] = useState<number | ''>('');
+  const [manualFats, setManualFats] = useState<number | ''>('');
+
 
   const filteredFoods = foodDatabase.filter(food =>
     food.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -72,7 +80,7 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
     );
   };
 
-  const totals = useMemo(() => {
+  const totalsFromIngredients = useMemo(() => {
     return selectedItems.reduce(
         (acc, item) => {
           const ratio = item.quantity / item.servingSize;
@@ -88,31 +96,44 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
 
 
   const handleCreateMeal = () => {
-    if (mealName.trim() && selectedItems.length > 0) {
-      const newMeal: CustomMeal = {
-        id: crypto.randomUUID(),
-        name: mealName,
-        items: selectedItems.map(item => ({...item, mealItemId: crypto.randomUUID()})),
-        ...totals
-      };
-      onCreateMeal(newMeal);
-      resetState();
+    if (mealName.trim()) {
+        if (creationMode === 'ingredients' && selectedItems.length > 0) {
+            const newMeal: CustomMeal = {
+                id: crypto.randomUUID(),
+                name: mealName,
+                items: selectedItems.map(item => ({...item, mealItemId: crypto.randomUUID()})),
+                ...totalsFromIngredients
+            };
+            onCreateMeal(newMeal);
+            resetState();
+        } else if (creationMode === 'totals' && manualCalories !== '' && manualProtein !== '' && manualCarbs !== '' && manualFats !== '') {
+             const newMeal: CustomMeal = {
+                id: crypto.randomUUID(),
+                name: mealName,
+                items: [], // No ingredients for manual entry
+                totalCalories: Number(manualCalories),
+                totalProtein: Number(manualProtein),
+                totalCarbs: Number(manualCarbs),
+                totalFats: Number(manualFats),
+            };
+            onCreateMeal(newMeal);
+            resetState();
+        }
     }
   };
   
   const resetState = () => {
     setOpen(false);
-    setStep(1);
     setMealName('');
     setSelectedItems([]);
     setSearchTerm('');
+    setCreationMode('ingredients');
+    setManualCalories('');
+    setManualProtein('');
+    setManualCarbs('');
+    setManualFats('');
   }
 
-  const handleNextStep = () => {
-    if (mealName.trim()) {
-      setStep(2);
-    }
-  }
 
   const handleAddIngredient = (newIngredient: FoodItem) => {
     setFoodDatabase(prev => [...prev, newIngredient]);
@@ -126,6 +147,11 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
     setOpen(isOpen);
   }
 
+  const isIngredientsFormValid = mealName.trim() && selectedItems.length > 0;
+  const isTotalsFormValid = mealName.trim() && manualCalories !== '' && manualProtein !== '' && manualCarbs !== '' && manualFats !== '';
+  const isFormValid = creationMode === 'ingredients' ? isIngredientsFormValid : isTotalsFormValid;
+
+
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
@@ -138,116 +164,130 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
         <DialogHeader>
           <DialogTitle>Create a New Meal</DialogTitle>
            <DialogDescription>
-            {step === 1 ? "First, give your new meal a name." : "Now, add ingredients and specify the quantities."}
+             Compose a meal from ingredients or enter the nutritional totals directly.
           </DialogDescription>
         </DialogHeader>
-
-        {step === 1 && (
-            <div className="space-y-4 py-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="meal-name">Meal Name</Label>
-                    <Input
-                        id="meal-name"
-                        placeholder="e.g., Post-Workout Shake"
-                        value={mealName}
-                        onChange={(e) => setMealName(e.target.value)}
-                    />
-                </div>
+        
+        <div className="space-y-4 py-2">
+            <div className="space-y-2">
+                <Label htmlFor="meal-name">Meal Name</Label>
+                <Input
+                    id="meal-name"
+                    placeholder="e.g., Post-Workout Shake"
+                    value={mealName}
+                    onChange={(e) => setMealName(e.target.value)}
+                />
             </div>
-        )}
 
-        {step === 2 && (
-             <div className="space-y-4 py-2">
-                <div className="space-y-2">
-                    <div className="flex justify-between items-center">
-                        <Label>Ingredients</Label>
-                        <AddIngredientDialog onAddIngredient={handleAddIngredient}>
-                            <Button variant="link" size="sm" className="p-0 h-auto">
-                                Add New
-                            </Button>
-                        </AddIngredientDialog>
-                    </div>
-                     <Input
-                        placeholder="Search for an ingredient..."
-                        value={searchTerm}
-                        onChange={e => setSearchTerm(e.target.value)}
-                        className="mb-2"
-                    />
-                    <ScrollArea className="h-40 rounded-md border">
-                        <div className="p-2 space-y-1">
-                        {filteredFoods.map(food => (
-                            <div
-                                key={food.id}
-                                className="flex items-center justify-between p-2 rounded-md cursor-pointer hover:bg-muted"
-                                onClick={() => addFoodToMeal(food)}
-                            >
-                                <div>
-                                    <p className="font-semibold">{food.name}</p>
-                                    <p className="text-sm text-muted-foreground">{food.calories} kcal / {food.servingSize} {food.servingUnit}</p>
-                                </div>
-                                <Plus className="h-5 w-5 text-primary" />
-                            </div>
-                        ))}
+            <Tabs value={creationMode} onValueChange={(value) => setCreationMode(value as any)} className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="ingredients">From Ingredients</TabsTrigger>
+                    <TabsTrigger value="totals">Enter Totals</TabsTrigger>
+                </TabsList>
+                <TabsContent value="ingredients" className="space-y-4 pt-4">
+                    <div className="space-y-2">
+                        <div className="flex justify-between items-center">
+                            <Label>Ingredients</Label>
+                            <AddIngredientDialog onAddIngredient={handleAddIngredient}>
+                                <Button variant="link" size="sm" className="p-0 h-auto">
+                                    Add New
+                                </Button>
+                            </AddIngredientDialog>
                         </div>
-                    </ScrollArea>
-                </div>
-                
-                <div className="space-y-2">
-                    <Label>Selected Ingredients</Label>
-                     {selectedItems.length > 0 ? (
+                        <Input
+                            placeholder="Search for an ingredient..."
+                            value={searchTerm}
+                            onChange={e => setSearchTerm(e.target.value)}
+                            className="mb-2"
+                        />
                         <ScrollArea className="h-40 rounded-md border">
-                            <div className="p-2 space-y-2">
-                               {selectedItems.map(item => (
-                                <div key={item.mealItemId} className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
-                                    <div className="flex-grow">
-                                        <p className="font-semibold">{item.name}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                          {(item.calories * (item.quantity / item.servingSize)).toFixed(0)} kcal
-                                        </p>
+                            <div className="p-2 space-y-1">
+                            {filteredFoods.map(food => (
+                                <div
+                                    key={food.id}
+                                    className="flex items-center justify-between p-2 rounded-md cursor-pointer hover:bg-muted"
+                                    onClick={() => addFoodToMeal(food)}
+                                >
+                                    <div>
+                                        <p className="font-semibold">{food.name}</p>
+                                        <p className="text-sm text-muted-foreground">{food.calories} kcal / {food.servingSize} {food.servingUnit}</p>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <Input
-                                          type="number"
-                                          value={item.quantity}
-                                          onChange={(e) => updateItemQuantity(item.mealItemId, parseFloat(e.target.value))}
-                                          className="w-20 h-8"
-                                          min="0"
-                                        />
-                                        <span className="text-sm text-muted-foreground">{item.servingUnit}</span>
-                                    </div>
-                                    <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeFoodFromMeal(item.mealItemId)}>
-                                      <Trash2 className="h-4 w-4 text-destructive" />
-                                    </Button>
+                                    <Plus className="h-5 w-5 text-primary" />
                                 </div>
-                              ))}
+                            ))}
                             </div>
                         </ScrollArea>
-                    ) : (
-                        <div className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-md">
-                            Search and click on an ingredient to add it.
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Label>Selected Ingredients</Label>
+                        {selectedItems.length > 0 ? (
+                            <ScrollArea className="h-40 rounded-md border">
+                                <div className="p-2 space-y-2">
+                                {selectedItems.map(item => (
+                                    <div key={item.mealItemId} className="flex items-center justify-between gap-2 p-2 rounded-md bg-muted/50">
+                                        <div className="flex-grow">
+                                            <p className="font-semibold">{item.name}</p>
+                                            <p className="text-sm text-muted-foreground">
+                                            {(item.calories * (item.quantity / item.servingSize)).toFixed(0)} kcal
+                                            </p>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <Input
+                                            type="number"
+                                            value={item.quantity}
+                                            onChange={(e) => updateItemQuantity(item.mealItemId, parseFloat(e.target.value))}
+                                            className="w-20 h-8"
+                                            min="0"
+                                            />
+                                            <span className="text-sm text-muted-foreground">{item.servingUnit}</span>
+                                        </div>
+                                        <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => removeFoodFromMeal(item.mealItemId)}>
+                                        <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                    </div>
+                                ))}
+                                </div>
+                            </ScrollArea>
+                        ) : (
+                            <div className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-md">
+                                Search and click on an ingredient to add it.
+                            </div>
+                        )}
+                    </div>
+                </TabsContent>
+                <TabsContent value="totals" className="space-y-4 pt-4">
+                     <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="calories">Calories (kcal)</Label>
+                            <Input id="calories" type="number" value={manualCalories} onChange={(e) => setManualCalories(e.target.value === '' ? '' : parseFloat(e.target.value))} />
                         </div>
-                    )}
-                </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="protein">Protein (g)</Label>
+                            <Input id="protein" type="number" value={manualProtein} onChange={(e) => setManualProtein(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="carbs">Carbs (g)</Label>
+                            <Input id="carbs" type="number" value={manualCarbs} onChange={(e) => setManualCarbs(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="fats">Fats (g)</Label>
+                            <Input id="fats" type="number" value={manualFats} onChange={(e) => setManualFats(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                        </div>
+                    </div>
+                </TabsContent>
+            </Tabs>
 
-             </div>
-        )}
+        </div>
        
         <DialogFooter>
-            {step === 1 && (
-              <>
-                <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
-                <Button onClick={handleNextStep} disabled={!mealName.trim()}>Next</Button>
-              </>
-            )}
-            {step === 2 && (
-              <>
-                <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                <Button onClick={handleCreateMeal} disabled={selectedItems.length === 0}>
-                    <Plus className="mr-2" />
-                    Create Meal ({totals.totalCalories.toFixed(0)} kcal)
-                </Button>
-              </>
-            )}
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
+            <Button onClick={handleCreateMeal} disabled={!isFormValid}>
+                <Plus className="mr-2" />
+                Create Meal ({creationMode === 'ingredients' ? totalsFromIngredients.totalCalories.toFixed(0) : Number(manualCalories || 0).toFixed(0)} kcal)
+            </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

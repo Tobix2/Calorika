@@ -65,18 +65,40 @@ export default function Dashboard() {
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
-    setMeals(prevMeals =>
-      prevMeals.map(meal =>
-        meal.name === mealName ? { ...meal, items: [
-            ...meal.items,
-            ...customMeal.items.map(item => ({
-                ...item, 
-                quantity: item.quantity * servings,
-                mealItemId: crypto.randomUUID()
-            }))
-        ] } : meal
-      )
-    );
+    // If the custom meal has no items, it was created with manual totals.
+    if (customMeal.items.length === 0) {
+        const manualMealItem: MealItem = {
+            id: customMeal.id,
+            mealItemId: crypto.randomUUID(),
+            name: customMeal.name,
+            calories: customMeal.totalCalories,
+            protein: customMeal.totalProtein,
+            carbs: customMeal.totalCarbs,
+            fats: customMeal.totalFats,
+            quantity: servings,
+            servingSize: 1, // Serving size is 1 for a manual meal
+            servingUnit: 'serving(s)',
+        };
+        setMeals(prevMeals => 
+            prevMeals.map(meal => 
+                meal.name === mealName ? { ...meal, items: [...meal.items, manualMealItem] } : meal
+            )
+        );
+    } else {
+        // Otherwise, add all items from the custom meal, adjusting for servings.
+        setMeals(prevMeals =>
+        prevMeals.map(meal =>
+            meal.name === mealName ? { ...meal, items: [
+                ...meal.items,
+                ...customMeal.items.map(item => ({
+                    ...item, 
+                    quantity: item.quantity * servings,
+                    mealItemId: crypto.randomUUID()
+                }))
+            ] } : meal
+        )
+        );
+    }
   };
 
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
@@ -131,7 +153,7 @@ export default function Dashboard() {
     return meals.reduce(
       (totals, meal) => {
         meal.items.forEach(item => {
-          const ratio = item.quantity / item.servingSize;
+          const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : item.quantity;
           totals.totalCalories += item.calories * ratio;
           totals.totalProtein += item.protein * ratio;
           totals.totalCarbs += item.carbs * ratio;
@@ -147,7 +169,7 @@ export default function Dashboard() {
     return meals.map(meal => ({
       name: meal.name,
       calories: meal.items.reduce((sum, item) => {
-          const ratio = item.quantity / item.servingSize;
+          const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : item.quantity;
           return sum + (item.calories * ratio)
       }, 0),
     }));

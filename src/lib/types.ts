@@ -25,7 +25,7 @@ export type Meal = {
 export type CustomMeal = {
   id: string;
   name: string;
-  items: MealItem[];
+  items: MealItem[]; // Can be empty for meals with manual totals
   totalCalories: number;
   totalProtein: number;
   totalCarbs: number;

@@ -47,11 +47,15 @@ export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, 
                   meal.items.map((item: MealItem) => {
                     const ratio = item.quantity / item.servingSize;
                     const itemCalories = item.calories * ratio;
+                    const description = item.servingSize > 0 ?
+                         `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal` :
+                         `${itemCalories.toFixed(0)} kcal`;
+
                     return (
                         <div key={item.mealItemId} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
                         <div>
                             <p className="font-semibold">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">{item.quantity} {item.servingUnit} &bull; {itemCalories.toFixed(0)} kcal</p>
+                            <p className="text-sm text-muted-foreground">{description}</p>
                         </div>
                         <button onClick={() => onRemoveFood(meal.name, item.mealItemId)} className="text-muted-foreground hover:text-destructive p-1 rounded-full hover:bg-destructive/10">
                             <Trash2 className="h-4 w-4" />
