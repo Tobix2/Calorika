@@ -48,14 +48,14 @@ export default function Dashboard() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
-  const handleAddFood = (mealName: MealName, food: FoodItem) => {
+  const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
     setMeals(prevMeals =>
       prevMeals.map(meal => {
         if (meal.name === mealName) {
             const newItem: MealItem = {
                 ...food,
                 mealItemId: crypto.randomUUID(),
-                quantity: food.servingSize
+                quantity: quantity
             };
             return { ...meal, items: [...meal.items, newItem] };
         }
@@ -64,10 +64,17 @@ export default function Dashboard() {
     );
   };
 
-  const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal) => {
+  const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
     setMeals(prevMeals =>
       prevMeals.map(meal =>
-        meal.name === mealName ? { ...meal, items: [...meal.items, ...customMeal.items.map(item => ({...item, mealItemId: crypto.randomUUID()}))] } : meal
+        meal.name === mealName ? { ...meal, items: [
+            ...meal.items,
+            ...customMeal.items.map(item => ({
+                ...item, 
+                quantity: item.quantity * servings,
+                mealItemId: crypto.randomUUID()
+            }))
+        ] } : meal
       )
     );
   };

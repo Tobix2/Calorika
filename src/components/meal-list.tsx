@@ -8,8 +8,8 @@ import { Apple, Salad, Drumstick, Cookie, Flame, Trash2, PlusCircle } from 'luci
 interface MealListProps {
   meals: Meal[];
   customMeals: CustomMeal[];
-  onAddFood: (mealName: MealName, food: FoodItem) => void;
-  onAddCustomMeal: (mealName: MealName, customMeal: CustomMeal) => void;
+  onAddFood: (mealName: MealName, food: FoodItem, quantity: number) => void;
+  onAddCustomMeal: (mealName: MealName, customMeal: CustomMeal, servings: number) => void;
   onRemoveFood: (mealName: MealName, mealItemId: string) => void;
 }
 
@@ -64,8 +64,8 @@ export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, 
                 )}
               </div>
               <AddFoodDialog
-                onAddFood={(food) => onAddFood(meal.name, food)}
-                onAddCustomMeal={(customMeal) => onAddCustomMeal(meal.name, customMeal)}
+                onAddFood={(food, quantity) => onAddFood(meal.name, food, quantity)}
+                onAddCustomMeal={(customMeal, servings) => onAddCustomMeal(meal.name, customMeal, servings)}
                 customMeals={customMeals}
               >
                  <button className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md border-2 border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-accent hover:border-accent-foreground hover:text-accent-foreground transition-colors">
