@@ -160,16 +160,19 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
     return meals.reduce(
       (totals, meal) => {
         meal.items.forEach(item => {
+          const quantity = Number(item.quantity) || 0;
           if (item.isCustom) {
-            totals.totalCalories += (Number(item.calories) || 0) * (Number(item.quantity) || 0);
-            totals.totalProtein += (Number(item.protein) || 0) * (Number(item.quantity) || 0);
-            totals.totalCarbs += (Number(item.carbs) || 0) * (Number(item.quantity) || 0);
-            totals.totalFats += (Number(item.fats) || 0) * (Number(item.quantity) || 0);
+            // Manually entered meal, totals are per serving
+            const servingSize = Number(item.servingSize) || 1;
+            const ratio = quantity / servingSize;
+            totals.totalCalories += (Number(item.calories) || 0) * ratio;
+            totals.totalProtein += (Number(item.protein) || 0) * ratio;
+            totals.totalCarbs += (Number(item.carbs) || 0) * ratio;
+            totals.totalFats += (Number(item.fats) || 0) * ratio;
           } else {
-            const itemQuantity = Number(item.quantity) || 0;
-            const itemServingSize = Number(item.servingSize) || 1;
-            const ratio = itemServingSize > 0 ? itemQuantity / itemServingSize : 0;
-
+            // Ingredient-based item
+            const servingSize = Number(item.servingSize) || 1;
+            const ratio = servingSize > 0 ? quantity / servingSize : 0;
             totals.totalCalories += (Number(item.calories) || 0) * ratio;
             totals.totalProtein += (Number(item.protein) || 0) * ratio;
             totals.totalCarbs += (Number(item.carbs) || 0) * ratio;
@@ -186,12 +189,14 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
     return meals.map(meal => ({
       name: meal.name,
       calories: meal.items.reduce((sum, item) => {
+          const quantity = Number(item.quantity) || 0;
           if (item.isCustom) {
-              return sum + (Number(item.calories) || 0) * (Number(item.quantity) || 0);
+              const servingSize = Number(item.servingSize) || 1;
+              const ratio = quantity / servingSize;
+              return sum + ((Number(item.calories) || 0) * ratio);
           }
-          const itemQuantity = Number(item.quantity) || 0;
           const itemServingSize = Number(item.servingSize) || 1;
-          const ratio = itemServingSize > 0 ? itemQuantity / itemServingSize : 0;
+          const ratio = itemServingSize > 0 ? quantity / itemServingSize : 0;
           return sum + ((Number(item.calories) || 0) * ratio)
       }, 0),
     }));
