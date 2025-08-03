@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import type { Meal, MealName, FoodItem, CustomMeal } from '@/lib/types';
+import type { Meal, MealName, FoodItem, CustomMeal, MealItem } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
@@ -26,25 +26,33 @@ export default function Dashboard() {
   
   const handleAddFood = (mealName: MealName, food: FoodItem) => {
     setMeals(prevMeals =>
-      prevMeals.map(meal =>
-        meal.name === mealName ? { ...meal, items: [...meal.items, food] } : meal
-      )
+      prevMeals.map(meal => {
+        if (meal.name === mealName) {
+            const newItem: MealItem = {
+                ...food,
+                mealItemId: crypto.randomUUID(),
+                quantity: food.servingSize
+            };
+            return { ...meal, items: [...meal.items, newItem] };
+        }
+        return meal;
+      })
     );
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal) => {
     setMeals(prevMeals =>
       prevMeals.map(meal =>
-        meal.name === mealName ? { ...meal, items: [...meal.items, ...customMeal.items.map(item => ({...item, id: crypto.randomUUID()}))] } : meal
+        meal.name === mealName ? { ...meal, items: [...meal.items, ...customMeal.items.map(item => ({...item, mealItemId: crypto.randomUUID()}))] } : meal
       )
     );
   };
 
-  const handleRemoveFood = (mealName: MealName, foodId: string) => {
+  const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
     setMeals(prevMeals =>
       prevMeals.map(meal =>
         meal.name === mealName
-          ? { ...meal, items: meal.items.filter(item => item.id !== foodId) }
+          ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
           : meal
       )
     );
@@ -62,10 +70,11 @@ export default function Dashboard() {
     return meals.reduce(
       (totals, meal) => {
         meal.items.forEach(item => {
-          totals.totalCalories += item.calories;
-          totals.totalProtein += item.protein;
-          totals.totalCarbs += item.carbs;
-          totals.totalFats += item.fats;
+          const ratio = item.quantity / item.servingSize;
+          totals.totalCalories += item.calories * ratio;
+          totals.totalProtein += item.protein * ratio;
+          totals.totalCarbs += item.carbs * ratio;
+          totals.totalFats += item.fats * ratio;
         });
         return totals;
       },
@@ -76,7 +85,10 @@ export default function Dashboard() {
   const chartData = useMemo(() => {
     return meals.map(meal => ({
       name: meal.name,
-      calories: meal.items.reduce((sum, item) => sum + item.calories, 0),
+      calories: meal.items.reduce((sum, item) => {
+          const ratio = item.quantity / item.servingSize;
+          return sum + (item.calories * ratio)
+      }, 0),
     }));
   }, [meals]);
 

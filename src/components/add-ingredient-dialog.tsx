@@ -24,7 +24,8 @@ interface AddIngredientDialogProps {
 export default function AddIngredientDialog({ onAddIngredient, children }: AddIngredientDialogProps) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
-  const [serving, setServing] = useState('');
+  const [servingSize, setServingSize] = useState<number | ''>(100);
+  const [servingUnit, setServingUnit] = useState('g');
   const [calories, setCalories] = useState<number | ''>('');
   const [protein, setProtein] = useState<number | ''>('');
   const [carbs, setCarbs] = useState<number | ''>('');
@@ -32,7 +33,8 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
   
   const resetForm = () => {
     setName('');
-    setServing('');
+    setServingSize(100);
+    setServingUnit('g');
     setCalories('');
     setProtein('');
     setCarbs('');
@@ -40,11 +42,12 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
   }
 
   const handleSave = () => {
-    if (name && serving && calories !== '' && protein !== '' && carbs !== '' && fats !== '') {
+    if (name && servingSize !== '' && servingUnit && calories !== '' && protein !== '' && carbs !== '' && fats !== '') {
       const newIngredient: FoodItem = {
         id: crypto.randomUUID(),
         name,
-        serving,
+        servingSize: Number(servingSize),
+        servingUnit,
         calories: Number(calories),
         protein: Number(protein),
         carbs: Number(carbs),
@@ -56,7 +59,7 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
     }
   };
   
-  const isFormValid = name && serving && calories !== '' && protein !== '' && carbs !== '' && fats !== '';
+  const isFormValid = name && servingSize !== '' && servingUnit && calories !== '' && protein !== '' && carbs !== '' && fats !== '';
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
@@ -65,7 +68,7 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
         <DialogHeader>
           <DialogTitle>Add New Ingredient</DialogTitle>
           <DialogDescription>
-            Enter the details for the new food item.
+            Enter the nutritional details for the new food item.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">
@@ -73,9 +76,15 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
                 <Label htmlFor="name">Ingredient Name</Label>
                 <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Almond Butter"/>
             </div>
-            <div className="space-y-2">
-                <Label htmlFor="serving">Serving Size</Label>
-                <Input id="serving" value={serving} onChange={(e) => setServing(e.target.value)} placeholder="e.g., 2 tbsp"/>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                  <Label htmlFor="servingSize">Serving Size</Label>
+                  <Input id="servingSize" type="number" value={servingSize} onChange={(e) => setServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="e.g., 100"/>
+              </div>
+               <div className="space-y-2">
+                  <Label htmlFor="servingUnit">Unit</Label>
+                  <Input id="servingUnit" value={servingUnit} onChange={(e) => setServingUnit(e.target.value)} placeholder="e.g., g, ml, cup"/>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
