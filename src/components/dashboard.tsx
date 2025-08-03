@@ -65,7 +65,7 @@ export default function Dashboard() {
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
-    if (customMeal.items.length === 0) {
+    if (!customMeal.items || customMeal.items.length === 0) {
         // This is a meal with manually entered totals.
         const manualMealItem: MealItem = {
             id: customMeal.id,
@@ -78,7 +78,7 @@ export default function Dashboard() {
             fats: customMeal.totalFats,
             // The quantity is how many servings the user wants to add.
             quantity: servings,
-            servingSize: 1, // The base serving size for a manual meal is always 1 serving.
+            servingSize: customMeal.servingSize || 1, 
             servingUnit: customMeal.servingUnit || 'serving',
             isCustom: true,
         };
