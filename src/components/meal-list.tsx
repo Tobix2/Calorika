@@ -25,8 +25,11 @@ export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {meals.map(meal => {
         const mealCalories = meal.items.reduce((sum, item) => {
+            if (item.isCustom) {
+                return sum + (Number(item.calories) || 0) * (Number(item.quantity) || 0);
+            }
             const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : 0;
-            return sum + (item.calories * ratio)
+            return sum + (item.calories * ratio);
         }, 0);
 
         return (
@@ -45,11 +48,15 @@ export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, 
               <div className="space-y-3 mb-4 flex-grow">
                 {meal.items.length > 0 ? (
                   meal.items.map((item: MealItem) => {
-                    const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : 0;
-                    const itemCalories = item.calories * ratio;
-                    const description = item.servingSize > 0 ?
-                         `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal` :
-                         `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
+                     let itemCalories, description;
+                     if (item.isCustom) {
+                         itemCalories = (Number(item.calories) || 0) * (Number(item.quantity) || 0);
+                         description = `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
+                     } else {
+                         const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : 0;
+                         itemCalories = item.calories * ratio;
+                         description = `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
+                     }
 
                     return (
                         <div key={item.mealItemId} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">

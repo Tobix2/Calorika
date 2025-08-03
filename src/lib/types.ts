@@ -13,6 +13,7 @@ export type MealItem = FoodItem & {
   // id en la instancia de la comida, diferente al id del FoodItem
   mealItemId: string; 
   quantity: number;
+  isCustom?: boolean; // Flag for manually added meals
 };
 
 export type MealName = "Breakfast" | "Lunch" | "Dinner" | "Snacks";

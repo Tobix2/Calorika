@@ -78,6 +78,7 @@ export default function Dashboard() {
             quantity: servings * (customMeal.servingSize || 1), // Multiply servings by base serving size
             servingSize: customMeal.servingSize || 1, 
             servingUnit: customMeal.servingUnit || 'serving(s)',
+            isCustom: true,
         };
         setMeals(prevMeals => 
             prevMeals.map(meal => 
@@ -150,34 +151,32 @@ export default function Dashboard() {
   };
 
   const { totalCalories, totalProtein, totalCarbs, totalFats } = useMemo(() => {
-    console.log('--- Recalculating totals ---');
     return meals.reduce(
       (totals, meal) => {
-        meal.items.forEach((item, index) => {
-          // Fallback to 0 if values are not numbers to prevent NaN
+        meal.items.forEach(item => {
           const itemQuantity = Number(item.quantity) || 0;
-          const itemServingSize = Number(item.servingSize) || 1; // Avoid division by zero
+          const itemServingSize = Number(item.servingSize) || 1;
+          const ratio = itemQuantity / itemServingSize;
+
           const itemCalories = Number(item.calories) || 0;
           const itemProtein = Number(item.protein) || 0;
           const itemCarbs = Number(item.carbs) || 0;
           const itemFats = Number(item.fats) || 0;
 
-          // The ratio determines how many servings we're consuming.
-          // For manually added items, servingSize is the base unit (e.g., 100), and quantity is what the user logged (e.g., 150)
-          const ratio = itemQuantity / itemServingSize;
-
-          console.log(`Item ${index} (${item.name}):`, {
-            itemQuantity,
-            itemServingSize,
-            ratio,
-            itemCalories,
-            itemProtein
-          });
-
-          totals.totalCalories += itemCalories * ratio;
-          totals.totalProtein += itemProtein * ratio;
-          totals.totalCarbs += itemCarbs * ratio;
-          totals.totalFats += itemFats * ratio;
+          if (item.isCustom) {
+            // For custom meals with manual totals, the macros are per serving.
+            // The ratio here is just the number of servings.
+            totals.totalCalories += itemCalories * itemQuantity;
+            totals.totalProtein += itemProtein * itemQuantity;
+            totals.totalCarbs += itemCarbs * itemQuantity;
+            totals.totalFats += itemFats * itemQuantity;
+          } else {
+            // For regular ingredients, macros are per servingSize, so we need the ratio.
+            totals.totalCalories += itemCalories * ratio;
+            totals.totalProtein += itemProtein * ratio;
+            totals.totalCarbs += itemCarbs * ratio;
+            totals.totalFats += itemFats * ratio;
+          }
         });
         return totals;
       },
@@ -192,6 +191,11 @@ export default function Dashboard() {
           const itemQuantity = Number(item.quantity) || 0;
           const itemServingSize = Number(item.servingSize) || 1;
           const itemCalories = Number(item.calories) || 0;
+          
+          if (item.isCustom) {
+            return sum + (itemCalories * itemQuantity);
+          }
+
           const ratio = itemServingSize > 0 ? itemQuantity / itemServingSize : 0;
           return sum + (itemCalories * ratio)
       }, 0),
@@ -268,5 +272,3 @@ export default function Dashboard() {
     </div>
   );
 }
-
-    
