@@ -8,7 +8,22 @@ const mealCollection = collection(db, 'customMeals');
 
 export async function getCustomMeals(): Promise<CustomMeal[]> {
     const snapshot = await getDocs(mealCollection);
-    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as CustomMeal));
+    return snapshot.docs.map(doc => {
+        const data = doc.data();
+        // Ensure default values for optional fields to prevent serialization issues.
+        const meal: CustomMeal = {
+            id: doc.id,
+            name: data.name,
+            items: data.items || [],
+            totalCalories: data.totalCalories || 0,
+            totalProtein: data.totalProtein || 0,
+            totalCarbs: data.totalCarbs || 0,
+            totalFats: data.totalFats || 0,
+            servingSize: data.servingSize || 1,
+            servingUnit: data.servingUnit || 'serving',
+        };
+        return meal;
+    });
 }
 
 export async function addCustomMeal(meal: Omit<CustomMeal, 'id'>): Promise<CustomMeal> {
