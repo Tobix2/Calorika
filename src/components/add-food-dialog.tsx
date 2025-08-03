@@ -51,7 +51,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
 
   const handleSelect = (item: FoodItem | CustomMeal) => {
     setSelectedItem(item);
-    if ('servingUnit' in item && item.servingUnit) { // It's a FoodItem
+    if ('servingUnit' in item) { // It's a FoodItem
         setQuantity(item.servingSize);
     } else { // It's a CustomMeal
         setQuantity(1);
