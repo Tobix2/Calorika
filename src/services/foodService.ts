@@ -10,12 +10,26 @@ const foodCollection = collection(db, 'foods');
 // This is not a realtime listener.
 export async function getFoods(): Promise<FoodItem[]> {
     const snapshot = await getDocs(foodCollection);
-    const foods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as FoodItem));
     
     // If the collection is empty, populate with initial data
-    if (foods.length === 0) {
+    if (snapshot.empty) {
         return populateInitialFoods();
     }
+
+    const foods = snapshot.docs.map(doc => {
+        const data = doc.data();
+        const food: FoodItem = {
+            id: doc.id,
+            name: data.name || 'Unnamed Food',
+            calories: data.calories || 0,
+            protein: data.protein || 0,
+            carbs: data.carbs || 0,
+            fats: data.fats || 0,
+            servingSize: data.servingSize || 1,
+            servingUnit: data.servingUnit || 'unit',
+        };
+        return food;
+    });
     
     return foods;
 }
