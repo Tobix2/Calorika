@@ -5,6 +5,11 @@ import {
   type CalorieRecommendationInput,
   type CalorieRecommendationOutput,
 } from '@/ai/flows/calorie-recommendation';
+import {
+  generateMealPlan,
+} from '@/ai/flows/generate-meal-plan';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput } from '@/lib/types';
+
 
 export async function getRecommendationAction(
   prevState: any,
@@ -26,4 +31,17 @@ export async function getRecommendationAction(
     const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
     return { data: null, error: `Failed to get recommendation: ${errorMessage}` };
   }
+}
+
+export async function generateMealPlanAction(
+  input: GenerateMealPlanInput
+): Promise<{ data: GenerateMealPlanOutput | null; error: string | null }> {
+    try {
+        const result = await generateMealPlan(input);
+        return { data: result, error: null };
+    } catch (e) {
+        console.error(e);
+        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+        return { data: null, error: `Failed to generate meal plan: ${errorMessage}` };
+    }
 }

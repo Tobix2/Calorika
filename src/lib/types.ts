@@ -31,3 +31,14 @@ export type CustomMeal = {
   totalCarbs: number;
   totalFats: number;
 };
+
+export type GenerateMealPlanInput = {
+    calorieGoal: number;
+    proteinGoal: number;
+    carbsGoal: number;
+    fatsGoal: number;
+    availableFoods: FoodItem[];
+    availableMeals: CustomMeal[];
+};
+
+export type GenerateMealPlanOutput = Meal[];

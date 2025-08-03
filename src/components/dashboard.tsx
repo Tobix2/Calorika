@@ -1,16 +1,19 @@
 
 "use client";
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useTransition } from 'react';
 import type { Meal, MealName, FoodItem, CustomMeal, MealItem } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf } from 'lucide-react';
+import { Leaf, Bot, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
+import { Button } from '@/components/ui/button';
+import { generateMealPlanAction } from '@/app/actions';
+import { useToast } from '@/hooks/use-toast';
 
 const initialMeals: Meal[] = [
   { name: 'Breakfast', items: [] },
@@ -19,6 +22,22 @@ const initialMeals: Meal[] = [
   { name: 'Snacks', items: [] },
 ];
 
+const MOCK_FOOD_DATABASE: FoodItem[] = [
+  { id: '1', name: 'Apple', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, servingSize: 1, servingUnit: 'medium' },
+  { id: '2', name: 'Banana', calories: 105, protein: 1.3, carbs: 27, fats: 0.4, servingSize: 1, servingUnit: 'medium' },
+  { id: '3', name: 'Chicken Breast', calories: 165, protein: 31, carbs: 0, fats: 3.6, servingSize: 100, servingUnit: 'g' },
+  { id: '4', name: 'Brown Rice', calories: 111, protein: 2.6, carbs: 23, fats: 0.9, servingSize: 100, servingUnit: 'g cooked' },
+  { id: '5', name: 'Whole Egg', calories: 78, protein: 6, carbs: 0.6, fats: 5, servingSize: 1, servingUnit: 'large' },
+  { id: '6', name: 'Almonds', calories: 579, protein: 21, carbs: 22, fats: 49, servingSize: 100, servingUnit: 'g' },
+  { id: '7', name: 'Greek Yogurt', calories: 59, protein: 10, carbs: 3.6, fats: 0.4, servingSize: 100, servingUnit: 'g' },
+  { id: '8', name: 'Salmon', calories: 208, protein: 20, carbs: 0, fats: 13, servingSize: 100, servingUnit: 'g' },
+  { id: '9', name: 'Broccoli', calories: 55, protein: 3.7, carbs: 11, fats: 0.6, servingSize: 1, servingUnit: 'cup' },
+  { id: '10', name: 'Olive Oil', calories: 884, protein: 0, carbs: 0, fats: 100, servingSize: 100, servingUnit: 'g' },
+  { id: '11', name: 'Oats', calories: 389, protein: 16.9, carbs: 66.3, fats: 6.9, servingSize: 100, servingUnit: 'g' },
+  { id: '12', name: 'Protein Powder', calories: 393, protein: 80, carbs: 8, fats: 4, servingSize: 100, servingUnit: 'g' },
+];
+
+
 export default function Dashboard() {
   const [meals, setMeals] = useState<Meal[]>(initialMeals);
   const [calorieGoal, setCalorieGoal] = useState<number>(2200);
@@ -26,7 +45,9 @@ export default function Dashboard() {
   const [carbsGoal, setCarbsGoal] = useState<number>(250);
   const [fatsGoal, setFatsGoal] = useState<number>(70);
   const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
-  
+  const [isPending, startTransition] = useTransition();
+  const { toast } = useToast();
+
   const handleAddFood = (mealName: MealName, food: FoodItem) => {
     setMeals(prevMeals =>
       prevMeals.map(meal => {
@@ -72,6 +93,33 @@ export default function Dashboard() {
     setCustomMeals(prev => [...prev, newMeal]);
   }
 
+  const handleGeneratePlan = () => {
+    startTransition(async () => {
+        const result = await generateMealPlanAction({
+            calorieGoal,
+            proteinGoal,
+            carbsGoal,
+            fatsGoal,
+            availableFoods: MOCK_FOOD_DATABASE,
+            availableMeals: customMeals
+        });
+
+        if (result.error || !result.data) {
+            toast({
+                variant: 'destructive',
+                title: 'Error Generating Plan',
+                description: result.error || 'The AI could not generate a meal plan.'
+            });
+        } else {
+            setMeals(result.data);
+            toast({
+                title: 'Meal Plan Generated!',
+                description: 'Your daily meal plan has been populated by the AI.'
+            });
+        }
+    });
+  };
+
   const { totalCalories, totalProtein, totalCarbs, totalFats } = useMemo(() => {
     return meals.reduce(
       (totals, meal) => {
@@ -108,7 +156,13 @@ export default function Dashboard() {
               <Leaf className="h-8 w-8 text-primary" />
               <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
             </div>
-            <CreateMealDialog onCreateMeal={handleCreateMeal} />
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" onClick={handleGeneratePlan} disabled={isPending}>
+                {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
+                Generate Plan with AI
+              </Button>
+              <CreateMealDialog onCreateMeal={handleCreateMeal} />
+            </div>
           </div>
         </div>
       </header>

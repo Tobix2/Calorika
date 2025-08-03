@@ -6,8 +6,6 @@
  * @fileOverview An AI agent that recommends a daily calorie and macronutrient intake based on user data and fitness goals.
  *
  * - getCalorieRecommendation - A function that handles the calorie and macro recommendation process.
- * - CalorieRecommendationInput - The input type for the getCalorieRecommendation function.
- * - CalorieRecommendationOutput - The return type for the getCalorieRecommendation function.
  */
 
 import {ai} from '@/ai/genkit';
