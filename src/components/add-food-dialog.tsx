@@ -61,7 +61,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
   
   const handleConfirmAdd = () => {
     if (selectedItem) {
-        if ('servingUnit' in selectedItem && item.servingUnit) { // FoodItem
+        if ('servingUnit' in selectedItem) { // FoodItem
             onAddFood(selectedItem, Number(quantity));
         } else { // CustomMeal
             onAddCustomMeal(selectedItem as CustomMeal, Number(quantity));
@@ -77,7 +77,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
     setOpen(isOpen);
   }
 
-  const isCustomMeal = selectedItem && !('servingUnit' in selectedItem && selectedItem.servingUnit);
+  const isCustomMeal = selectedItem && !('servingUnit' in selectedItem);
   const unitLabel = isCustomMeal ? 'serving(s)' : (selectedItem as FoodItem)?.servingUnit;
   const servingInfo = isCustomMeal ? `1 serving = ${(selectedItem as CustomMeal)?.totalCalories.toFixed(0)} kcal` : `${(selectedItem as FoodItem)?.servingSize} ${unitLabel} = ${(selectedItem as FoodItem)?.calories} kcal`;
 
