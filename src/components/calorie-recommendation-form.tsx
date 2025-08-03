@@ -10,7 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
-import { Lightbulb, Loader2, Sparkles } from 'lucide-react';
+import { Lightbulb, Loader2, Sparkles, Beef, Wheat, Droplets } from 'lucide-react';
 
 interface CalorieRecommendationFormProps {
   onGoalSet: (output: CalorieRecommendationOutput) => void;
@@ -59,7 +59,7 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
         onGoalSet(state.data);
         toast({
             title: "Goal Updated!",
-            description: `Your daily calorie goal is now set to ${state.data.recommendedCalories.toFixed(0)} kcal.`,
+            description: `Your daily goals have been updated.`,
         });
     }
   }
@@ -69,7 +69,7 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
       <form action={formAction}>
         <CardHeader>
           <CardTitle className="font-headline text-2xl">AI Calorie Advisor</CardTitle>
-          <CardDescription>Get a personalized calorie recommendation from our AI.</CardDescription>
+          <CardDescription>Get a personalized calorie & macro recommendation from our AI.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
@@ -122,16 +122,33 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
 
       {state.data && (
         <CardContent className="border-t pt-6 space-y-4">
-            <div className="bg-primary/10 border-l-4 border-primary text-primary-foreground p-4 rounded-r-md">
+            <div className="bg-primary/10 border-l-4 border-primary text-primary-foreground p-4 rounded-r-md space-y-4">
                 <div className="flex">
                     <div className="py-1">
                         <Lightbulb className="h-6 w-6 text-primary mr-4" />
                     </div>
                     <div>
                         <p className="font-bold text-primary">Recommended: {state.data.recommendedCalories.toFixed(0)} kcal/day</p>
-                        <p className="text-sm text-foreground/80">{state.data.explanation}</p>
+                        <div className="grid grid-cols-3 gap-2 mt-2">
+                            <div className="text-center">
+                                <Beef className="h-5 w-5 mx-auto text-red-500" />
+                                <p className="text-sm font-semibold text-foreground">{state.data.recommendedProtein.toFixed(0)}g</p>
+                                <p className="text-xs text-muted-foreground">Protein</p>
+                            </div>
+                            <div className="text-center">
+                                <Wheat className="h-5 w-5 mx-auto text-yellow-500" />
+                                <p className="text-sm font-semibold text-foreground">{state.data.recommendedCarbs.toFixed(0)}g</p>
+                                <p className="text-xs text-muted-foreground">Carbs</p>
+                            </div>
+                            <div className="text-center">
+                                <Droplets className="h-5 w-5 mx-auto text-blue-500" />
+                                <p className="text-sm font-semibold text-foreground">{state.data.recommendedFats.toFixed(0)}g</p>
+                                <p className="text-xs text-muted-foreground">Fats</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
+                 <p className="text-sm text-foreground/80">{state.data.explanation}</p>
             </div>
             <Button variant="outline" className="w-full" onClick={handleApplyGoal}>Apply as Goal</Button>
         </CardContent>

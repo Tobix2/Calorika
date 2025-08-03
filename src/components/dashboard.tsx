@@ -22,6 +22,9 @@ const initialMeals: Meal[] = [
 export default function Dashboard() {
   const [meals, setMeals] = useState<Meal[]>(initialMeals);
   const [calorieGoal, setCalorieGoal] = useState<number>(2200);
+  const [proteinGoal, setProteinGoal] = useState<number>(140);
+  const [carbsGoal, setCarbsGoal] = useState<number>(250);
+  const [fatsGoal, setFatsGoal] = useState<number>(70);
   const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
   
   const handleAddFood = (mealName: MealName, food: FoodItem) => {
@@ -60,6 +63,9 @@ export default function Dashboard() {
 
   const handleSetGoal = (output: CalorieRecommendationOutput) => {
     setCalorieGoal(output.recommendedCalories);
+    setProteinGoal(output.recommendedProtein);
+    setCarbsGoal(output.recommendedCarbs);
+    setFatsGoal(output.recommendedFats);
   };
 
   const handleCreateMeal = (newMeal: CustomMeal) => {
@@ -113,8 +119,11 @@ export default function Dashboard() {
               totalCalories={totalCalories}
               calorieGoal={calorieGoal}
               protein={totalProtein}
+              proteinGoal={proteinGoal}
               carbs={totalCarbs}
+              carbsGoal={carbsGoal}
               fats={totalFats}
+              fatsGoal={fatsGoal}
             />
             <MealList
               meals={meals}

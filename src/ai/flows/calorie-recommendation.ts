@@ -3,9 +3,9 @@
 'use server';
 
 /**
- * @fileOverview An AI agent that recommends a daily calorie intake based on user data and fitness goals.
+ * @fileOverview An AI agent that recommends a daily calorie and macronutrient intake based on user data and fitness goals.
  *
- * - getCalorieRecommendation - A function that handles the calorie recommendation process.
+ * - getCalorieRecommendation - A function that handles the calorie and macro recommendation process.
  * - CalorieRecommendationInput - The input type for the getCalorieRecommendation function.
  * - CalorieRecommendationOutput - The return type for the getCalorieRecommendation function.
  */
@@ -26,7 +26,10 @@ export type CalorieRecommendationInput = z.infer<typeof CalorieRecommendationInp
 
 const CalorieRecommendationOutputSchema = z.object({
   recommendedCalories: z.number().describe('The recommended daily calorie intake.'),
-  explanation: z.string().describe('A detailed explanation of how the calorie recommendation was calculated.'),
+  recommendedProtein: z.number().describe('The recommended daily protein intake in grams.'),
+  recommendedCarbs: z.number().describe('The recommended daily carbohydrate intake in grams.'),
+  recommendedFats: z.number().describe('The recommended daily fat intake in grams.'),
+  explanation: z.string().describe('A detailed explanation of how the calorie and macronutrient recommendations were calculated.'),
 });
 export type CalorieRecommendationOutput = z.infer<typeof CalorieRecommendationOutputSchema>;
 
@@ -38,16 +41,16 @@ const prompt = ai.definePrompt({
   name: 'calorieRecommendationPrompt',
   input: {schema: CalorieRecommendationInputSchema},
   output: {schema: CalorieRecommendationOutputSchema},
-  prompt: `You are a personal trainer that recommends a daily calorie intake based on the user's personal data and fitness goals.
+  prompt: `You are a personal trainer that recommends a daily calorie and macronutrient intake based on the user's personal data and fitness goals.
 
-  Calculate the recommended daily calorie intake based on the following information:
+  Calculate the recommended daily calorie intake and the macronutrient breakdown (protein, carbs, fats) in grams based on the following information:
   Age: {{{age}}}
   Weight: {{{weight}}} kg
   Height: {{{height}}} cm
   Activity Level: {{{activityLevel}}}
   Goal: {{{goal}}}
 
-  Provide a detailed explanation of how you calculated the calorie recommendation and why it is appropriate for the user's goal.
+  Provide a detailed explanation of how you calculated the calorie and macronutrient recommendations and why it is appropriate for the user's goal.
   Ensure the explanation is easy to understand and provides actionable advice.
 
   Return the result in JSON format.
