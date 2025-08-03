@@ -150,14 +150,34 @@ export default function Dashboard() {
   };
 
   const { totalCalories, totalProtein, totalCarbs, totalFats } = useMemo(() => {
+    console.log('--- Recalculating totals ---');
     return meals.reduce(
       (totals, meal) => {
-        meal.items.forEach(item => {
-          const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : item.quantity;
-          totals.totalCalories += item.calories * ratio;
-          totals.totalProtein += item.protein * ratio;
-          totals.totalCarbs += item.carbs * ratio;
-          totals.totalFats += item.fats * ratio;
+        meal.items.forEach((item, index) => {
+          // Fallback to 0 if values are not numbers to prevent NaN
+          const itemQuantity = Number(item.quantity) || 0;
+          const itemServingSize = Number(item.servingSize) || 1; // Avoid division by zero
+          const itemCalories = Number(item.calories) || 0;
+          const itemProtein = Number(item.protein) || 0;
+          const itemCarbs = Number(item.carbs) || 0;
+          const itemFats = Number(item.fats) || 0;
+
+          // The ratio determines how many servings we're consuming.
+          // For manually added items, servingSize is the base unit (e.g., 100), and quantity is what the user logged (e.g., 150)
+          const ratio = itemQuantity / itemServingSize;
+
+          console.log(`Item ${index} (${item.name}):`, {
+            itemQuantity,
+            itemServingSize,
+            ratio,
+            itemCalories,
+            itemProtein
+          });
+
+          totals.totalCalories += itemCalories * ratio;
+          totals.totalProtein += itemProtein * ratio;
+          totals.totalCarbs += itemCarbs * ratio;
+          totals.totalFats += itemFats * ratio;
         });
         return totals;
       },
@@ -169,8 +189,11 @@ export default function Dashboard() {
     return meals.map(meal => ({
       name: meal.name,
       calories: meal.items.reduce((sum, item) => {
-          const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : item.quantity;
-          return sum + (item.calories * ratio)
+          const itemQuantity = Number(item.quantity) || 0;
+          const itemServingSize = Number(item.servingSize) || 1;
+          const itemCalories = Number(item.calories) || 0;
+          const ratio = itemServingSize > 0 ? itemQuantity / itemServingSize : 0;
+          return sum + (itemCalories * ratio)
       }, 0),
     }));
   }, [meals]);
@@ -245,3 +268,5 @@ export default function Dashboard() {
     </div>
   );
 }
+
+    
