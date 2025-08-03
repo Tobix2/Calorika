@@ -121,8 +121,8 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
             totalProtein: Number(manualProtein),
             totalCarbs: Number(manualCarbs),
             totalFats: Number(manualFats),
-            servingSize: Number(manualServingSize),
-            servingUnit: manualServingUnit,
+            servingSize: Number(manualServingSize) || 1,
+            servingUnit: manualServingUnit || 'serving',
         };
         onCreateMeal(newMealData);
         resetState();
@@ -195,6 +195,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                         <TabsTrigger value="totals">Enter Totals</TabsTrigger>
                     </TabsList>
                     <TabsContent value="ingredients" className="space-y-4 pt-4">
+                      <ScrollArea className="h-96 pr-4">
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <Label>Ingredients</Label>
@@ -265,8 +266,10 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                                 </div>
                             )}
                         </div>
+                      </ScrollArea>
                     </TabsContent>
                     <TabsContent value="totals" className="pt-4">
+                      <ScrollArea className="h-96 pr-4">
                         <div className="space-y-4">
                             <p className="text-sm text-muted-foreground">Enter the nutritional values per serving.</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -300,6 +303,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                                 </div>
                             </div>
                         </div>
+                      </ScrollArea>
                     </TabsContent>
                 </Tabs>
             </div>
@@ -316,3 +320,4 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
     </Dialog>
   );
 }
+
