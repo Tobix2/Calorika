@@ -1,0 +1,125 @@
+"use client";
+
+import { useState, useMemo } from 'react';
+import type { Meal, MealName, FoodItem } from '@/lib/types';
+import DailySummary from './daily-summary';
+import MealList from './meal-list';
+import CalorieRecommendationForm from './calorie-recommendation-form';
+import { Leaf } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
+
+const initialMeals: Meal[] = [
+  { name: 'Breakfast', items: [] },
+  { name: 'Lunch', items: [] },
+  { name: 'Dinner', items: [] },
+  { name: 'Snacks', items: [] },
+];
+
+export default function Dashboard() {
+  const [meals, setMeals] = useState<Meal[]>(initialMeals);
+  const [calorieGoal, setCalorieGoal] = useState<number>(2200);
+  
+  const handleAddFood = (mealName: MealName, food: FoodItem) => {
+    setMeals(prevMeals =>
+      prevMeals.map(meal =>
+        meal.name === mealName ? { ...meal, items: [...meal.items, food] } : meal
+      )
+    );
+  };
+
+  const handleRemoveFood = (mealName: MealName, foodId: string) => {
+    setMeals(prevMeals =>
+      prevMeals.map(meal =>
+        meal.name === mealName
+          ? { ...meal, items: meal.items.filter(item => item.id !== foodId) }
+          : meal
+      )
+    );
+  };
+
+  const handleSetGoal = (output: CalorieRecommendationOutput) => {
+    setCalorieGoal(output.recommendedCalories);
+  };
+
+  const { totalCalories, totalProtein, totalCarbs, totalFats } = useMemo(() => {
+    return meals.reduce(
+      (totals, meal) => {
+        meal.items.forEach(item => {
+          totals.totalCalories += item.calories;
+          totals.totalProtein += item.protein;
+          totals.totalCarbs += item.carbs;
+          totals.totalFats += item.fats;
+        });
+        return totals;
+      },
+      { totalCalories: 0, totalProtein: 0, totalCarbs: 0, totalFats: 0 }
+    );
+  }, [meals]);
+
+  const chartData = useMemo(() => {
+    return meals.map(meal => ({
+      name: meal.name,
+      calories: meal.items.reduce((sum, item) => sum + item.calories, 0),
+    }));
+  }, [meals]);
+
+
+  return (
+    <div className="flex flex-col min-h-screen">
+      <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <div className="flex items-center gap-2">
+              <Leaf className="h-8 w-8 text-primary" />
+              <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-6">
+            <DailySummary
+              totalCalories={totalCalories}
+              calorieGoal={calorieGoal}
+              protein={totalProtein}
+              carbs={totalCarbs}
+              fats={totalFats}
+            />
+            <MealList
+              meals={meals}
+              onAddFood={handleAddFood}
+              onRemoveFood={handleRemoveFood}
+            />
+          </div>
+          <div className="space-y-6">
+            <CalorieRecommendationForm onGoalSet={handleSetGoal} />
+             <Card>
+                <CardHeader>
+                    <CardTitle>Meal Calories Breakdown</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={chartData}>
+                            <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                            <Tooltip
+                              contentStyle={{
+                                background: "hsl(var(--background))",
+                                border: "1px solid hsl(var(--border))",
+                                borderRadius: "var(--radius)",
+                              }}
+                            />
+                            <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
