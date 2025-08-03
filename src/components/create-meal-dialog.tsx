@@ -85,10 +85,13 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
   const handleCreateMeal = () => {
     if (mealName.trim()) {
         if (creationMode === 'ingredients' && selectedItems.length > 0) {
-            const newMealData: Omit<CustomMeal, 'id'> = {
+             const newMealData: Omit<CustomMeal, 'id'> = {
                 name: mealName,
                 items: selectedItems.map(item => ({...item, mealItemId: crypto.randomUUID()})),
-                ...totalsFromIngredients
+                totalCalories: totalsFromIngredients.totalCalories,
+                totalProtein: totalsFromIngredients.totalProtein,
+                totalCarbs: totalsFromIngredients.totalCarbs,
+                totalFats: totalsFromIngredients.totalFats,
             };
             onCreateMeal(newMealData);
             resetState();
