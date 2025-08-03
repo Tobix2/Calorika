@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo, useTransition, useEffect } from 'react';
 import type { Meal, MealName, FoodItem, CustomMeal, MealItem } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
@@ -14,6 +14,7 @@ import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendat
 import { Button } from '@/components/ui/button';
 import { generateMealPlanAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
+import { addCustomMeal } from '@/services/mealService';
 
 const initialMeals: Meal[] = [
   { name: 'Breakfast', items: [] },
@@ -22,29 +23,21 @@ const initialMeals: Meal[] = [
   { name: 'Snacks', items: [] },
 ];
 
-const MOCK_FOOD_DATABASE: FoodItem[] = [
-  { id: '1', name: 'Apple', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, servingSize: 1, servingUnit: 'medium' },
-  { id: '2', name: 'Banana', calories: 105, protein: 1.3, carbs: 27, fats: 0.4, servingSize: 1, servingUnit: 'medium' },
-  { id: '3', name: 'Chicken Breast', calories: 165, protein: 31, carbs: 0, fats: 3.6, servingSize: 100, servingUnit: 'g' },
-  { id: '4', name: 'Brown Rice', calories: 111, protein: 2.6, carbs: 23, fats: 0.9, servingSize: 100, servingUnit: 'g cooked' },
-  { id: '5', name: 'Whole Egg', calories: 78, protein: 6, carbs: 0.6, fats: 5, servingSize: 1, servingUnit: 'large' },
-  { id: '6', name: 'Almonds', calories: 579, protein: 21, carbs: 22, fats: 49, servingSize: 100, servingUnit: 'g' },
-  { id: '7', name: 'Greek Yogurt', calories: 59, protein: 10, carbs: 3.6, fats: 0.4, servingSize: 100, servingUnit: 'g' },
-  { id: '8', name: 'Salmon', calories: 208, protein: 20, carbs: 0, fats: 13, servingSize: 100, servingUnit: 'g' },
-  { id: '9', name: 'Broccoli', calories: 55, protein: 3.7, carbs: 11, fats: 0.6, servingSize: 1, servingUnit: 'cup' },
-  { id: '10', name: 'Olive Oil', calories: 884, protein: 0, carbs: 0, fats: 100, servingSize: 100, servingUnit: 'g' },
-  { id: '11', name: 'Oats', calories: 389, protein: 16.9, carbs: 66.3, fats: 6.9, servingSize: 100, servingUnit: 'g' },
-  { id: '12', name: 'Protein Powder', calories: 393, protein: 80, carbs: 8, fats: 4, servingSize: 100, servingUnit: 'g' },
-];
+interface DashboardProps {
+  initialFoodDatabase: FoodItem[];
+  initialCustomMeals: CustomMeal[];
+}
 
-
-export default function Dashboard() {
+export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: DashboardProps) {
   const [meals, setMeals] = useState<Meal[]>(initialMeals);
   const [calorieGoal, setCalorieGoal] = useState<number>(2200);
   const [proteinGoal, setProteinGoal] = useState<number>(140);
   const [carbsGoal, setCarbsGoal] = useState<number>(250);
   const [fatsGoal, setFatsGoal] = useState<number>(70);
-  const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
+  
+  const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>(initialFoodDatabase);
+  const [customMeals, setCustomMeals] = useState<CustomMeal[]>(initialCustomMeals);
+  
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
 
@@ -66,18 +59,15 @@ export default function Dashboard() {
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
     if (!customMeal.items || customMeal.items.length === 0) {
-        // This is a meal with manually entered totals.
         const manualMealItem: MealItem = {
             id: customMeal.id,
             mealItemId: crypto.randomUUID(),
             name: customMeal.name,
-            // The macros on the CustomMeal are the base values per its servingSize.
             calories: customMeal.totalCalories,
             protein: customMeal.totalProtein,
             carbs: customMeal.totalCarbs,
             fats: customMeal.totalFats,
-            // The quantity is how many servings the user wants to add.
-            quantity: servings,
+            quantity: servings, // quantity is the number of servings
             servingSize: customMeal.servingSize || 1, 
             servingUnit: customMeal.servingUnit || 'serving',
             isCustom: true,
@@ -88,7 +78,6 @@ export default function Dashboard() {
             )
         );
     } else {
-        // This is a meal composed of ingredients.
         setMeals(prevMeals =>
         prevMeals.map(meal =>
             meal.name === mealName ? { ...meal, items: [
@@ -121,8 +110,22 @@ export default function Dashboard() {
     setFatsGoal(output.recommendedFats);
   };
 
-  const handleCreateMeal = (newMeal: CustomMeal) => {
-    setCustomMeals(prev => [...prev, newMeal]);
+  const handleCreateMeal = async (newMealData: Omit<CustomMeal, 'id'>) => {
+    try {
+        const newMeal = await addCustomMeal(newMealData);
+        setCustomMeals(prev => [...prev, newMeal]);
+        toast({
+            title: "Meal Created!",
+            description: `${newMeal.name} has been saved to your meals.`,
+        });
+    } catch (error) {
+        console.error("Failed to create meal:", error);
+        toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to save the new meal.",
+        });
+    }
   }
 
   const handleGeneratePlan = () => {
@@ -132,7 +135,7 @@ export default function Dashboard() {
             proteinGoal,
             carbsGoal,
             fatsGoal,
-            availableFoods: MOCK_FOOD_DATABASE,
+            availableFoods: foodDatabase,
             availableMeals: customMeals
         });
 
@@ -157,17 +160,14 @@ export default function Dashboard() {
       (totals, meal) => {
         meal.items.forEach(item => {
           if (item.isCustom) {
-            // For custom meals with manual totals, the macros are per serving.
-            // `item.quantity` here represents the number of servings.
             totals.totalCalories += (Number(item.calories) || 0) * (Number(item.quantity) || 0);
             totals.totalProtein += (Number(item.protein) || 0) * (Number(item.quantity) || 0);
             totals.totalCarbs += (Number(item.carbs) || 0) * (Number(item.quantity) || 0);
             totals.totalFats += (Number(item.fats) || 0) * (Number(item.quantity) || 0);
           } else {
-            // For regular ingredients, macros are per servingSize, so we need the ratio.
             const itemQuantity = Number(item.quantity) || 0;
             const itemServingSize = Number(item.servingSize) || 1;
-            const ratio = itemQuantity / itemServingSize;
+            const ratio = itemServingSize > 0 ? itemQuantity / itemServingSize : 0;
 
             totals.totalCalories += (Number(item.calories) || 0) * ratio;
             totals.totalProtein += (Number(item.protein) || 0) * ratio;
@@ -211,7 +211,7 @@ export default function Dashboard() {
                 {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
                 Generate Plan with AI
               </Button>
-              <CreateMealDialog onCreateMeal={handleCreateMeal} />
+              <CreateMealDialog onCreateMeal={handleCreateMeal} foodDatabase={foodDatabase} setFoodDatabase={setFoodDatabase}/>
             </div>
           </div>
         </div>
@@ -232,6 +232,7 @@ export default function Dashboard() {
             <MealList
               meals={meals}
               customMeals={customMeals}
+              foodDatabase={foodDatabase}
               onAddFood={handleAddFood}
               onAddCustomMeal={handleAddCustomMeal}
               onRemoveFood={handleRemoveFood}

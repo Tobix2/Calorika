@@ -15,6 +15,8 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FoodItem } from '@/lib/types';
+import { addFood } from '@/services/foodService';
+import { useToast } from '@/hooks/use-toast';
 
 interface AddIngredientDialogProps {
   onAddIngredient: (food: FoodItem) => void;
@@ -30,6 +32,7 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
   const [protein, setProtein] = useState<number | ''>('');
   const [carbs, setCarbs] = useState<number | ''>('');
   const [fats, setFats] = useState<number | ''>('');
+  const { toast } = useToast();
   
   const resetForm = () => {
     setName('');
@@ -41,10 +44,9 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
     setFats('');
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (name && servingSize !== '' && servingUnit && calories !== '' && protein !== '' && carbs !== '' && fats !== '') {
-      const newIngredient: FoodItem = {
-        id: crypto.randomUUID(),
+      const newIngredientData = {
         name,
         servingSize: Number(servingSize),
         servingUnit,
@@ -53,9 +55,24 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
         carbs: Number(carbs),
         fats: Number(fats),
       };
-      onAddIngredient(newIngredient);
-      resetForm();
-      setOpen(false);
+
+      try {
+        const newIngredient = await addFood(newIngredientData);
+        onAddIngredient(newIngredient);
+        toast({
+            title: "Ingredient Saved!",
+            description: `${newIngredient.name} has been added to the database.`,
+        });
+        resetForm();
+        setOpen(false);
+      } catch (error) {
+          console.error("Failed to save ingredient:", error);
+          toast({
+            variant: "destructive",
+            title: "Error",
+            description: "Failed to save the new ingredient.",
+          });
+      }
     }
   };
   
@@ -68,7 +85,7 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
         <DialogHeader>
           <DialogTitle>Add New Ingredient</DialogTitle>
           <DialogDescription>
-            Enter the nutritional details for the new food item.
+            Enter the nutritional details for the new food item. This will be saved to your database.
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 py-2">

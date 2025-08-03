@@ -18,36 +18,22 @@ import { Plus } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
 
-const MOCK_FOOD_DATABASE: FoodItem[] = [
-  { id: '1', name: 'Apple', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, servingSize: 1, servingUnit: 'medium' },
-  { id: '2', name: 'Banana', calories: 105, protein: 1.3, carbs: 27, fats: 0.4, servingSize: 1, servingUnit: 'medium' },
-  { id: '3', name: 'Chicken Breast', calories: 165, protein: 31, carbs: 0, fats: 3.6, servingSize: 100, servingUnit: 'g' },
-  { id: '4', name: 'Brown Rice', calories: 111, protein: 2.6, carbs: 23, fats: 0.9, servingSize: 100, servingUnit: 'g cooked' },
-  { id: '5', name: 'Whole Egg', calories: 78, protein: 6, carbs: 0.6, fats: 5, servingSize: 1, servingUnit: 'large' },
-  { id: '6', name: 'Almonds', calories: 579, protein: 21, carbs: 22, fats: 49, servingSize: 100, servingUnit: 'g' },
-  { id: '7', name: 'Greek Yogurt', calories: 59, protein: 10, carbs: 3.6, fats: 0.4, servingSize: 100, servingUnit: 'g' },
-  { id: '8', name: 'Salmon', calories: 208, protein: 20, carbs: 0, fats: 13, servingSize: 100, servingUnit: 'g' },
-  { id: '9', name: 'Broccoli', calories: 55, protein: 3.7, carbs: 11, fats: 0.6, servingSize: 1, servingUnit: 'cup' },
-  { id: '10', name: 'Olive Oil', calories: 884, protein: 0, carbs: 0, fats: 100, servingSize: 100, servingUnit: 'g' },
-  { id: '11', name: 'Oats', calories: 389, protein: 16.9, carbs: 66.3, fats: 6.9, servingSize: 100, servingUnit: 'g' },
-  { id: '12', name: 'Protein Powder', calories: 393, protein: 80, carbs: 8, fats: 4, servingSize: 100, servingUnit: 'g' },
-];
-
 interface AddFoodDialogProps {
   customMeals: CustomMeal[];
+  foodDatabase: FoodItem[];
   onAddFood: (food: FoodItem, quantity: number) => void;
   onAddCustomMeal: (meal: CustomMeal, servings: number) => void;
   children: React.ReactNode;
 }
 
-export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals, children }: AddFoodDialogProps) {
+export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals, foodDatabase, children }: AddFoodDialogProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [step, setStep] = useState(1);
   const [selectedItem, setSelectedItem] = useState<FoodItem | CustomMeal | null>(null);
   const [quantity, setQuantity] = useState<number | string>(1);
 
-  const filteredFoods = MOCK_FOOD_DATABASE.filter(food =>
+  const filteredFoods = foodDatabase.filter(food =>
     food.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -65,7 +51,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
 
   const handleSelect = (item: FoodItem | CustomMeal) => {
     setSelectedItem(item);
-    if ('servingUnit' in item) { // It's a FoodItem
+    if ('servingUnit' in item && item.servingUnit) { // It's a FoodItem
         setQuantity(item.servingSize);
     } else { // It's a CustomMeal
         setQuantity(1);
@@ -75,10 +61,10 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
   
   const handleConfirmAdd = () => {
     if (selectedItem) {
-        if ('servingUnit' in selectedItem) { // FoodItem
+        if ('servingUnit' in selectedItem && item.servingUnit) { // FoodItem
             onAddFood(selectedItem, Number(quantity));
         } else { // CustomMeal
-            onAddCustomMeal(selectedItem, Number(quantity));
+            onAddCustomMeal(selectedItem as CustomMeal, Number(quantity));
         }
         resetAndClose();
     }
@@ -91,9 +77,9 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
     setOpen(isOpen);
   }
 
-  const isCustomMeal = selectedItem && !('servingUnit' in selectedItem);
+  const isCustomMeal = selectedItem && !('servingUnit' in selectedItem && selectedItem.servingUnit);
   const unitLabel = isCustomMeal ? 'serving(s)' : (selectedItem as FoodItem)?.servingUnit;
-  const servingInfo = isCustomMeal ? `1 serving = ${(selectedItem as CustomMeal)?.totalCalories.toFixed(0)} kcal` : `1 serving = ${(selectedItem as FoodItem)?.servingSize} ${unitLabel}`;
+  const servingInfo = isCustomMeal ? `1 serving = ${(selectedItem as CustomMeal)?.totalCalories.toFixed(0)} kcal` : `${(selectedItem as FoodItem)?.servingSize} ${unitLabel} = ${(selectedItem as FoodItem)?.calories} kcal`;
 
 
   return (
