@@ -13,7 +13,7 @@ import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
 import type { GenerateMealPlanInput, GenerateMealPlanOutput, MealItem, FoodItem, CustomMeal, Meal } from '@/lib/types';
 
-// Schemas mirroring the types in src/lib/types.ts
+// Schemas mirroring the types in src/lib/types.ts for robust validation.
 const FoodItemSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -116,13 +116,16 @@ const generateMealPlanFlow = ai.defineFlow(
     let totalCalories = 0;
     for (const meal of planTemplate) {
         for (const item of meal.items) {
-            const ratio = item.quantity / item.servingSize;
+            // Defensively check for servingSize to avoid division by zero.
+            const servingSize = item.servingSize || 1;
+            const ratio = item.quantity / servingSize;
             totalCalories += item.calories * ratio;
         }
     }
-
-    if (totalCalories === 0) {
-        return planTemplate; // Avoid division by zero if no items were returned
+    
+    // Avoid division by zero and handle cases where AI returns an empty plan.
+    if (totalCalories <= 0) {
+        return planTemplate; 
     }
     
     // Calculate the scaling factor. If total calories are over the goal, this will be < 1.
@@ -130,8 +133,7 @@ const generateMealPlanFlow = ai.defineFlow(
 
     const adjustedPlan: Meal[] = [];
 
-    // If the plan is already under or at the goal, we can still apply a slight adjustment or just return as is.
-    // We will scale down if over, but not scale up if under, to respect the "do not exceed" rule.
+    // Scale down if over the goal. Don't scale up if under to respect user's template.
     if (scalingFactor < 1) {
         for (const meal of planTemplate) {
             const adjustedMeal: Meal = { ...meal, items: [] };
