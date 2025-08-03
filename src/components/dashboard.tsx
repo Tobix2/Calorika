@@ -120,10 +120,11 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
         });
     } catch (error) {
         console.error("Failed to create meal:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({
             variant: "destructive",
-            title: "Error",
-            description: "Failed to save the new meal.",
+            title: "Error Saving Meal",
+            description: `Could not save to database: ${errorMessage}`,
         });
     }
   }
@@ -267,3 +268,5 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
     </div>
   );
 }
+
+    
