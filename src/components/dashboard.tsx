@@ -65,19 +65,21 @@ export default function Dashboard() {
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
-    // If the custom meal has no items, it was created with manual totals.
     if (customMeal.items.length === 0) {
+        // This is a meal with manually entered totals.
         const manualMealItem: MealItem = {
             id: customMeal.id,
             mealItemId: crypto.randomUUID(),
             name: customMeal.name,
+            // The macros on the CustomMeal are the base values per its servingSize.
             calories: customMeal.totalCalories,
             protein: customMeal.totalProtein,
             carbs: customMeal.totalCarbs,
             fats: customMeal.totalFats,
-            quantity: servings * (customMeal.servingSize || 1), // Multiply servings by base serving size
-            servingSize: customMeal.servingSize || 1, 
-            servingUnit: customMeal.servingUnit || 'serving(s)',
+            // The quantity is how many servings the user wants to add.
+            quantity: servings,
+            servingSize: 1, // The base serving size for a manual meal is always 1 serving.
+            servingUnit: customMeal.servingUnit || 'serving',
             isCustom: true,
         };
         setMeals(prevMeals => 
@@ -86,7 +88,7 @@ export default function Dashboard() {
             )
         );
     } else {
-        // Otherwise, add all items from the custom meal, adjusting for servings.
+        // This is a meal composed of ingredients.
         setMeals(prevMeals =>
         prevMeals.map(meal =>
             meal.name === mealName ? { ...meal, items: [
@@ -154,28 +156,23 @@ export default function Dashboard() {
     return meals.reduce(
       (totals, meal) => {
         meal.items.forEach(item => {
-          const itemQuantity = Number(item.quantity) || 0;
-          const itemServingSize = Number(item.servingSize) || 1;
-          const ratio = itemQuantity / itemServingSize;
-
-          const itemCalories = Number(item.calories) || 0;
-          const itemProtein = Number(item.protein) || 0;
-          const itemCarbs = Number(item.carbs) || 0;
-          const itemFats = Number(item.fats) || 0;
-
           if (item.isCustom) {
             // For custom meals with manual totals, the macros are per serving.
-            // The ratio here is just the number of servings.
-            totals.totalCalories += itemCalories * itemQuantity;
-            totals.totalProtein += itemProtein * itemQuantity;
-            totals.totalCarbs += itemCarbs * itemQuantity;
-            totals.totalFats += itemFats * itemQuantity;
+            // `item.quantity` here represents the number of servings.
+            totals.totalCalories += (Number(item.calories) || 0) * (Number(item.quantity) || 0);
+            totals.totalProtein += (Number(item.protein) || 0) * (Number(item.quantity) || 0);
+            totals.totalCarbs += (Number(item.carbs) || 0) * (Number(item.quantity) || 0);
+            totals.totalFats += (Number(item.fats) || 0) * (Number(item.quantity) || 0);
           } else {
             // For regular ingredients, macros are per servingSize, so we need the ratio.
-            totals.totalCalories += itemCalories * ratio;
-            totals.totalProtein += itemProtein * ratio;
-            totals.totalCarbs += itemCarbs * ratio;
-            totals.totalFats += itemFats * ratio;
+            const itemQuantity = Number(item.quantity) || 0;
+            const itemServingSize = Number(item.servingSize) || 1;
+            const ratio = itemQuantity / itemServingSize;
+
+            totals.totalCalories += (Number(item.calories) || 0) * ratio;
+            totals.totalProtein += (Number(item.protein) || 0) * ratio;
+            totals.totalCarbs += (Number(item.carbs) || 0) * ratio;
+            totals.totalFats += (Number(item.fats) || 0) * ratio;
           }
         });
         return totals;
@@ -188,16 +185,13 @@ export default function Dashboard() {
     return meals.map(meal => ({
       name: meal.name,
       calories: meal.items.reduce((sum, item) => {
+          if (item.isCustom) {
+              return sum + (Number(item.calories) || 0) * (Number(item.quantity) || 0);
+          }
           const itemQuantity = Number(item.quantity) || 0;
           const itemServingSize = Number(item.servingSize) || 1;
-          const itemCalories = Number(item.calories) || 0;
-          
-          if (item.isCustom) {
-            return sum + (itemCalories * itemQuantity);
-          }
-
           const ratio = itemServingSize > 0 ? itemQuantity / itemServingSize : 0;
-          return sum + (itemCalories * ratio)
+          return sum + ((Number(item.calories) || 0) * ratio)
       }, 0),
     }));
   }, [meals]);

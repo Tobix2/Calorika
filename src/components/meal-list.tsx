@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Meal, MealName, FoodItem, CustomMeal, MealItem } from '@/lib/types';
@@ -28,8 +29,8 @@ export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, 
             if (item.isCustom) {
                 return sum + (Number(item.calories) || 0) * (Number(item.quantity) || 0);
             }
-            const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : 0;
-            return sum + (item.calories * ratio);
+            const ratio = (item.servingSize || 1) > 0 ? (Number(item.quantity) || 0) / (Number(item.servingSize) || 1) : 0;
+            return sum + ((Number(item.calories) || 0) * ratio);
         }, 0);
 
         return (
@@ -51,10 +52,11 @@ export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, 
                      let itemCalories, description;
                      if (item.isCustom) {
                          itemCalories = (Number(item.calories) || 0) * (Number(item.quantity) || 0);
-                         description = `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
+                         const servingUnitLabel = item.quantity > 1 ? (item.servingUnit || 'servings').replace(/\\(s\\)$/, '') + 's' : (item.servingUnit || 'serving').replace(/\\(s\\)$/, '');
+                         description = `${item.quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
                      } else {
-                         const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : 0;
-                         itemCalories = item.calories * ratio;
+                         const ratio = (item.servingSize || 1) > 0 ? (Number(item.quantity) || 0) / (Number(item.servingSize) || 1) : 0;
+                         itemCalories = (Number(item.calories) || 0) * ratio;
                          description = `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
                      }
 
