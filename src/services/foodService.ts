@@ -21,8 +21,17 @@ export async function getFoods(): Promise<FoodItem[]> {
 }
 
 export async function addFood(food: Omit<FoodItem, 'id'>): Promise<FoodItem> {
-    const docRef = await addDoc(foodCollection, food);
-    return { id: docRef.id, ...food };
+    try {
+        const cleanFood = JSON.parse(JSON.stringify(food));
+        const docRef = await addDoc(foodCollection, cleanFood);
+        return { id: docRef.id, ...cleanFood };
+    } catch (error) {
+        console.error("Error adding document to Firestore: ", error);
+        if (error instanceof Error) {
+            throw new Error(`Firestore error: ${error.message}`);
+        }
+        throw new Error('An unknown error occurred while saving to Firestore.');
+    }
 }
 
 // Function to populate the 'foods' collection with initial data

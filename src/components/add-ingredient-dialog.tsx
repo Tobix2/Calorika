@@ -17,6 +17,7 @@ import { Label } from '@/components/ui/label';
 import type { FoodItem } from '@/lib/types';
 import { addFood } from '@/services/foodService';
 import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from './ui/scroll-area';
 
 interface AddIngredientDialogProps {
   onAddIngredient: (food: FoodItem) => void;
@@ -67,10 +68,11 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
         setOpen(false);
       } catch (error) {
           console.error("Failed to save ingredient:", error);
+          const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
           toast({
             variant: "destructive",
-            title: "Error",
-            description: "Failed to save the new ingredient.",
+            title: "Error Saving Ingredient",
+            description: `Could not save to database: ${errorMessage}`,
           });
       }
     }
@@ -78,53 +80,62 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
   
   const isFormValid = name && servingSize !== '' && servingUnit && calories !== '' && protein !== '' && carbs !== '' && fats !== '';
 
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+        resetForm();
+    }
+    setOpen(isOpen);
+  }
+
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => { setOpen(isOpen); if (!isOpen) resetForm(); }}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="max-w-[95vw] sm:max-w-md rounded-lg flex flex-col max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>Add New Ingredient</DialogTitle>
           <DialogDescription>
             Enter the nutritional details for the new food item. This will be saved to your database.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-            <div className="space-y-2">
-                <Label htmlFor="name">Ingredient Name</Label>
-                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Almond Butter"/>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                  <Label htmlFor="servingSize">Serving Size</Label>
-                  <Input id="servingSize" type="number" value={servingSize} onChange={(e) => setServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="e.g., 100"/>
-              </div>
-               <div className="space-y-2">
-                  <Label htmlFor="servingUnit">Unit</Label>
-                  <Input id="servingUnit" value={servingUnit} onChange={(e) => setServingUnit(e.target.value)} placeholder="e.g., g, ml, cup"/>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+        <div className="flex-grow overflow-y-auto py-2 pr-2">
+            <div className="space-y-4">
                 <div className="space-y-2">
-                    <Label htmlFor="calories">Calories (kcal)</Label>
-                    <Input id="calories" type="number" value={calories} onChange={(e) => setCalories(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                    <Label htmlFor="name">Ingredient Name</Label>
+                    <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g., Almond Butter"/>
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="protein">Protein (g)</Label>
-                    <Input id="protein" type="number" value={protein} onChange={(e) => setProtein(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="servingSize">Serving Size</Label>
+                      <Input id="servingSize" type="number" value={servingSize} onChange={(e) => setServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="e.g., 100"/>
+                  </div>
+                   <div className="space-y-2">
+                      <Label htmlFor="servingUnit">Unit</Label>
+                      <Input id="servingUnit" value={servingUnit} onChange={(e) => setServingUnit(e.target.value)} placeholder="e.g., g, ml, cup"/>
+                  </div>
                 </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="carbs">Carbs (g)</Label>
-                    <Input id="carbs" type="number" value={carbs} onChange={(e) => setCarbs(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="calories">Calories (kcal)</Label>
+                        <Input id="calories" type="number" value={calories} onChange={(e) => setCalories(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="protein">Protein (g)</Label>
+                        <Input id="protein" type="number" value={protein} onChange={(e) => setProtein(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                    </div>
                 </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="fats">Fats (g)</Label>
-                    <Input id="fats" type="number" value={fats} onChange={(e) => setFats(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-2">
+                        <Label htmlFor="carbs">Carbs (g)</Label>
+                        <Input id="carbs" type="number" value={carbs} onChange={(e) => setCarbs(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="fats">Fats (g)</Label>
+                        <Input id="fats" type="number" value={fats} onChange={(e) => setFats(e.target.value === '' ? '' : parseFloat(e.target.value))} />
+                    </div>
                 </div>
             </div>
         </div>
-        <DialogFooter>
+        <DialogFooter className="border-t pt-4 mt-auto">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
           <Button onClick={handleSave} disabled={!isFormValid}>Save Ingredient</Button>
         </DialogFooter>
