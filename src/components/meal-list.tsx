@@ -25,7 +25,7 @@ export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {meals.map(meal => {
         const mealCalories = meal.items.reduce((sum, item) => {
-            const ratio = item.quantity / item.servingSize;
+            const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : 0;
             return sum + (item.calories * ratio)
         }, 0);
 
@@ -45,11 +45,11 @@ export default function MealList({ meals, customMeals, onAddFood, onRemoveFood, 
               <div className="space-y-3 mb-4 flex-grow">
                 {meal.items.length > 0 ? (
                   meal.items.map((item: MealItem) => {
-                    const ratio = item.quantity / item.servingSize;
+                    const ratio = item.servingSize > 0 ? (item.quantity / item.servingSize) : 0;
                     const itemCalories = item.calories * ratio;
                     const description = item.servingSize > 0 ?
                          `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal` :
-                         `${itemCalories.toFixed(0)} kcal`;
+                         `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
 
                     return (
                         <div key={item.mealItemId} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
