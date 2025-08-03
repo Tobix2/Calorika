@@ -67,6 +67,8 @@ const prompt = ai.definePrompt({
   output: { schema: GenerateMealPlanOutputSchema },
   prompt: `You are an expert nutritionist and meal planner. Your task is to create a daily meal plan for a user based on their nutritional goals and the food items and pre-made meals they have available.
 
+Your primary instruction is to stay as close as possible to the user's nutritional targets. DO NOT significantly exceed the goals. It is better to be slightly under than to be over.
+
 The user's goals are:
 - Calories: {{{calorieGoal}}} kcal
 - Protein: {{{proteinGoal}}} g
@@ -86,9 +88,9 @@ Available pre-made meals:
 
 Instructions:
 1.  Create a full-day meal plan distributed across "Breakfast", "Lunch", "Dinner", and "Snacks".
-2.  You can use any combination of the available meals and individual ingredients.
-3.  When using an ingredient, you can adjust the quantity to better meet the nutritional targets. The default quantity is the serving size. Modify the quantity property of the item.
-4.  Try to get as close as possible to the user's target for calories, protein, carbs, and fats. A small deviation is acceptable.
+2.  You MUST adjust the 'quantity' of individual ingredients to meet the nutritional targets. Do not just use the default serving size. For example, if you need fewer calories, use a smaller quantity of an ingredient.
+3.  You can use any combination of the available meals and individual ingredients.
+4.  Get as close as possible to the user's target for calories, protein, carbs, and fats. A small deviation is acceptable, but prioritize staying under the goal if you cannot meet it exactly.
 5.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
 6.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId' and the 'quantity' you decided on.
 7.  Do not invent new foods. Only use the ones provided in the available foods and meals lists.
