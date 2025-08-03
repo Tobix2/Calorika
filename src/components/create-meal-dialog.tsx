@@ -17,6 +17,8 @@ import { Label } from '@/components/ui/label';
 import type { FoodItem, CustomMeal } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, Check, UtensilsCrossed } from 'lucide-react';
+import AddIngredientDialog from './add-ingredient-dialog';
+
 
 const MOCK_FOOD_DATABASE: FoodItem[] = [
   { id: '1', name: 'Apple', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, serving: '1 medium' },
@@ -42,8 +44,9 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
   const [searchTerm, setSearchTerm] = useState('');
   const [mealName, setMealName] = useState('');
   const [selectedFoods, setSelectedFoods] = useState<FoodItem[]>([]);
+  const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>(MOCK_FOOD_DATABASE);
 
-  const filteredFoods = MOCK_FOOD_DATABASE.filter(food =>
+  const filteredFoods = foodDatabase.filter(food =>
     food.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -81,6 +84,10 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
     }
   };
 
+  const handleAddIngredient = (newIngredient: FoodItem) => {
+    setFoodDatabase(prev => [...prev, newIngredient]);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -107,7 +114,14 @@ export default function CreateMealDialog({ onCreateMeal }: CreateMealDialogProps
                 />
             </div>
             <div className="space-y-2">
-                <Label>Ingredients</Label>
+                <div className="flex justify-between items-center">
+                    <Label>Ingredients</Label>
+                    <AddIngredientDialog onAddIngredient={handleAddIngredient}>
+                        <Button variant="link" size="sm" className="p-0 h-auto">
+                            Add New
+                        </Button>
+                    </AddIngredientDialog>
+                </div>
                 <Input
                     placeholder="Search for an ingredient..."
                     value={searchTerm}
