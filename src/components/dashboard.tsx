@@ -230,16 +230,20 @@ export default function Dashboard() {
                 <Leaf className="h-8 w-8 text-primary" />
                 <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-4">
                 <Button variant="ghost" onClick={handleGeneratePlan} disabled={isPending || isLoadingData}>
                   {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
-                  Generate Plan with AI
+                  Generate Plan
                 </Button>
                 <CreateMealDialog 
                   onCreateMeal={handleCreateMeal} 
                   foodDatabase={foodDatabase} 
                   setFoodDatabase={setFoodDatabase}
                 />
+                <Button variant="outline" onClick={logout}>
+                    <LogOut className="mr-2"/>
+                    Sign Out
+                </Button>
               </div>
             </div>
           </div>
