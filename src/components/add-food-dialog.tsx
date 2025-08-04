@@ -52,7 +52,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
 
   const handleSelect = (item: FoodItem | CustomMeal) => {
     setSelectedItem(item);
-    if ('servingUnit' in item) { // It's a FoodItem
+    if ('servingUnit' in item && 'servingSize' in item) { // It's a FoodItem
         setQuantity(item.servingSize);
     } else { // It's a CustomMeal
         setQuantity(1);
@@ -62,8 +62,8 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
   
   const handleConfirmAdd = () => {
     if (selectedItem) {
-        if ('servingUnit' in selectedItem) { // FoodItem
-            onAddFood(selectedItem, Number(quantity));
+        if ('servingUnit' in selectedItem && 'servingSize' in selectedItem) { // FoodItem
+            onAddFood(selectedItem as FoodItem, Number(quantity));
         } else { // CustomMeal
             onAddCustomMeal(selectedItem as CustomMeal, Number(quantity));
         }
@@ -78,9 +78,9 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
     setOpen(isOpen);
   }
 
-  const isCustomMeal = selectedItem && !('servingUnit' in selectedItem);
+  const isCustomMeal = selectedItem && !('servingSize' in selectedItem);
   const unitLabel = isCustomMeal ? 'serving(s)' : (selectedItem as FoodItem)?.servingUnit;
-  const servingInfo = isCustomMeal ? `1 serving = ${(selectedItem as CustomMeal)?.totalCalories.toFixed(0)} kcal` : `${(selectedItem as FoodItem)?.servingSize} ${unitLabel} = ${(selectedItem as FoodItem)?.calories} kcal`;
+  const servingInfo = isCustomMeal ? `1 serving = ${(selectedItem as CustomMeal)?.calories.toFixed(0)} kcal` : `${(selectedItem as FoodItem)?.servingSize} ${unitLabel} = ${(selectedItem as FoodItem)?.calories} kcal`;
 
 
   return (
@@ -131,7 +131,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
                         <div key={meal.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
                         <div>
                             <p className="font-semibold">{meal.name}</p>
-                            <p className="text-sm text-muted-foreground">{meal.items.length} items &bull; {meal.totalCalories.toFixed(0)} kcal</p>
+                            <p className="text-sm text-muted-foreground">{meal.items.length} items &bull; {meal.calories.toFixed(0)} kcal</p>
                         </div>
                         <Button size="icon" variant="ghost" onClick={() => handleSelect(meal)}>
                             <Plus className="h-4 w-4" />
