@@ -89,27 +89,19 @@ export default function Dashboard() {
     if (!customMeal.items || customMeal.items.length === 0) {
         // This is a meal with manually entered totals
         const servingSize = customMeal.servingSize || 1;
-        const servingUnit = customMeal.servingUnit || 'serving';
         
-        // The 'calories' for this item should be per 'servingSize'
-        const caloriesPerGram = customMeal.totalCalories / servingSize;
-
         const manualMealItem: MealItem = {
             id: customMeal.id,
             mealItemId: crypto.randomUUID(),
             name: customMeal.name,
-            // Store nutrient values for the base serving size so calculations are consistent
             calories: customMeal.totalCalories,
             protein: customMeal.totalProtein,
             carbs: customMeal.totalCarbs,
             fats: customMeal.totalFats,
-            // The total quantity added is the number of servings * the size of one serving.
-            quantity: servings * servingSize,
-            servingSize: servingSize,
-            servingUnit: servingUnit,
+            quantity: servings, // Here quantity is the number of servings
+            servingSize: 1, // The base unit is 1 serving
+            servingUnit: customMeal.servingUnit || 'serving',
             isCustom: true,
-            // We store the number of servings separately for display purposes
-            numServings: servings, 
         };
 
         setMeals(prevMeals => 

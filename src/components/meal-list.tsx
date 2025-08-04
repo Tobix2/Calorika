@@ -55,8 +55,8 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                      const ratio = servingSize > 0 ? quantity / servingSize : 0;
                      itemCalories = (Number(item.calories) || 0) * ratio;
 
-                     if (item.isCustom && item.numServings) {
-                        const numServings = item.numServings;
+                     if (item.isCustom) {
+                        const numServings = quantity;
                         const servingUnitLabel = numServings > 1 ? (item.servingUnit || 'servings').replace(/s$/, '') + 's' : (item.servingUnit || 'serving').replace(/s$/, '');
                         description = `${numServings} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
                      } else {
