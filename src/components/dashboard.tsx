@@ -240,9 +240,6 @@ export default function Dashboard() {
                   foodDatabase={foodDatabase} 
                   setFoodDatabase={setFoodDatabase}
                 />
-                 <Button variant="outline" size="icon" onClick={logout}>
-                    <LogOut />
-                </Button>
               </div>
             </div>
           </div>
