@@ -12,6 +12,16 @@ import {
   DialogFooter,
   DialogDescription
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import type { FoodItem, CustomMeal } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,6 +44,10 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
   const [step, setStep] = useState(1);
   const [selectedItem, setSelectedItem] = useState<FoodItem | CustomMeal | null>(null);
   const [quantity, setQuantity] = useState<number | string>(1);
+
+  // State for the delete confirmation dialog
+  const [isAlertOpen, setIsAlertOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<FoodItem | CustomMeal | null>(null);
 
   const filteredFoods = foodDatabase.filter(food =>
     food.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -72,11 +86,18 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
     }
   };
 
-  const handleDelete = (e: React.MouseEvent, item: FoodItem | CustomMeal) => {
-    e.stopPropagation(); // Prevents the selection event from firing.
-    if (window.confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
-        onDeleteItem(item);
+  const handleDeleteClick = (e: React.MouseEvent, item: FoodItem | CustomMeal) => {
+    e.stopPropagation();
+    setItemToDelete(item);
+    setIsAlertOpen(true);
+  }
+
+  const confirmDelete = () => {
+    if (itemToDelete) {
+        onDeleteItem(itemToDelete);
     }
+    setIsAlertOpen(false);
+    setItemToDelete(null);
   }
   
   const handleOpenChange = (isOpen: boolean) => {
@@ -92,107 +113,124 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
 
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>{children}</DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{step === 1 ? 'Add to Meal' : `Add ${selectedItem?.name}`}</DialogTitle>
-          <DialogDescription>
-            {step === 1
-              ? "Search for a food or meal to add to your plan."
-              : servingInfo}
-          </DialogDescription>
-        </DialogHeader>
-        
-        {step === 1 && (
-            <div className="py-4">
-            <Input
-                placeholder="Search for a food or meal..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="mb-4"
-            />
-            <Tabs defaultValue="foods">
-                <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="foods">Foods</TabsTrigger>
-                <TabsTrigger value="meals">My Meals</TabsTrigger>
-                </TabsList>
-                <ScrollArea className="h-72 mt-4">
-                <TabsContent value="foods">
-                    <div className="space-y-2 pr-4">
-                    {filteredFoods.map(food => (
-                        <div key={food.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted group">
-                        <div onClick={() => handleSelect(food)} className="flex-grow cursor-pointer">
-                            <p className="font-semibold">{food.name}</p>
-                            <p className="text-sm text-muted-foreground">{food.servingSize} {food.servingUnit} &bull; {food.calories} kcal</p>
-                        </div>
-                         <div className="flex items-center">
-                            <Button size="icon" variant="ghost" onClick={() => handleSelect(food)}>
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => handleDelete(e, food)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        </div>
-                    ))}
-                    </div>
-                </TabsContent>
-                <TabsContent value="meals">
-                    <div className="space-y-2 pr-4">
-                    {filteredCustomMeals.length > 0 ? filteredCustomMeals.map(meal => (
-                        <div key={meal.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted group">
-                        <div onClick={() => handleSelect(meal)} className="flex-grow cursor-pointer">
-                            <p className="font-semibold">{meal.name}</p>
-                            <p className="text-sm text-muted-foreground">{meal.items.length} items &bull; {meal.calories.toFixed(0)} kcal</p>
-                        </div>
-                         <div className="flex items-center">
-                            <Button size="icon" variant="ghost" onClick={() => handleSelect(meal)}>
-                                <Plus className="h-4 w-4" />
-                            </Button>
-                            <Button size="icon" variant="ghost" className="text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => handleDelete(e, meal)}>
-                                <Trash2 className="h-4 w-4" />
-                            </Button>
-                        </div>
-                        </div>
-                    )) : (
-                        <p className="text-sm text-muted-foreground text-center py-4">You haven&apos;t created any meals yet.</p>
-                    )}
-                    </div>
-                </TabsContent>
-                </ScrollArea>
-            </Tabs>
-            </div>
-        )}
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>{children}</DialogTrigger>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{step === 1 ? 'Add to Meal' : `Add ${selectedItem?.name}`}</DialogTitle>
+            <DialogDescription>
+              {step === 1
+                ? "Search for a food or meal to add to your plan."
+                : servingInfo}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {step === 1 && (
+              <div className="py-4">
+              <Input
+                  placeholder="Search for a food or meal..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  className="mb-4"
+              />
+              <Tabs defaultValue="foods">
+                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="foods">Foods</TabsTrigger>
+                  <TabsTrigger value="meals">My Meals</TabsTrigger>
+                  </TabsList>
+                  <ScrollArea className="h-72 mt-4">
+                  <TabsContent value="foods">
+                      <div className="space-y-2 pr-4">
+                      {filteredFoods.map(food => (
+                          <div key={food.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted group">
+                          <div onClick={() => handleSelect(food)} className="flex-grow cursor-pointer">
+                              <p className="font-semibold">{food.name}</p>
+                              <p className="text-sm text-muted-foreground">{food.servingSize} {food.servingUnit} &bull; {food.calories} kcal</p>
+                          </div>
+                           <div className="flex items-center">
+                              <Button size="icon" variant="ghost" onClick={() => handleSelect(food)}>
+                                  <Plus className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => handleDeleteClick(e, food)}>
+                                  <Trash2 className="h-4 w-4" />
+                              </Button>
+                          </div>
+                          </div>
+                      ))}
+                      </div>
+                  </TabsContent>
+                  <TabsContent value="meals">
+                      <div className="space-y-2 pr-4">
+                      {filteredCustomMeals.length > 0 ? filteredCustomMeals.map(meal => (
+                          <div key={meal.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted group">
+                          <div onClick={() => handleSelect(meal)} className="flex-grow cursor-pointer">
+                              <p className="font-semibold">{meal.name}</p>
+                              <p className="text-sm text-muted-foreground">{meal.items.length} items &bull; {meal.calories.toFixed(0)} kcal</p>
+                          </div>
+                           <div className="flex items-center">
+                              <Button size="icon" variant="ghost" onClick={() => handleSelect(meal)}>
+                                  <Plus className="h-4 w-4" />
+                              </Button>
+                              <Button size="icon" variant="ghost" className="text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => handleDeleteClick(e, meal)}>
+                                  <Trash2 className="h-4 w-4" />
+                              </Button>
+                          </div>
+                          </div>
+                      )) : (
+                          <p className="text-sm text-muted-foreground text-center py-4">You haven&apos;t created any meals yet.</p>
+                      )}
+                      </div>
+                  </TabsContent>
+                  </ScrollArea>
+              </Tabs>
+              </div>
+          )}
 
-        {step === 2 && selectedItem && (
-             <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                    <Label htmlFor="quantity">Quantity</Label>
-                    <div className="flex items-center gap-2">
-                         <Input
-                            id="quantity"
-                            type="number"
-                            value={quantity}
-                            onChange={(e) => setQuantity(e.target.value === '' ? '' : parseFloat(e.target.value))}
-                            min="0"
-                        />
-                        <span className="text-muted-foreground">{unitLabel}</span>
-                    </div>
-                </div>
-            </div>
-        )}
+          {step === 2 && selectedItem && (
+               <div className="space-y-4 py-4">
+                  <div className="space-y-2">
+                      <Label htmlFor="quantity">Quantity</Label>
+                      <div className="flex items-center gap-2">
+                           <Input
+                              id="quantity"
+                              type="number"
+                              value={quantity}
+                              onChange={(e) => setQuantity(e.target.value === '' ? '' : parseFloat(e.target.value))}
+                              min="0"
+                          />
+                          <span className="text-muted-foreground">{unitLabel}</span>
+                      </div>
+                  </div>
+              </div>
+          )}
 
-        <DialogFooter>
-            {step === 1 && <Button variant="outline" onClick={resetAndClose}>Cancel</Button>}
-            {step === 2 && (
-                <>
-                    <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                    <Button onClick={handleConfirmAdd} disabled={!quantity || Number(quantity) <= 0}>Add to Meal</Button>
-                </>
-            )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter>
+              {step === 1 && <Button variant="outline" onClick={resetAndClose}>Cancel</Button>}
+              {step === 2 && (
+                  <>
+                      <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+                      <Button onClick={handleConfirmAdd} disabled={!quantity || Number(quantity) <= 0}>Add to Meal</Button>
+                  </>
+              )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete "{itemToDelete?.name}" from your database.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDelete}>Continue</AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
