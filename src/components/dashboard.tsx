@@ -88,14 +88,16 @@ export default function Dashboard() {
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
     const mealItem: MealItem = {
-      ...customMeal,
-      id: customMeal.id,
-      mealItemId: crypto.randomUUID(),
-      name: customMeal.name,
-      quantity: servings,
-      isCustom: true,
-      // Ensure servingSize is correctly passed for later calculations
-      servingSize: customMeal.servingSize, 
+        ...customMeal,
+        id: customMeal.id,
+        mealItemId: crypto.randomUUID(),
+        name: customMeal.name,
+        quantity: servings,
+        isCustom: true,
+        // The total calories for the meal are already in customMeal.calories
+        // and other nutritional info.
+        // We set the servingSize here so future calculations know the base unit.
+        servingSize: customMeal.servingSize, 
     };
 
     setMeals(prevMeals => 
@@ -151,14 +153,15 @@ export default function Dashboard() {
         return;
     }
     try {
-        if ('servingUnit' in item && item.servingUnit !== 'meal') { // It's a FoodItem
-            await deleteFood(user.uid, item.id);
-            setFoodDatabase(prev => prev.filter(food => food.id !== item.id));
-            toast({ title: "Ingredient Deleted", description: `${item.name} has been removed from your database.` });
-        } else { // It's a CustomMeal
+        // A CustomMeal has an 'items' array, a FoodItem does not. This is a reliable way to differentiate.
+        if ('items' in item) { // It's a CustomMeal
             await deleteCustomMeal(user.uid, item.id);
             setCustomMeals(prev => prev.filter(meal => meal.id !== item.id));
             toast({ title: "Meal Deleted", description: `${item.name} has been removed from your database.` });
+        } else { // It's a FoodItem
+            await deleteFood(user.uid, item.id);
+            setFoodDatabase(prev => prev.filter(food => food.id !== item.id));
+            toast({ title: "Ingredient Deleted", description: `${item.name} has been removed from your database.` });
         }
     } catch (error) {
         console.error("Failed to delete item:", error);
@@ -210,11 +213,14 @@ export default function Dashboard() {
           let itemFats = 0;
 
           if (item.isCustom) {
+            // For custom meals, the 'calories' field holds the total per serving.
+            // Quantity is the number of servings.
             itemCalories = (Number(item.calories) || 0) * quantity;
             itemProtein = (Number(item.protein) || 0) * quantity;
             itemCarbs = (Number(item.carbs) || 0) * quantity;
             itemFats = (Number(item.fats) || 0) * quantity;
           } else {
+             // For individual food items, calculate based on serving size.
              const servingSize = Number(item.servingSize) || 1;
              const ratio = servingSize > 0 ? quantity / servingSize : 0;
              itemCalories = (Number(item.calories) || 0) * ratio;
