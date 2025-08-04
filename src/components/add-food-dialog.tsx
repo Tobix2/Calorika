@@ -73,7 +73,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
   };
 
   const handleDelete = (e: React.MouseEvent, item: FoodItem | CustomMeal) => {
-    e.stopPropagation(); // Evita que se dispare el evento de selección del item.
+    e.stopPropagation(); // Prevents the selection event from firing.
     if (window.confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
         onDeleteItem(item);
     }

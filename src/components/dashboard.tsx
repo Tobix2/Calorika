@@ -94,6 +94,8 @@ export default function Dashboard() {
       name: customMeal.name,
       quantity: servings,
       isCustom: true,
+      // Ensure servingSize is correctly passed for later calculations
+      servingSize: customMeal.servingSize, 
     };
 
     setMeals(prevMeals => 
@@ -149,7 +151,7 @@ export default function Dashboard() {
         return;
     }
     try {
-        if ('servingUnit' in item) { // It's a FoodItem
+        if ('servingUnit' in item && item.servingUnit !== 'meal') { // It's a FoodItem
             await deleteFood(user.uid, item.id);
             setFoodDatabase(prev => prev.filter(food => food.id !== item.id));
             toast({ title: "Ingredient Deleted", description: `${item.name} has been removed from your database.` });
