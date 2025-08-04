@@ -14,7 +14,7 @@ import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendat
 import { Button } from '@/components/ui/button';
 import { generateMealPlanAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { addCustomMeal, deleteCustomMeal, getCustomMeals } from '@/services/mealService';
+import { addCustomMeal, deleteCustomMeal } from '@/services/mealService';
 import { getFoods } from '@/services/foodService';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
@@ -93,13 +93,7 @@ export default function Dashboard() {
       mealItemId: crypto.randomUUID(),
       name: customMeal.name,
       quantity: servings,
-      servingSize: customMeal.servingSize,
-      servingUnit: customMeal.servingUnit,
       isCustom: true,
-      calories: customMeal.calories,
-      protein: customMeal.protein,
-      carbs: customMeal.carbs,
-      fats: customMeal.fats,
     };
 
     setMeals(prevMeals => 
