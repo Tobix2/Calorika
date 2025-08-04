@@ -4,9 +4,13 @@ import { db } from '@/lib/firebase';
 import type { FoodItem } from '@/lib/types';
 import { collection, addDoc } from 'firebase/firestore';
 
-const foodCollection = collection(db, 'foods');
+function getFoodCollection(userId: string) {
+    if (!userId) throw new Error("User ID is required for server actions.");
+    return collection(db, 'users', userId, 'foods');
+}
 
-export async function addFood(food: Omit<FoodItem, 'id'>): Promise<FoodItem> {
+export async function addFood(userId: string, food: Omit<FoodItem, 'id'>): Promise<FoodItem> {
+    const foodCollection = getFoodCollection(userId);
     try {
         const cleanFood = JSON.parse(JSON.stringify(food));
         const docRef = await addDoc(foodCollection, cleanFood);

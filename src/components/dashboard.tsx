@@ -40,7 +40,7 @@ export default function Dashboard() {
   
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { logout, user } = useAuth();
+  const { user, logout } = useAuth();
 
   useEffect(() => {
     async function loadInitialData() {
@@ -48,8 +48,8 @@ export default function Dashboard() {
             try {
                 setIsLoadingData(true);
                 const [foods, meals] = await Promise.all([
-                    getFoods(),
-                    getCustomMeals()
+                    getFoods(user.uid),
+                    getCustomMeals(user.uid)
                 ]);
                 setFoodDatabase(foods);
                 setCustomMeals(meals);
@@ -139,8 +139,12 @@ export default function Dashboard() {
   };
 
   const handleCreateMeal = async (newMealData: Omit<CustomMeal, 'id'>) => {
+    if (!user) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to create a meal." });
+        return;
+    }
     try {
-        const newMeal = await addCustomMeal(newMealData);
+        const newMeal = await addCustomMeal(user.uid, newMealData);
         setCustomMeals(prev => [...prev, newMeal]);
         toast({
             title: "Meal Created!",
@@ -227,7 +231,7 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
               </div>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" onClick={handleGeneratePlan} disabled={isPending}>
+                <Button variant="ghost" onClick={handleGeneratePlan} disabled={isPending || isLoadingData}>
                   {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
                   Generate Plan with AI
                 </Button>

@@ -20,6 +20,8 @@ import { Plus, UtensilsCrossed, Trash2 } from 'lucide-react';
 import AddIngredientDialog from './add-ingredient-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/auth-context';
+import { addFood } from '@/services/foodServerActions';
 
 
 interface CreateMealDialogProps {
@@ -35,6 +37,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
   const [selectedItems, setSelectedItems] = useState<MealItem[]>([]);
   const [creationMode, setCreationMode] = useState<'ingredients' | 'totals'>('ingredients');
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Manual totals state
   const [manualCalories, setManualCalories] = useState<number | ''>('');
@@ -146,21 +149,12 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
   }
 
   const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>) => {
+    if (!user) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to add an ingredient." });
+        return null;
+    }
     try {
-      const res = await fetch('/api/foods', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(newIngredientData),
-      });
-  
-      if (!res.ok) {
-        const errorData = await res.json();
-        throw new Error(errorData.details || "Failed to save ingredient");
-      }
-  
-      const newIngredient: FoodItem = await res.json();
+      const newIngredient = await addFood(user.uid, newIngredientData);
       
       setFoodDatabase(prev => [...prev, newIngredient]);
       addFoodToMeal(newIngredient);

@@ -1,9 +1,34 @@
 import { NextResponse } from 'next/server';
 import { addFood } from '@/services/foodServerActions';
+import { auth } from 'firebase-admin';
+import { initAdminApp } from '@/lib/firebase-admin';
+
+// Initialize Firebase Admin SDK
+initAdminApp();
+
+async function getUserIdFromRequest(req: Request): Promise<string | null> {
+    const authorization = req.headers.get('Authorization');
+    if (authorization?.startsWith('Bearer ')) {
+        const idToken = authorization.split('Bearer ')[1];
+        try {
+            const decodedToken = await auth().verifyIdToken(idToken);
+            return decodedToken.uid;
+        } catch (error) {
+            console.error("Error verifying ID token:", error);
+            return null;
+        }
+    }
+    return null;
+}
 
 export async function POST(req: Request) {
   console.log("🟢 POST /api/foods - La ruta ha sido llamada.");
   try {
+    const userId = await getUserIdFromRequest(req);
+    if (!userId) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const food = await req.json();
     console.log("✅ Datos recibidos y parseados del cliente:", food);
 
@@ -11,8 +36,8 @@ export async function POST(req: Request) {
     const cleanFood = JSON.parse(JSON.stringify(food));
     console.log("🧼 Objeto de comida limpiado para Firestore:", cleanFood);
     
-    console.log("⏳ Intentando añadir el documento a la colección 'foods'...");
-    const newFood = await addFood(cleanFood);
+    console.log("⏳ Intentando añadir el documento a la colección 'foods' para el usuario:", userId);
+    const newFood = await addFood(userId, cleanFood);
     console.log("✅ Documento añadido a Firestore con éxito. ID:", newFood.id);
 
     return NextResponse.json(newFood, { status: 201 });

@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation';
 interface AuthContextType {
   user: User | null;
   loading: boolean;
+  getIdToken: () => Promise<string | null>;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -16,6 +17,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
+  getIdToken: async () => null,
   signInWithGoogle: async () => {},
   logout: async () => {},
 });
@@ -33,6 +35,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return () => unsubscribe();
   }, []);
+
+  const getIdToken = async (): Promise<string | null> => {
+    if (auth.currentUser) {
+        return await auth.currentUser.getIdToken();
+    }
+    return null;
+  }
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
@@ -54,7 +63,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, signInWithGoogle, logout }}>
+    <AuthContext.Provider value={{ user, loading, getIdToken, signInWithGoogle, logout }}>
       {children}
     </AuthContext.Provider>
   );

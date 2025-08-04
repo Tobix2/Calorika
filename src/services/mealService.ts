@@ -3,9 +3,14 @@ import { db } from '@/lib/firebase';
 import type { CustomMeal } from '@/lib/types';
 import { collection, getDocs, addDoc } from 'firebase/firestore';
 
-const mealCollection = collection(db, 'customMeals');
+function getMealCollection(userId: string) {
+    if (!userId) throw new Error("User ID is required.");
+    return collection(db, 'users', userId, 'customMeals');
+}
 
-export async function getCustomMeals(): Promise<CustomMeal[]> {
+
+export async function getCustomMeals(userId: string): Promise<CustomMeal[]> {
+    const mealCollection = getMealCollection(userId);
     const snapshot = await getDocs(mealCollection);
     return snapshot.docs.map(doc => {
         const data = doc.data();
@@ -25,7 +30,8 @@ export async function getCustomMeals(): Promise<CustomMeal[]> {
     });
 }
 
-export async function addCustomMeal(meal: Omit<CustomMeal, 'id'>): Promise<CustomMeal> {
+export async function addCustomMeal(userId: string, meal: Omit<CustomMeal, 'id'>): Promise<CustomMeal> {
+    const mealCollection = getMealCollection(userId);
     try {
         // Sanitize the object to ensure it's Firestore-compatible
         const cleanMeal = JSON.parse(JSON.stringify(meal));
