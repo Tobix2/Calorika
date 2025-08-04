@@ -27,10 +27,9 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {meals.map(meal => {
         const mealCalories = meal.items.reduce((sum, item) => {
-            if (item.isCustom) {
-                return sum + (Number(item.calories) || 0) * (Number(item.quantity) || 0);
-            }
-            const ratio = (item.servingSize || 1) > 0 ? (Number(item.quantity) || 0) / (Number(item.servingSize) || 1) : 0;
+            const quantity = Number(item.quantity) || 0;
+            const servingSize = Number(item.servingSize) || 1;
+            const ratio = servingSize > 0 ? quantity / servingSize : 0;
             return sum + ((Number(item.calories) || 0) * ratio);
         }, 0);
 
@@ -51,16 +50,16 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                 {meal.items.length > 0 ? (
                   meal.items.map((item: MealItem) => {
                      let itemCalories, description;
+                     const quantity = Number(item.quantity) || 0;
+                     const servingSize = Number(item.servingSize) || 1;
+                     const ratio = servingSize > 0 ? quantity / servingSize : 0;
+                     itemCalories = (Number(item.calories) || 0) * ratio;
+
                      if (item.isCustom) {
-                         itemCalories = (Number(item.calories) || 0) * (Number(item.quantity) || 0);
-                         const servingUnitLabel = item.quantity > 1 ? (item.servingUnit || 'servings').replace(/\\(s\\)$/, '') + 's' : (item.servingUnit || 'serving').replace(/\\(s\\)$/, '');
-                         description = `${item.quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
+                         const servingUnitLabel = quantity > 1 ? (item.servingUnit || 'servings').replace(/s$/, '') + 's' : (item.servingUnit || 'serving').replace(/s$/, '');
+                         description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
                      } else {
-                         const itemQuantity = Number(item.quantity) || 0;
-                         const itemServingSize = Number(item.servingSize) || 1;
-                         const ratio = itemServingSize > 0 ? itemQuantity / itemServingSize : 0;
-                         itemCalories = (Number(item.calories) || 0) * ratio;
-                         description = `${item.quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
+                         description = `${quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
                      }
 
                     return (
