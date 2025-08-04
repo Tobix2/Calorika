@@ -7,7 +7,7 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2 } from 'lucide-react';
+import { Leaf, Bot, Loader2, LogOut } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
@@ -15,6 +15,9 @@ import { Button } from '@/components/ui/button';
 import { generateMealPlanAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { addCustomMeal } from '@/services/mealService';
+import { useAuth } from '@/context/auth-context';
+import AuthGuard from './auth-guard';
+
 
 const initialMeals: Meal[] = [
   { name: 'Breakfast', items: [] },
@@ -40,6 +43,8 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
   
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
+  const { logout } = useAuth();
+
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
     setMeals(prevMeals =>
@@ -189,78 +194,81 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
 
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-10">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <Leaf className="h-8 w-8 text-primary" />
-              <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
+    <AuthGuard>
+      <div className="flex flex-col min-h-screen">
+        <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-10">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex items-center justify-between h-16">
+              <div className="flex items-center gap-2">
+                <Leaf className="h-8 w-8 text-primary" />
+                <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" onClick={handleGeneratePlan} disabled={isPending}>
+                  {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
+                  Generate Plan with AI
+                </Button>
+                <CreateMealDialog 
+                  onCreateMeal={handleCreateMeal} 
+                  foodDatabase={foodDatabase} 
+                  setFoodDatabase={setFoodDatabase}
+                />
+                 <Button variant="outline" size="icon" onClick={logout}>
+                    <LogOut />
+                </Button>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" onClick={handleGeneratePlan} disabled={isPending}>
-                {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
-                Generate Plan with AI
-              </Button>
-              <CreateMealDialog 
-                onCreateMeal={handleCreateMeal} 
-                foodDatabase={foodDatabase} 
-                setFoodDatabase={setFoodDatabase}
+          </div>
+        </header>
+        <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <DailySummary
+                totalCalories={totalCalories}
+                calorieGoal={calorieGoal}
+                protein={totalProtein}
+                proteinGoal={proteinGoal}
+                carbs={totalCarbs}
+                carbsGoal={carbsGoal}
+                fats={totalFats}
+                fatsGoal={fatsGoal}
+              />
+              <MealList
+                meals={meals}
+                customMeals={customMeals}
+                foodDatabase={foodDatabase}
+                onAddFood={handleAddFood}
+                onAddCustomMeal={handleAddCustomMeal}
+                onRemoveFood={handleRemoveFood}
               />
             </div>
+            <div className="space-y-6">
+              <CalorieRecommendationForm onGoalSet={handleSetGoal} />
+              <Card>
+                  <CardHeader>
+                      <CardTitle>Meal Calories Breakdown</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      <ResponsiveContainer width="100%" height={300}>
+                          <BarChart data={chartData}>
+                              <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                              <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                              <Tooltip
+                                contentStyle={{
+                                  background: "hsl(var(--background))",
+                                  border: "1px solid hsl(var(--border))",
+                                  borderRadius: "var(--radius)",
+                                }}
+                              />
+                              <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                      </ResponsiveContainer>
+                  </CardContent>
+              </Card>
+            </div>
           </div>
-        </div>
-      </header>
-      <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <DailySummary
-              totalCalories={totalCalories}
-              calorieGoal={calorieGoal}
-              protein={totalProtein}
-              proteinGoal={proteinGoal}
-              carbs={totalCarbs}
-              carbsGoal={carbsGoal}
-              fats={totalFats}
-              fatsGoal={fatsGoal}
-            />
-            <MealList
-              meals={meals}
-              customMeals={customMeals}
-              foodDatabase={foodDatabase}
-              onAddFood={handleAddFood}
-              onAddCustomMeal={handleAddCustomMeal}
-              onRemoveFood={handleRemoveFood}
-            />
-          </div>
-          <div className="space-y-6">
-            <CalorieRecommendationForm onGoalSet={handleSetGoal} />
-             <Card>
-                <CardHeader>
-                    <CardTitle>Meal Calories Breakdown</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={chartData}>
-                            <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                            <Tooltip
-                              contentStyle={{
-                                background: "hsl(var(--background))",
-                                border: "1px solid hsl(var(--border))",
-                                borderRadius: "var(--radius)",
-                              }}
-                            />
-                            <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
-          </div>
-        </div>
-      </main>
-    </div>
+        </main>
+      </div>
+    </AuthGuard>
   );
 }
-
-    
