@@ -2,7 +2,7 @@
 
 import { db } from '@/lib/firebase';
 import type { FoodItem } from '@/lib/types';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, deleteDoc } from 'firebase/firestore';
 
 function getFoodCollection(userId: string) {
     if (!userId) throw new Error("User ID is required for server actions.");
@@ -21,5 +21,19 @@ export async function addFood(userId: string, food: Omit<FoodItem, 'id'>): Promi
             throw new Error(`Firestore error: ${error.message}`);
         }
         throw new Error('An unknown error occurred while saving to Firestore.');
+    }
+}
+
+export async function deleteFood(userId: string, foodId: string): Promise<void> {
+    if (!foodId) throw new Error("Food ID is required.");
+    const foodDocRef = doc(db, 'users', userId, 'foods', foodId);
+    try {
+        await deleteDoc(foodDocRef);
+    } catch (error) {
+        console.error("Error deleting document from Firestore: ", error);
+        if (error instanceof Error) {
+            throw new Error(`Firestore error: ${error.message}`);
+        }
+        throw new Error('An unknown error occurred while deleting from Firestore.');
     }
 }

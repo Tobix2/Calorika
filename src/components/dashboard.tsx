@@ -14,10 +14,11 @@ import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendat
 import { Button } from '@/components/ui/button';
 import { generateMealPlanAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { addCustomMeal, getCustomMeals } from '@/services/mealService';
+import { addCustomMeal, deleteCustomMeal, getCustomMeals } from '@/services/mealService';
 import { getFoods } from '@/services/foodService';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
+import { deleteFood } from '@/services/foodServerActions';
 
 
 const initialMeals: Meal[] = [
@@ -86,42 +87,26 @@ export default function Dashboard() {
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
-    if (!customMeal.items || customMeal.items.length === 0) {
-        // This is a meal with manually entered totals
-        const manualMealItem: MealItem = {
-            id: customMeal.id,
-            mealItemId: crypto.randomUUID(),
-            name: customMeal.name,
-            calories: customMeal.calories,
-            protein: customMeal.protein,
-            carbs: customMeal.carbs,
-            fats: customMeal.fats,
-            quantity: servings, // Here quantity is the number of servings
-            servingSize: customMeal.servingSize,
-            servingUnit: customMeal.servingUnit,
-            isCustom: true,
-        };
+    const mealItem: MealItem = {
+      ...customMeal,
+      id: customMeal.id,
+      mealItemId: crypto.randomUUID(),
+      name: customMeal.name,
+      quantity: servings,
+      servingSize: customMeal.servingSize,
+      servingUnit: customMeal.servingUnit,
+      isCustom: true,
+      calories: customMeal.calories,
+      protein: customMeal.protein,
+      carbs: customMeal.carbs,
+      fats: customMeal.fats,
+    };
 
-        setMeals(prevMeals => 
-            prevMeals.map(meal => 
-                meal.name === mealName ? { ...meal, items: [...meal.items, manualMealItem] } : meal
-            )
-        );
-    } else {
-        // This is a meal composed of other ingredients
-        setMeals(prevMeals =>
-            prevMeals.map(meal =>
-                meal.name === mealName ? { ...meal, items: [
-                    ...meal.items,
-                    ...customMeal.items.map(item => ({
-                        ...item, 
-                        quantity: item.quantity * servings,
-                        mealItemId: crypto.randomUUID()
-                    }))
-                ] } : meal
-            )
-        );
-    }
+    setMeals(prevMeals => 
+        prevMeals.map(meal => 
+            meal.name === mealName ? { ...meal, items: [...meal.items, mealItem] } : meal
+        )
+    );
   };
 
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
@@ -163,6 +148,32 @@ export default function Dashboard() {
         });
     }
   }
+  
+  const handleDeleteItem = async (item: FoodItem | CustomMeal) => {
+    if (!user) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to delete items." });
+        return;
+    }
+    try {
+        if ('servingUnit' in item) { // It's a FoodItem
+            await deleteFood(user.uid, item.id);
+            setFoodDatabase(prev => prev.filter(food => food.id !== item.id));
+            toast({ title: "Ingredient Deleted", description: `${item.name} has been removed from your database.` });
+        } else { // It's a CustomMeal
+            await deleteCustomMeal(user.uid, item.id);
+            setCustomMeals(prev => prev.filter(meal => meal.id !== item.id));
+            toast({ title: "Meal Deleted", description: `${item.name} has been removed from your database.` });
+        }
+    } catch (error) {
+        console.error("Failed to delete item:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({
+            variant: "destructive",
+            title: "Error Deleting Item",
+            description: `Could not delete from database: ${errorMessage}`,
+        });
+    }
+  };
 
   const handleGeneratePlan = () => {
     startTransition(async () => {
@@ -203,7 +214,6 @@ export default function Dashboard() {
           let itemFats = 0;
 
           if (item.isCustom) {
-            // For custom meals, quantity is number of servings
             itemCalories = (Number(item.calories) || 0) * quantity;
             itemProtein = (Number(item.protein) || 0) * quantity;
             itemCarbs = (Number(item.carbs) || 0) * quantity;
@@ -299,6 +309,7 @@ export default function Dashboard() {
                         onAddFood={handleAddFood}
                         onAddCustomMeal={handleAddCustomMeal}
                         onRemoveFood={handleRemoveFood}
+                        onDeleteItem={handleDeleteItem}
                     />
                     </div>
                     <div className="space-y-6">

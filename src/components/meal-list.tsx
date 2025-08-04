@@ -13,6 +13,7 @@ interface MealListProps {
   onAddFood: (mealName: MealName, food: FoodItem, quantity: number) => void;
   onAddCustomMeal: (mealName: MealName, customMeal: CustomMeal, servings: number) => void;
   onRemoveFood: (mealName: MealName, mealItemId: string) => void;
+  onDeleteItem: (item: FoodItem | CustomMeal) => void;
 }
 
 const mealIcons: Record<MealName, React.ReactNode> = {
@@ -22,7 +23,7 @@ const mealIcons: Record<MealName, React.ReactNode> = {
   Snacks: <Cookie className="h-6 w-6 text-orange-400" />,
 };
 
-export default function MealList({ meals, customMeals, foodDatabase, onAddFood, onRemoveFood, onAddCustomMeal }: MealListProps) {
+export default function MealList({ meals, customMeals, foodDatabase, onAddFood, onRemoveFood, onAddCustomMeal, onDeleteItem }: MealListProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {meals.map(meal => {
@@ -91,6 +92,7 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                 onAddCustomMeal={(customMeal, servings) => onAddCustomMeal(meal.name, customMeal, servings)}
                 customMeals={customMeals}
                 foodDatabase={foodDatabase}
+                onDeleteItem={onDeleteItem}
               >
                  <button className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md border-2 border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-accent hover:border-accent-foreground hover:text-accent-foreground transition-colors">
                     <PlusCircle className="h-4 w-4" />

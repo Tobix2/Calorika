@@ -15,7 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import type { FoodItem, CustomMeal } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
 
@@ -24,10 +24,11 @@ interface AddFoodDialogProps {
   foodDatabase: FoodItem[];
   onAddFood: (food: FoodItem, quantity: number) => void;
   onAddCustomMeal: (meal: CustomMeal, servings: number) => void;
+  onDeleteItem: (item: FoodItem | CustomMeal) => void;
   children: React.ReactNode;
 }
 
-export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals, foodDatabase, children }: AddFoodDialogProps) {
+export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals, foodDatabase, children, onDeleteItem }: AddFoodDialogProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [step, setStep] = useState(1);
@@ -70,6 +71,13 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
         resetAndClose();
     }
   };
+
+  const handleDelete = (e: React.MouseEvent, item: FoodItem | CustomMeal) => {
+    e.stopPropagation(); // Evita que se dispare el evento de selección del item.
+    if (window.confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)) {
+        onDeleteItem(item);
+    }
+  }
   
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -113,14 +121,19 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
                 <TabsContent value="foods">
                     <div className="space-y-2 pr-4">
                     {filteredFoods.map(food => (
-                        <div key={food.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
-                        <div>
+                        <div key={food.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted group">
+                        <div onClick={() => handleSelect(food)} className="flex-grow cursor-pointer">
                             <p className="font-semibold">{food.name}</p>
                             <p className="text-sm text-muted-foreground">{food.servingSize} {food.servingUnit} &bull; {food.calories} kcal</p>
                         </div>
-                        <Button size="icon" variant="ghost" onClick={() => handleSelect(food)}>
-                            <Plus className="h-4 w-4" />
-                        </Button>
+                         <div className="flex items-center">
+                            <Button size="icon" variant="ghost" onClick={() => handleSelect(food)}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => handleDelete(e, food)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
                         </div>
                     ))}
                     </div>
@@ -128,14 +141,19 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
                 <TabsContent value="meals">
                     <div className="space-y-2 pr-4">
                     {filteredCustomMeals.length > 0 ? filteredCustomMeals.map(meal => (
-                        <div key={meal.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted">
-                        <div>
+                        <div key={meal.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted group">
+                        <div onClick={() => handleSelect(meal)} className="flex-grow cursor-pointer">
                             <p className="font-semibold">{meal.name}</p>
                             <p className="text-sm text-muted-foreground">{meal.items.length} items &bull; {meal.calories.toFixed(0)} kcal</p>
                         </div>
-                        <Button size="icon" variant="ghost" onClick={() => handleSelect(meal)}>
-                            <Plus className="h-4 w-4" />
-                        </Button>
+                         <div className="flex items-center">
+                            <Button size="icon" variant="ghost" onClick={() => handleSelect(meal)}>
+                                <Plus className="h-4 w-4" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => handleDelete(e, meal)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
                         </div>
                     )) : (
                         <p className="text-sm text-muted-foreground text-center py-4">You haven&apos;t created any meals yet.</p>
