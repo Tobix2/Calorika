@@ -15,10 +15,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FoodItem } from '@/lib/types';
-import { useToast } from '@/hooks/use-toast';
 
 interface AddIngredientDialogProps {
-  onAddIngredient: (food: FoodItem) => void;
+  onAddIngredient: (food: Omit<FoodItem, 'id'>) => Promise<FoodItem | null>;
   children: React.ReactNode;
 }
 
@@ -32,7 +31,6 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
   const [carbs, setCarbs] = useState<number | ''>('');
   const [fats, setFats] = useState<number | ''>('');
   const [isSaving, setIsSaving] = useState(false);
-  const { toast } = useToast();
   
   const resetForm = () => {
     setName('');
@@ -57,40 +55,12 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
       };
 
       setIsSaving(true);
-      try {
-        const res = await fetch('/api/foods', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newIngredientData),
-        });
+      const result = await onAddIngredient(newIngredientData);
+      setIsSaving(false);
 
-        if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.details || "Failed to save ingredient");
-        }
-        
-        const newIngredient: FoodItem = await res.json();
-        
-        onAddIngredient(newIngredient);
-
-        toast({
-            title: "Ingredient Saved!",
-            description: `${newIngredient.name} has been added to the database.`,
-        });
-
+      if (result) {
         resetForm();
         setOpen(false);
-
-      } catch (error) {
-          console.error("Failed to save ingredient:", error);
-          const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-          toast({
-            variant: "destructive",
-            title: "Error Saving Ingredient",
-            description: `Could not save to database: ${errorMessage}`,
-          });
-      } finally {
-        setIsSaving(false);
       }
     }
   };
