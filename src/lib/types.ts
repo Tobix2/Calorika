@@ -14,7 +14,6 @@ export type MealItem = FoodItem & {
   mealItemId: string; 
   quantity: number;
   isCustom?: boolean; // Flag for manually added meals
-  numServings?: number; // Number of servings for a custom meal
 };
 
 export type MealName = "Breakfast" | "Lunch" | "Dinner" | "Snacks";
@@ -28,12 +27,13 @@ export type CustomMeal = {
   id: string;
   name: string;
   items: MealItem[]; // Can be empty for meals with manual totals
-  totalCalories: number;
-  totalProtein: number;
-  totalCarbs: number;
-  totalFats: number;
-  servingSize?: number;
-  servingUnit?: string;
+  // Nutritional info per serving for manually entered meals
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
+  servingSize: number;
+  servingUnit: string;
 };
 
 export type GenerateMealPlanInput = {

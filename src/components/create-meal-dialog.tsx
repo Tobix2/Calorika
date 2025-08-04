@@ -91,6 +91,13 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
   const handleCreateMeal = () => {
     if (!mealName.trim()) return;
 
+    let mealTotals = {
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fats: 0,
+    };
+
     if (creationMode === 'ingredients' && selectedItems.length > 0) {
         const mealItemsForDb = selectedItems.map(item => {
             const cleanItem: MealItem = {
@@ -107,14 +114,20 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
             };
             return cleanItem;
         });
+        
+        mealTotals = {
+            calories: totalsFromIngredients.totalCalories,
+            protein: totalsFromIngredients.totalProtein,
+            carbs: totalsFromIngredients.totalCarbs,
+            fats: totalsFromIngredients.totalFats,
+        };
 
         const newMealData: Omit<CustomMeal, 'id'> = {
             name: mealName,
             items: mealItemsForDb,
-            totalCalories: totalsFromIngredients.totalCalories,
-            totalProtein: totalsFromIngredients.totalProtein,
-            totalCarbs: totalsFromIngredients.totalCarbs,
-            totalFats: totalsFromIngredients.totalFats,
+            ...mealTotals,
+            servingSize: 1, // Serving size is 1 "meal"
+            servingUnit: 'meal',
         };
         onCreateMeal(newMealData);
         resetState();
@@ -122,10 +135,10 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
          const newMealData: Omit<CustomMeal, 'id'> = {
             name: mealName,
             items: [], 
-            totalCalories: Number(manualCalories),
-            totalProtein: Number(manualProtein),
-            totalCarbs: Number(manualCarbs),
-            totalFats: Number(manualFats),
+            calories: Number(manualCalories),
+            protein: Number(manualProtein),
+            carbs: Number(manualCarbs),
+            fats: Number(manualFats),
             servingSize: Number(manualServingSize) || 1,
             servingUnit: manualServingUnit || 'serving',
         };

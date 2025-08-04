@@ -88,19 +88,17 @@ export default function Dashboard() {
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
     if (!customMeal.items || customMeal.items.length === 0) {
         // This is a meal with manually entered totals
-        const servingSize = customMeal.servingSize || 1;
-        
         const manualMealItem: MealItem = {
             id: customMeal.id,
             mealItemId: crypto.randomUUID(),
             name: customMeal.name,
-            calories: customMeal.totalCalories,
-            protein: customMeal.totalProtein,
-            carbs: customMeal.totalCarbs,
-            fats: customMeal.totalFats,
+            calories: customMeal.calories,
+            protein: customMeal.protein,
+            carbs: customMeal.carbs,
+            fats: customMeal.fats,
             quantity: servings, // Here quantity is the number of servings
-            servingSize: 1, // The base unit is 1 serving
-            servingUnit: customMeal.servingUnit || 'serving',
+            servingSize: customMeal.servingSize,
+            servingUnit: customMeal.servingUnit,
             isCustom: true,
         };
 
@@ -198,13 +196,31 @@ export default function Dashboard() {
       (totals, meal) => {
         meal.items.forEach(item => {
           const quantity = Number(item.quantity) || 0;
-          const servingSize = Number(item.servingSize) || 1;
-          const ratio = servingSize > 0 ? quantity / servingSize : 0;
           
-          totals.totalCalories += (Number(item.calories) || 0) * ratio;
-          totals.totalProtein += (Number(item.protein) || 0) * ratio;
-          totals.totalCarbs += (Number(item.carbs) || 0) * ratio;
-          totals.totalFats += (Number(item.fats) || 0) * ratio;
+          let itemCalories = 0;
+          let itemProtein = 0;
+          let itemCarbs = 0;
+          let itemFats = 0;
+
+          if (item.isCustom) {
+            // For custom meals, quantity is number of servings
+            itemCalories = (Number(item.calories) || 0) * quantity;
+            itemProtein = (Number(item.protein) || 0) * quantity;
+            itemCarbs = (Number(item.carbs) || 0) * quantity;
+            itemFats = (Number(item.fats) || 0) * quantity;
+          } else {
+             const servingSize = Number(item.servingSize) || 1;
+             const ratio = servingSize > 0 ? quantity / servingSize : 0;
+             itemCalories = (Number(item.calories) || 0) * ratio;
+             itemProtein = (Number(item.protein) || 0) * ratio;
+             itemCarbs = (Number(item.carbs) || 0) * ratio;
+             itemFats = (Number(item.fats) || 0) * ratio;
+          }
+          
+          totals.totalCalories += itemCalories;
+          totals.totalProtein += itemProtein;
+          totals.totalCarbs += itemCarbs;
+          totals.totalFats += itemFats;
         });
         return totals;
       },
@@ -217,6 +233,11 @@ export default function Dashboard() {
       name: meal.name,
       calories: meal.items.reduce((sum, item) => {
           const quantity = Number(item.quantity) || 0;
+          
+          if (item.isCustom) {
+            return sum + (Number(item.calories) || 0) * quantity;
+          }
+
           const itemServingSize = Number(item.servingSize) || 1;
           const ratio = itemServingSize > 0 ? quantity / itemServingSize : 0;
           return sum + ((Number(item.calories) || 0) * ratio)

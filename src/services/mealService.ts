@@ -14,15 +14,22 @@ export async function getCustomMeals(userId: string): Promise<CustomMeal[]> {
     const snapshot = await getDocs(mealCollection);
     return snapshot.docs.map(doc => {
         const data = doc.data();
+
+        // Handle backward compatibility for old data structure
+        const calories = data.calories ?? data.totalCalories ?? 0;
+        const protein = data.protein ?? data.totalProtein ?? 0;
+        const carbs = data.carbs ?? data.totalCarbs ?? 0;
+        const fats = data.fats ?? data.totalFats ?? 0;
+
         // Ensure default values for optional fields to prevent serialization issues.
         const meal: CustomMeal = {
             id: doc.id,
             name: data.name,
             items: data.items || [],
-            totalCalories: data.totalCalories || 0,
-            totalProtein: data.totalProtein || 0,
-            totalCarbs: data.totalCarbs || 0,
-            totalFats: data.totalFats || 0,
+            calories,
+            protein,
+            carbs,
+            fats,
             servingSize: data.servingSize || 1,
             servingUnit: data.servingUnit || 'serving',
         };
