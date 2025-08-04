@@ -14,7 +14,7 @@ import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendat
 import { Button } from '@/components/ui/button';
 import { generateMealPlanAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { addCustomMeal, deleteCustomMeal } from '@/services/mealService';
+import { addCustomMeal, deleteCustomMeal, getCustomMeals } from '@/services/mealService';
 import { getFoods } from '@/services/foodService';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
