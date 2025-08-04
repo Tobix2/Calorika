@@ -14,6 +14,7 @@ export type MealItem = FoodItem & {
   mealItemId: string; 
   quantity: number;
   isCustom?: boolean; // Flag for manually added meals
+  numServings?: number; // Number of servings for a custom meal
 };
 
 export type MealName = "Breakfast" | "Lunch" | "Dinner" | "Snacks";
