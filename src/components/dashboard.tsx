@@ -14,7 +14,8 @@ import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendat
 import { Button } from '@/components/ui/button';
 import { generateMealPlanAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { addCustomMeal } from '@/services/mealService';
+import { addCustomMeal, getCustomMeals } from '@/services/mealService';
+import { getFoods } from '@/services/foodService';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
 
@@ -26,24 +27,46 @@ const initialMeals: Meal[] = [
   { name: 'Snacks', items: [] },
 ];
 
-interface DashboardProps {
-  initialFoodDatabase: FoodItem[];
-  initialCustomMeals: CustomMeal[];
-}
-
-export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: DashboardProps) {
+export default function Dashboard() {
   const [meals, setMeals] = useState<Meal[]>(initialMeals);
   const [calorieGoal, setCalorieGoal] = useState<number>(2200);
   const [proteinGoal, setProteinGoal] = useState<number>(140);
   const [carbsGoal, setCarbsGoal] = useState<number>(250);
   const [fatsGoal, setFatsGoal] = useState<number>(70);
   
-  const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>(initialFoodDatabase);
-  const [customMeals, setCustomMeals] = useState<CustomMeal[]>(initialCustomMeals);
+  const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>([]);
+  const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(true);
   
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  useEffect(() => {
+    async function loadInitialData() {
+        if (user) {
+            try {
+                setIsLoadingData(true);
+                const [foods, meals] = await Promise.all([
+                    getFoods(),
+                    getCustomMeals()
+                ]);
+                setFoodDatabase(foods);
+                setCustomMeals(meals);
+            } catch (error) {
+                console.error("Failed to load initial data", error);
+                toast({
+                    variant: 'destructive',
+                    title: 'Error',
+                    description: 'Could not load your data. Please try refreshing the page.'
+                });
+            } finally {
+                setIsLoadingData(false);
+            }
+        }
+    }
+    loadInitialData();
+  }, [user, toast]);
 
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
@@ -221,52 +244,58 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
           </div>
         </header>
         <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <DailySummary
-                totalCalories={totalCalories}
-                calorieGoal={calorieGoal}
-                protein={totalProtein}
-                proteinGoal={proteinGoal}
-                carbs={totalCarbs}
-                carbsGoal={carbsGoal}
-                fats={totalFats}
-                fatsGoal={fatsGoal}
-              />
-              <MealList
-                meals={meals}
-                customMeals={customMeals}
-                foodDatabase={foodDatabase}
-                onAddFood={handleAddFood}
-                onAddCustomMeal={handleAddCustomMeal}
-                onRemoveFood={handleRemoveFood}
-              />
-            </div>
-            <div className="space-y-6">
-              <CalorieRecommendationForm onGoalSet={handleSetGoal} />
-              <Card>
-                  <CardHeader>
-                      <CardTitle>Meal Calories Breakdown</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                      <ResponsiveContainer width="100%" height={300}>
-                          <BarChart data={chartData}>
-                              <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                              <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                              <Tooltip
-                                contentStyle={{
-                                  background: "hsl(var(--background))",
-                                  border: "1px solid hsl(var(--border))",
-                                  borderRadius: "var(--radius)",
-                                }}
-                              />
-                              <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                      </ResponsiveContainer>
-                  </CardContent>
-              </Card>
-            </div>
-          </div>
+            {isLoadingData ? (
+                <div className="flex justify-center items-center h-96">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="lg:col-span-2 space-y-6">
+                    <DailySummary
+                        totalCalories={totalCalories}
+                        calorieGoal={calorieGoal}
+                        protein={totalProtein}
+                        proteinGoal={proteinGoal}
+                        carbs={totalCarbs}
+                        carbsGoal={carbsGoal}
+                        fats={totalFats}
+                        fatsGoal={fatsGoal}
+                    />
+                    <MealList
+                        meals={meals}
+                        customMeals={customMeals}
+                        foodDatabase={foodDatabase}
+                        onAddFood={handleAddFood}
+                        onAddCustomMeal={handleAddCustomMeal}
+                        onRemoveFood={handleRemoveFood}
+                    />
+                    </div>
+                    <div className="space-y-6">
+                    <CalorieRecommendationForm onGoalSet={handleSetGoal} />
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Meal Calories Breakdown</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={chartData}>
+                                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                    contentStyle={{
+                                        background: "hsl(var(--background))",
+                                        border: "1px solid hsl(var(--border))",
+                                        borderRadius: "var(--radius)",
+                                    }}
+                                    />
+                                    <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                    </div>
+                </div>
+            )}
         </main>
       </div>
     </AuthGuard>

@@ -9,12 +9,12 @@ import { getAuth } from "firebase/auth";
 // Your web app's Firebase configuration
 // ❗️ PASTE YOUR FIREBASE CONFIGURATION HERE
 const firebaseConfig = {
-  apiKey: "********",
-  authDomain: "********",
-  projectId: "********",
-  storageBucket: "********",
-  messagingSenderId: "********",
-  appId: "********"
+  apiKey: "AIzaSyAoqx3KBZd59k64fkrmFZUExv0_oSmSFOA",
+  authDomain: "nutritrack-vb9op.firebaseapp.com",
+  projectId: "nutritrack-vb9op",
+  storageBucket: "nutritrack-vb9op.firebasestorage.app",
+  messagingSenderId: "207242465394",
+  appId: "1:207242465394:web:c40cae0fc534f9e36672eb"
 };
 
 // Initialize Firebase
