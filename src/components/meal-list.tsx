@@ -28,6 +28,13 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
       {meals.map(meal => {
         const mealCalories = meal.items.reduce((sum, item) => {
             const quantity = Number(item.quantity) || 0;
+            
+            if (item.isCustom) {
+                // For custom meals, item.calories is the total per serving, and quantity is the number of servings.
+                return sum + ((Number(item.calories) || 0) * quantity);
+            }
+            
+            // For regular ingredients, calculate based on ratio.
             const servingSize = Number(item.servingSize) || 1;
             const ratio = servingSize > 0 ? quantity / servingSize : 0;
             return sum + ((Number(item.calories) || 0) * ratio);
@@ -51,15 +58,15 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                   meal.items.map((item: MealItem) => {
                      let itemCalories, description;
                      const quantity = Number(item.quantity) || 0;
-                     const servingSize = Number(item.servingSize) || 1;
-                     const ratio = servingSize > 0 ? quantity / servingSize : 0;
-                     itemCalories = (Number(item.calories) || 0) * ratio;
-
+                    
                      if (item.isCustom) {
-                        const numServings = quantity;
-                        const servingUnitLabel = numServings > 1 ? (item.servingUnit || 'servings').replace(/s$/, '') + 's' : (item.servingUnit || 'serving').replace(/s$/, '');
-                        description = `${numServings} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
+                        itemCalories = (Number(item.calories) || 0) * quantity;
+                        const servingUnitLabel = quantity > 1 ? (item.servingUnit || 'servings').replace(/s$/, '') + 's' : (item.servingUnit || 'serving').replace(/s$/, '');
+                        description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
                      } else {
+                         const servingSize = Number(item.servingSize) || 1;
+                         const ratio = servingSize > 0 ? quantity / servingSize : 0;
+                         itemCalories = (Number(item.calories) || 0) * ratio;
                          description = `${quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
                      }
 
