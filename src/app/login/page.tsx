@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,8 +20,14 @@ export default function LoginPage() {
     }
   };
 
+  useEffect(() => {
+    if (user) {
+      router.push('/');
+    }
+  }, [user, router]);
+
+
   if (user) {
-    router.push('/');
     return null;
   }
 
