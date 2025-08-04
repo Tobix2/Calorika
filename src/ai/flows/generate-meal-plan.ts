@@ -116,10 +116,12 @@ const generateMealPlanFlow = ai.defineFlow(
     let totalCalories = 0;
     for (const meal of planTemplate) {
         for (const item of meal.items) {
-            // Defensively check for servingSize to avoid division by zero.
-            const servingSize = item.servingSize || 1;
-            const ratio = item.quantity / servingSize;
-            totalCalories += item.calories * ratio;
+            // Defensively check for servingSize to avoid division by zero or NaN.
+            const quantity = Number(item.quantity) || 0;
+            const servingSize = Number(item.servingSize) || 1; // Default to 1 to avoid division by zero
+            const calories = Number(item.calories) || 0;
+            const ratio = servingSize > 0 ? quantity / servingSize : 0;
+            totalCalories += calories * ratio;
         }
     }
     
@@ -139,7 +141,7 @@ const generateMealPlanFlow = ai.defineFlow(
             const adjustedMeal: Meal = { ...meal, items: [] };
             for (const item of meal.items) {
                 // Adjust quantity based on the scaling factor to meet the calorie goal.
-                const adjustedQuantity = item.quantity * scalingFactor;
+                const adjustedQuantity = (Number(item.quantity) || 0) * scalingFactor;
                 adjustedMeal.items.push({
                     ...item,
                     quantity: Math.round(adjustedQuantity > 0 ? adjustedQuantity : 1), // Ensure quantity is at least 1
