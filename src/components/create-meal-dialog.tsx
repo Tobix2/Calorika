@@ -19,6 +19,9 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, UtensilsCrossed, Trash2 } from 'lucide-react';
 import AddIngredientDialog from './add-ingredient-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { addFood } from '@/services/foodService';
+import { useToast } from '@/hooks/use-toast';
+
 
 interface CreateMealDialogProps {
   onCreateMeal: (meal: Omit<CustomMeal, 'id'>) => void;
@@ -32,6 +35,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
   const [mealName, setMealName] = useState('');
   const [selectedItems, setSelectedItems] = useState<MealItem[]>([]);
   const [creationMode, setCreationMode] = useState<'ingredients' | 'totals'>('ingredients');
+  const { toast } = useToast();
 
   // Manual totals state
   const [manualCalories, setManualCalories] = useState<number | ''>('');
@@ -87,7 +91,6 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
 
     if (creationMode === 'ingredients' && selectedItems.length > 0) {
         const mealItemsForDb = selectedItems.map(item => {
-            // Create a clean object for Firestore
             const cleanItem: MealItem = {
                 id: item.id,
                 name: item.name,
@@ -97,7 +100,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                 fats: item.fats,
                 servingSize: item.servingSize,
                 servingUnit: item.servingUnit,
-                mealItemId: crypto.randomUUID(), // Assign a new one for this instance
+                mealItemId: crypto.randomUUID(), 
                 quantity: item.quantity,
             };
             return cleanItem;
@@ -116,7 +119,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
     } else if (creationMode === 'totals' && manualCalories !== '' && manualProtein !== '' && manualCarbs !== '' && manualFats !== '' && manualServingSize !== '' && manualServingUnit !== '') {
          const newMealData: Omit<CustomMeal, 'id'> = {
             name: mealName,
-            items: [], // No ingredients for manual entry
+            items: [], 
             totalCalories: Number(manualCalories),
             totalProtein: Number(manualProtein),
             totalCarbs: Number(manualCarbs),
@@ -144,9 +147,21 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
   }
 
 
-  const handleAddIngredient = (newIngredient: FoodItem) => {
-    setFoodDatabase(prev => [...prev, newIngredient]);
-    addFoodToMeal(newIngredient);
+  const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>) => {
+    try {
+        const newIngredient = await addFood(newIngredientData);
+        setFoodDatabase(prev => [...prev, newIngredient]);
+        addFoodToMeal(newIngredient);
+        return newIngredient;
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({
+            variant: "destructive",
+            title: "Error Saving Ingredient",
+            description: `Could not save to database: ${errorMessage}`,
+        });
+        return null;
+    }
   };
   
   const handleOpenChange = (isOpen: boolean) => {
@@ -320,4 +335,3 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
     </Dialog>
   );
 }
-

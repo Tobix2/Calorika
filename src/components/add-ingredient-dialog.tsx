@@ -15,12 +15,10 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FoodItem } from '@/lib/types';
-import { addFood } from '@/services/foodService';
 import { useToast } from '@/hooks/use-toast';
-import { ScrollArea } from './ui/scroll-area';
 
 interface AddIngredientDialogProps {
-  onAddIngredient: (food: FoodItem) => void;
+  onAddIngredient: (food: Omit<FoodItem, 'id'>) => Promise<FoodItem | null>;
   children: React.ReactNode;
 }
 
@@ -58,14 +56,15 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
       };
 
       try {
-        const newIngredient = await addFood(newIngredientData);
-        onAddIngredient(newIngredient);
-        toast({
-            title: "Ingredient Saved!",
-            description: `${newIngredient.name} has been added to the database.`,
-        });
-        resetForm();
-        setOpen(false);
+        const newIngredient = await onAddIngredient(newIngredientData);
+        if (newIngredient) {
+            toast({
+                title: "Ingredient Saved!",
+                description: `${newIngredient.name} has been added to the database.`,
+            });
+            resetForm();
+            setOpen(false);
+        }
       } catch (error) {
           console.error("Failed to save ingredient:", error);
           const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";

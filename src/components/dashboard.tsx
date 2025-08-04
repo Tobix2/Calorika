@@ -162,7 +162,6 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
         meal.items.forEach(item => {
           const quantity = Number(item.quantity) || 0;
           if (item.isCustom) {
-            // Manually entered meal, totals are per serving
             const servingSize = Number(item.servingSize) || 1;
             const ratio = quantity / servingSize;
             totals.totalCalories += (Number(item.calories) || 0) * ratio;
@@ -170,7 +169,6 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
             totals.totalCarbs += (Number(item.carbs) || 0) * ratio;
             totals.totalFats += (Number(item.fats) || 0) * ratio;
           } else {
-            // Ingredient-based item
             const servingSize = Number(item.servingSize) || 1;
             const ratio = servingSize > 0 ? quantity / servingSize : 0;
             totals.totalCalories += (Number(item.calories) || 0) * ratio;
@@ -217,7 +215,11 @@ export default function Dashboard({ initialFoodDatabase, initialCustomMeals }: D
                 {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
                 Generate Plan with AI
               </Button>
-              <CreateMealDialog onCreateMeal={handleCreateMeal} foodDatabase={foodDatabase} setFoodDatabase={setFoodDatabase}/>
+              <CreateMealDialog 
+                onCreateMeal={handleCreateMeal} 
+                foodDatabase={foodDatabase} 
+                setFoodDatabase={setFoodDatabase}
+              />
             </div>
           </div>
         </div>
