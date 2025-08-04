@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -88,11 +89,11 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{step === 1 ? 'Add to Meal' : `Add ${selectedItem?.name}`}</DialogTitle>
-          {step === 2 && selectedItem && (
-            <DialogDescription>
-                {servingInfo}
-            </DialogDescription>
-          )}
+          <DialogDescription>
+            {step === 1
+              ? "Search for a food or meal to add to your plan."
+              : servingInfo}
+          </DialogDescription>
         </DialogHeader>
         
         {step === 1 && (
