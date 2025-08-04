@@ -19,7 +19,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, UtensilsCrossed, Trash2 } from 'lucide-react';
 import AddIngredientDialog from './add-ingredient-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { addFood } from '@/services/foodService';
 import { useToast } from '@/hooks/use-toast';
 
 
@@ -146,24 +145,43 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
     setManualServingUnit('serving');
   }
 
-
-  const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>) => {
+  const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>): Promise<FoodItem | null> => {
     try {
-        const newIngredient = await addFood(newIngredientData);
+        const res = await fetch('/api/foods', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(newIngredientData),
+        });
+
+        if (!res.ok) {
+            const errorData = await res.json();
+            throw new Error(errorData.details || "Failed to save ingredient");
+        }
+        
+        const newIngredient: FoodItem = await res.json();
+        
+        // Update local state and add to current meal
         setFoodDatabase(prev => [...prev, newIngredient]);
         addFoodToMeal(newIngredient);
+
+        toast({
+            title: "Ingredient Saved!",
+            description: `${newIngredient.name} has been added to the database.`,
+        });
+
         return newIngredient;
     } catch (error) {
+        console.error("Failed to save ingredient:", error);
         const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
         toast({
-            variant: "destructive",
-            title: "Error Saving Ingredient",
-            description: `Could not save to database: ${errorMessage}`,
+          variant: "destructive",
+          title: "Error Saving Ingredient",
+          description: `Could not save to database: ${errorMessage}`,
         });
         return null;
     }
   };
-  
+
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
         resetState();

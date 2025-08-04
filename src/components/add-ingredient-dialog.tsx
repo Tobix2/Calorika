@@ -31,7 +31,7 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
   const [protein, setProtein] = useState<number | ''>('');
   const [carbs, setCarbs] = useState<number | ''>('');
   const [fats, setFats] = useState<number | ''>('');
-  const { toast } = useToast();
+  const [isSaving, setIsSaving] = useState(false);
   
   const resetForm = () => {
     setName('');
@@ -55,24 +55,15 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
         fats: Number(fats),
       };
 
+      setIsSaving(true);
       try {
         const newIngredient = await onAddIngredient(newIngredientData);
         if (newIngredient) {
-            toast({
-                title: "Ingredient Saved!",
-                description: `${newIngredient.name} has been added to the database.`,
-            });
             resetForm();
             setOpen(false);
         }
-      } catch (error) {
-          console.error("Failed to save ingredient:", error);
-          const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-          toast({
-            variant: "destructive",
-            title: "Error Saving Ingredient",
-            description: `Could not save to database: ${errorMessage}`,
-          });
+      } finally {
+        setIsSaving(false);
       }
     }
   };
@@ -136,7 +127,9 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
         </div>
         <DialogFooter className="border-t pt-4 mt-auto">
           <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
-          <Button onClick={handleSave} disabled={!isFormValid}>Save Ingredient</Button>
+          <Button onClick={handleSave} disabled={!isFormValid || isSaving}>
+            {isSaving ? 'Saving...' : 'Save Ingredient'}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
