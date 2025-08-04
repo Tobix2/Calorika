@@ -152,24 +152,29 @@ export default function Dashboard() {
         toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to delete items." });
         return;
     }
+
+    console.log(`[Dashboard] Iniciando borrado para el ítem: ${item.name} (ID: ${item.id})`);
+
     try {
-        // A CustomMeal has an 'items' array, a FoodItem does not. This is a reliable way to differentiate.
-        if ('items' in item) { // It's a CustomMeal
+        // Un CustomMeal tiene un array 'items', un FoodItem no. Esta es una forma fiable de diferenciarlos.
+        if ('items' in item) { // Es un CustomMeal
+            console.log(`[Dashboard] El ítem fue identificado como CustomMeal. Llamando a deleteCustomMeal...`);
             await deleteCustomMeal(user.uid, item.id);
             setCustomMeals(prev => prev.filter(meal => meal.id !== item.id));
-            toast({ title: "Meal Deleted", description: `${item.name} has been removed from your database.` });
-        } else { // It's a FoodItem
+            toast({ title: "Comida Borrada", description: `${item.name} ha sido eliminada de tu base de datos.` });
+        } else { // Es un FoodItem
+            console.log(`[Dashboard] El ítem fue identificado como FoodItem. Llamando a deleteFood...`);
             await deleteFood(user.uid, item.id);
             setFoodDatabase(prev => prev.filter(food => food.id !== item.id));
-            toast({ title: "Ingredient Deleted", description: `${item.name} has been removed from your database.` });
+            toast({ title: "Ingrediente Borrado", description: `${item.name} ha sido eliminado de tu base de datos.` });
         }
     } catch (error) {
-        console.error("Failed to delete item:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error("Falló al borrar el ítem:", error);
+        const errorMessage = error instanceof Error ? error.message : "Ocurrió un error desconocido.";
         toast({
             variant: "destructive",
-            title: "Error Deleting Item",
-            description: `Could not delete from database: ${errorMessage}`,
+            title: "Error al Borrar el Ítem",
+            description: `No se pudo borrar de la base de datos: ${errorMessage}`,
         });
     }
   };
@@ -213,14 +218,14 @@ export default function Dashboard() {
           let itemFats = 0;
 
           if (item.isCustom) {
-            // For custom meals, the 'calories' field holds the total per serving.
-            // Quantity is the number of servings.
+            // Para comidas personalizadas, el campo 'calories' contiene el total por porción.
+            // La cantidad es el número de porciones.
             itemCalories = (Number(item.calories) || 0) * quantity;
             itemProtein = (Number(item.protein) || 0) * quantity;
             itemCarbs = (Number(item.carbs) || 0) * quantity;
             itemFats = (Number(item.fats) || 0) * quantity;
           } else {
-             // For individual food items, calculate based on serving size.
+             // Para alimentos individuales, calcular en base al tamaño de la porción.
              const servingSize = Number(item.servingSize) || 1;
              const ratio = servingSize > 0 ? quantity / servingSize : 0;
              itemCalories = (Number(item.calories) || 0) * ratio;

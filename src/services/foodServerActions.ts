@@ -26,9 +26,11 @@ export async function addFood(userId: string, food: Omit<FoodItem, 'id'>): Promi
 
 export async function deleteFood(userId: string, foodId: string): Promise<void> {
     if (!foodId) throw new Error("Food ID is required.");
+    console.log(`[Server Action] Intentando borrar el FoodItem con ID: ${foodId} para el usuario ${userId}`);
     const foodDocRef = doc(db, 'users', userId, 'foods', foodId);
     try {
         await deleteDoc(foodDocRef);
+        console.log(`[Server Action] FoodItem con ID: ${foodId} borrado exitosamente.`);
     } catch (error) {
         console.error("Error deleting document from Firestore: ", error);
         if (error instanceof Error) {

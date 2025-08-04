@@ -15,13 +15,13 @@ export async function getCustomMeals(userId: string): Promise<CustomMeal[]> {
     return snapshot.docs.map(doc => {
         const data = doc.data();
 
-        // Handle backward compatibility for old data structure
+        // Manejar retrocompatibilidad para datos antiguos
         const calories = data.calories ?? data.totalCalories ?? 0;
         const protein = data.protein ?? data.totalProtein ?? 0;
         const carbs = data.carbs ?? data.totalCarbs ?? 0;
         const fats = data.fats ?? data.totalFats ?? 0;
 
-        // Ensure default values for optional fields to prevent serialization issues.
+        // Asegurar valores por defecto para campos opcionales para prevenir problemas de serialización.
         const meal: CustomMeal = {
             id: doc.id,
             name: data.name,
@@ -40,13 +40,13 @@ export async function getCustomMeals(userId: string): Promise<CustomMeal[]> {
 export async function addCustomMeal(userId: string, meal: Omit<CustomMeal, 'id'>): Promise<CustomMeal> {
     const mealCollection = getMealCollection(userId);
     try {
-        // Sanitize the object to ensure it's Firestore-compatible
+        // Limpiar el objeto para asegurar que sea compatible con Firestore
         const cleanMeal = JSON.parse(JSON.stringify(meal));
         const docRef = await addDoc(mealCollection, cleanMeal);
         return { id: docRef.id, ...cleanMeal };
     } catch (error) {
         console.error("Error adding document to Firestore: ", error);
-        // Re-throw the error to be caught by the calling function
+        // Re-lanzar el error para ser capturado por la función llamante
         if (error instanceof Error) {
             throw new Error(`Firestore error: ${error.message}`);
         }
@@ -56,9 +56,11 @@ export async function addCustomMeal(userId: string, meal: Omit<CustomMeal, 'id'>
 
 export async function deleteCustomMeal(userId: string, mealId: string): Promise<void> {
     if (!mealId) throw new Error("Meal ID is required.");
+    console.log(`[Server Action] Intentando borrar el CustomMeal con ID: ${mealId} para el usuario ${userId}`);
     const mealDocRef = doc(db, 'users', userId, 'customMeals', mealId);
     try {
         await deleteDoc(mealDocRef);
+        console.log(`[Server Action] CustomMeal con ID: ${mealId} borrado exitosamente.`);
     } catch (error) {
         console.error("Error deleting document from Firestore: ", error);
         if (error instanceof Error) {
