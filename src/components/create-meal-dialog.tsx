@@ -22,6 +22,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import { addFood } from '@/services/foodServerActions';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 
 interface CreateMealDialogProps {
@@ -306,7 +313,15 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="manualServingUnit">Unit</Label>
-                                    <Input id="manualServingUnit" value={manualServingUnit} onChange={(e) => setManualServingUnit(e.target.value)} />
+                                    <Select value={manualServingUnit} onValueChange={setManualServingUnit}>
+                                      <SelectTrigger id="manualServingUnit">
+                                        <SelectValue placeholder="Select unit" />
+                                      </SelectTrigger>
+                                      <SelectContent>
+                                        <SelectItem value="g">g (grams)</SelectItem>
+                                        <SelectItem value="serving">serving(s)</SelectItem>
+                                      </SelectContent>
+                                    </Select>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
