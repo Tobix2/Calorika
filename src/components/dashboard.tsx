@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
 import { Button } from '@/components/ui/button';
-import { generateMealPlanAction, saveWeeklyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction } from '@/app/actions';
+import { generateMealPlanAction, saveWeeklyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
@@ -271,6 +271,35 @@ export default function Dashboard() {
         }
     });
   };
+  
+    const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>) => {
+    if (!user) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to add an ingredient." });
+        return null;
+    }
+    try {
+      const newIngredient = await addFoodAction(user.uid, newIngredientData);
+      
+      setFoodDatabase(prev => [...prev, newIngredient]);
+      
+      toast({
+        title: "Ingredient Saved!",
+        description: `${newIngredient.name} has been added to the database.`,
+      });
+
+      return newIngredient;
+    } catch (error) {
+      console.error("Failed to save ingredient:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      toast({
+        variant: "destructive",
+        title: "Error Saving Ingredient",
+        description: `Could not save to database: ${errorMessage}`,
+      });
+      return null;
+    }
+  };
+
 
   const { totalCalories, totalProtein, totalCarbs, totalFats } = useMemo(() => {
     return meals.reduce(
@@ -363,6 +392,7 @@ export default function Dashboard() {
                   onCreateMeal={handleCreateMeal} 
                   foodDatabase={foodDatabase} 
                   setFoodDatabase={setFoodDatabase}
+                  onAddIngredient={handleAddIngredient}
                 />
                 <Button variant="outline" onClick={logout}>
                     <LogOut className="mr-2"/>
@@ -430,5 +460,3 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
-
-    

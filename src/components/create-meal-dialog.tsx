@@ -19,9 +19,6 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Plus, UtensilsCrossed, Trash2 } from 'lucide-react';
 import AddIngredientDialog from './add-ingredient-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useToast } from '@/hooks/use-toast';
-import { useAuth } from '@/context/auth-context';
-import { addFood } from '@/services/foodServerActions';
 import {
   Select,
   SelectContent,
@@ -35,16 +32,15 @@ interface CreateMealDialogProps {
   onCreateMeal: (meal: Omit<CustomMeal, 'id'>) => void;
   foodDatabase: FoodItem[];
   setFoodDatabase: React.Dispatch<React.SetStateAction<FoodItem[]>>;
+  onAddIngredient: (food: Omit<FoodItem, 'id'>) => Promise<FoodItem | null>;
 }
 
-export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDatabase }: CreateMealDialogProps) {
+export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDatabase, onAddIngredient }: CreateMealDialogProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [mealName, setMealName] = useState('');
   const [selectedItems, setSelectedItems] = useState<MealItem[]>([]);
   const [creationMode, setCreationMode] = useState<'ingredients' | 'totals'>('ingredients');
-  const { toast } = useToast();
-  const { user } = useAuth();
 
   // Manual totals state
   const [manualCalories, setManualCalories] = useState<number | ''>('');
@@ -154,34 +150,13 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
     setManualServingUnit('g');
   }
 
-  const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>) => {
-    if (!user) {
-        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to add an ingredient." });
-        return null;
-    }
-    try {
-      const newIngredient = await addFood(user.uid, newIngredientData);
-      
-      setFoodDatabase(prev => [...prev, newIngredient]);
+  const handleAddIngredientAndAddToMeal = async (newIngredientData: Omit<FoodItem, 'id'>) => {
+    const newIngredient = await onAddIngredient(newIngredientData);
+    if (newIngredient) {
       addFoodToMeal(newIngredient);
-      
-      toast({
-        title: "Ingredient Saved!",
-        description: `${newIngredient.name} has been added to the database.`,
-      });
-
-      return newIngredient;
-    } catch (error) {
-      console.error("Failed to save ingredient:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
-      toast({
-        variant: "destructive",
-        title: "Error Saving Ingredient",
-        description: `Could not save to database: ${errorMessage}`,
-      });
-      return null;
     }
-  };
+    return newIngredient;
+  }
 
   const handleOpenChange = (isOpen: boolean) => {
     if (!isOpen) {
@@ -233,7 +208,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
                                 <Label>Ingredients</Label>
-                                <AddIngredientDialog onAddIngredient={handleAddIngredient}>
+                                <AddIngredientDialog onAddIngredient={handleAddIngredientAndAddToMeal}>
                                     <Button variant="link" size="sm" className="p-0 h-auto">
                                         Add New
                                     </Button>
