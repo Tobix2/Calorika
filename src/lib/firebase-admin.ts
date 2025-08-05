@@ -1,19 +1,21 @@
 
 import * as admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
 
 let db: admin.firestore.Firestore;
 
 function initializeAdminApp() {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
     if (!serviceAccount) {
-        throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set.");
+        throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set. Please check your .env file.");
     }
 
     try {
+        console.log("Firebase Admin SDK imported. Apps count:", admin.apps.length);
         if (admin.apps.length === 0) {
             const parsedAccount = JSON.parse(serviceAccount);
+            // The private key from an environment variable needs newlines to be correctly formatted.
             parsedAccount.private_key = parsedAccount.private_key.replace(/\\n/g, '\n');
+            
             admin.initializeApp({
                 credential: admin.credential.cert(parsedAccount),
             });
@@ -28,8 +30,8 @@ function initializeAdminApp() {
 
 export function getDb(): admin.firestore.Firestore {
   if (!db) {
-    const app = initializeAdminApp();
-    db = getFirestore(app);
+    initializeAdminApp();
+    db = admin.firestore();
   }
   return db;
 }
