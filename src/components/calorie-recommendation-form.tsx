@@ -1,8 +1,8 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useFormState, useFormStatus } from 'react-dom';
+import { useEffect, useState, useActionState } from 'react';
+import { useFormStatus } from 'react-dom';
 import { getRecommendationAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -43,7 +43,7 @@ const initialState = {
 };
 
 export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommendationFormProps) {
-  const [state, formAction] = useFormState(getRecommendationAction, initialState);
+  const [state, formAction] = useActionState(getRecommendationAction, initialState);
   const { toast } = useToast();
 
   const [age, setAge] = useState<number | string>(40);
