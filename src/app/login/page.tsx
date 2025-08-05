@@ -2,60 +2,27 @@
 
 import { useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Leaf, Loader2, LogIn } from "lucide-react";
-import { useRouter } from 'next/navigation';
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const { signInWithGoogle, user, loading } = useAuth();
   const router = useRouter();
 
-  const handleSignIn = async () => {
-    try {
-      await signInWithGoogle();
-    } catch (error) {
-      console.error("Failed to initiate sign in with Google", error);
-    }
-  };
+  console.log("LoginPage", { loading, user });
 
   useEffect(() => {
     if (!loading && user) {
-      router.push('/');
+      router.push("/");
     }
   }, [user, loading, router]);
 
-  if (user) {
-    return null;
-  }
+  if (loading) return <p>Cargando...</p>;
+
+  if (user) return null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/40">
-      <Card className="w-full max-w-sm shadow-xl">
-        <CardHeader className="text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Leaf className="h-10 w-10 text-primary" />
-            <h1 className="text-3xl font-bold font-headline text-foreground">NutriTrack</h1>
-          </div>
-          <CardTitle className="text-2xl font-bold">Welcome Back!</CardTitle>
-          <CardDescription>Sign in to continue to your dashboard.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={handleSignIn} className="w-full" size="lg" disabled={loading}>
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 animate-spin" />
-                Redirecting...
-              </>
-            ) : (
-              <>
-                <LogIn className="mr-2" />
-                Sign In with Google
-              </>
-            )}
-          </Button>
-        </CardContent>
-      </Card>
+    <div>
+      <button onClick={() => signInWithGoogle()}>Login con Google</button>
     </div>
   );
 }
