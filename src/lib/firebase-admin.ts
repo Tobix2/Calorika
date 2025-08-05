@@ -1,27 +1,30 @@
 import * as admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 
-let app: admin.app.App | null = null;
+let db: admin.firestore.Firestore;
 
-export function getFirestoreDb() {
-  if (!app) {
+function initAdminApp() {
     const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
-
     if (!serviceAccount) {
-      console.warn("FIREBASE_SERVICE_ACCOUNT no está definido.");
-      throw new Error("FIREBASE_SERVICE_ACCOUNT no está definido.");
+        throw new Error("FIREBASE_SERVICE_ACCOUNT environment variable is not set.");
     }
-
-    try {
-      const parsed = JSON.parse(serviceAccount);
-      app = admin.initializeApp({
-        credential: admin.credential.cert(parsed),
-      });
-      console.log("🔥 Firebase Admin inicializado.");
-    } catch (error) {
-      console.error("❌ Error inicializando Firebase Admin:", error);
-      throw new Error("Error inicializando Firebase Admin.");
+    
+    if (!admin.apps.length) {
+        try {
+            admin.initializeApp({
+                credential: admin.credential.cert(JSON.parse(serviceAccount)),
+            });
+            console.log("🔥 Firebase Admin initialized successfully.");
+        } catch (error: any) {
+            console.error("❌ Error initializing Firebase Admin:", error.message);
+            // Throw a more specific error to help with debugging
+            throw new Error(`Failed to initialize Firebase Admin: ${error.message}`);
+        }
     }
-  }
-
-  return admin.firestore(app);
+    db = getFirestore();
 }
+
+// Initialize on module load
+initAdminApp();
+
+export { db };
