@@ -62,7 +62,8 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                      if (item.isCustom) {
                         const totalCalories = (item as any).totalCalories || item.calories;
                         itemCalories = (Number(totalCalories) || 0) * quantity;
-                        const servingUnitLabel = quantity > 1 ? ((item as any).servingUnit || 'servings').replace(/s$/, '') + 's' : ((item as any).servingUnit || 'serving').replace(/s$/, '');
+                        const unit = (item as any).servingUnit || 'serving';
+                        const servingUnitLabel = quantity > 1 && unit.length > 2 ? `${unit}s` : unit;
                         description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
                      } else {
                          const servingSize = Number(item.servingSize) || 1;
