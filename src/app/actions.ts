@@ -10,7 +10,7 @@ import {
   generateMealPlan,
 } from '@/ai/flows/generate-meal-plan';
 import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan } from '@/lib/types';
-import { db } from '@/lib/firebase-admin';
+import { getDb } from '@/lib/firebase-admin';
 import { collection, getDocs, doc, setDoc, getDoc, addDoc, deleteDoc, query, where } from 'firebase/firestore';
 
 // --- AI Actions ---
@@ -55,6 +55,7 @@ export async function generateMealPlanAction(
 
 // Foods
 async function populateInitialFoods(userId: string): Promise<FoodItem[]> {
+    const db = getDb();
     const initialFoods: Omit<FoodItem, 'id'>[] = [
       { name: 'Apple', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, servingSize: 1, servingUnit: 'medium' },
       { name: 'Banana', calories: 105, protein: 1.3, carbs: 27, fats: 0.4, servingSize: 1, servingUnit: 'medium' },
@@ -82,6 +83,7 @@ async function populateInitialFoods(userId: string): Promise<FoodItem[]> {
 }
 
 export async function getFoodsAction(userId: string): Promise<FoodItem[]> {
+    const db = getDb();
     const userDocRef = doc(db, 'users', userId);
     try {
         const userDocSnap = await getDoc(userDocRef);
@@ -113,6 +115,7 @@ export async function getFoodsAction(userId: string): Promise<FoodItem[]> {
 }
 
 export async function addFoodAction(userId: string, food: Omit<FoodItem, 'id'>): Promise<FoodItem> {
+    const db = getDb();
     const foodCollection = collection(db, 'users', userId, 'foods');
     try {
         const cleanFood = JSON.parse(JSON.stringify(food));
@@ -125,6 +128,7 @@ export async function addFoodAction(userId: string, food: Omit<FoodItem, 'id'>):
 }
 
 export async function deleteFoodAction(userId: string, foodId: string): Promise<void> {
+    const db = getDb();
     if (!foodId) throw new Error("Food ID is required.");
     const foodDocRef = doc(db, 'users', userId, 'foods', foodId);
     try {
@@ -137,6 +141,7 @@ export async function deleteFoodAction(userId: string, foodId: string): Promise<
 
 // Custom Meals
 export async function getCustomMealsAction(userId: string): Promise<CustomMeal[]> {
+    const db = getDb();
     const mealCollection = collection(db, 'users', userId, 'customMeals');
     try {
         const snapshot = await getDocs(mealCollection);
@@ -161,6 +166,7 @@ export async function getCustomMealsAction(userId: string): Promise<CustomMeal[]
 }
 
 export async function addCustomMealAction(userId: string, meal: Omit<CustomMeal, 'id'>): Promise<CustomMeal> {
+    const db = getDb();
     const mealCollection = collection(db, 'users', userId, 'customMeals');
     try {
         const cleanMeal = JSON.parse(JSON.stringify(meal));
@@ -173,6 +179,7 @@ export async function addCustomMealAction(userId: string, meal: Omit<CustomMeal,
 }
 
 export async function deleteCustomMealAction(userId: string, mealId: string): Promise<void> {
+    const db = getDb();
     if (!mealId) throw new Error("Meal ID is required.");
     const mealDocRef = doc(db, 'users', userId, 'customMeals', mealId);
     try {
@@ -196,6 +203,7 @@ const initialDailyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
 }, {} as WeeklyPlan);
 
 export async function getWeeklyPlanAction(userId: string): Promise<WeeklyPlan> {
+  const db = getDb();
   const docRef = doc(db, 'users', userId, 'plans', 'weekly');
   try {
     const docSnap = await getDoc(docRef);
@@ -212,6 +220,7 @@ export async function getWeeklyPlanAction(userId: string): Promise<WeeklyPlan> {
 }
 
 export async function saveWeeklyPlanAction(userId: string, plan: WeeklyPlan): Promise<void> {
+  const db = getDb();
   const docRef = doc(db, 'users', userId, 'plans', 'weekly');
   try {
     const plainPlanObject = JSON.parse(JSON.stringify(plan));
