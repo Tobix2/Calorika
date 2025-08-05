@@ -28,12 +28,12 @@ const FoodItemSchema = z.object({
 const CustomMealSchema = z.object({
     id: z.string(),
     name: z.string(),
-    // The items within a custom meal are not needed for the prompt, and cause a schema error.
-    // We only care about the total nutritional values of the pre-made meal.
-    totalCalories: z.number(),
-    totalProtein: z.number(),
-    totalCarbs: z.number(),
-    totalFats: z.number(),
+    // The items within a custom meal are not needed for the prompt.
+    // We care about the total nutritional values of the pre-made meal.
+    calories: z.number().describe("Total calories for the meal's serving size."),
+    protein: z.number().describe("Total protein for the meal's serving size."),
+    carbs: z.number().describe("Total carbs for the meal's serving size."),
+    fats: z.number().describe("Total fats for the meal's serving size."),
     servingSize: z.number(),
     servingUnit: z.string(),
 });
@@ -48,11 +48,6 @@ const MealItemSchema = z.union([
     mealItemId: z.string(),
     quantity: z.number(),
     isCustom: z.boolean().describe('Set to true for pre-made custom meals.'),
-    // Map totalCalories to calories for consistency in the output item
-    calories: z.number(),
-    protein: z.number(),
-    carbs: z.number(),
-    fats: z.number(),
   })
 ]);
 
@@ -76,7 +71,21 @@ const GenerateMealPlanOutputSchema = z.array(MealSchema);
 
 
 export async function generateMealPlan(input: GenerateMealPlanInput): Promise<GenerateMealPlanOutput> {
-  return generateMealPlanFlow(input);
+  // Map total... fields to the fields the AI prompt expects
+   const mappedInput = {
+        ...input,
+        availableMeals: input.availableMeals?.map(m => ({
+            id: m.id,
+            name: m.name,
+            calories: m.totalCalories,
+            protein: m.totalProtein,
+            carbs: m.totalCarbs,
+            fats: m.totalFats,
+            servingSize: m.servingSize,
+            servingUnit: m.servingUnit,
+        })) || []
+    };
+  return generateMealPlanFlow(mappedInput);
 }
 
 const prompt = ai.definePrompt({
@@ -102,7 +111,7 @@ Available individual ingredients:
 {{#if availableMeals}}
 Available pre-made meals:
 {{#each availableMeals}}
-- {{this.name}} (Total: {{this.totalCalories}} kcal, {{this.totalProtein}}g P, {{this.totalCarbs}}g C, {{this.fats}}g F per {{this.servingSize}} {{this.servingUnit}})
+- {{this.name}} (Total: {{this.calories}} kcal, {{this.protein}}g P, {{this.carbs}}g C, {{this.fats}}g F per {{this.servingSize}} {{this.servingUnit}})
 {{/each}}
 {{/if}}
 
@@ -112,7 +121,7 @@ Instructions:
 3.  Select a variety of items from the available resources to create a balanced and realistic plan.
 4.  For each individual food item you select, you MUST set the 'quantity' to be equal to its 'servingSize' and 'isCustom' to false.
 5.  For each pre-made meal you select, you MUST set the 'quantity' to 1 and 'isCustom' to true.
-6.  When you select a pre-made meal from 'availableMeals', you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the corresponding 'totalCalories', 'totalProtein', 'totalCarbs', and 'totalFats' values from the input meal.
+6.  When you select a pre-made meal from 'availableMeals', you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the corresponding values from the input meal.
 7.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
 8.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId', the initial 'quantity', and the 'isCustom' flag.
 9.  Do not invent new foods. Only use the ones provided.
@@ -140,9 +149,16 @@ const generateMealPlanFlow = ai.defineFlow(
         for (const item of meal.items) {
             const quantity = Number(item.quantity) || 0;
             const servingSize = Number(item.servingSize) || 1;
-            const itemCalories = item.isCustom ? item.calories : (item.calories / servingSize);
+            const itemCalories = Number(item.calories) || 0;
             
-            totalCalories += itemCalories * quantity;
+            // For custom meals, the calories are per serving, and the quantity is the number of servings.
+            // For ingredients, calories are per servingSize, so we need to calculate the ratio.
+            if (item.isCustom) {
+                totalCalories += itemCalories * quantity;
+            } else {
+                const ratio = servingSize > 0 ? quantity / servingSize : 0;
+                totalCalories += itemCalories * ratio;
+            }
         }
     }
     
@@ -161,8 +177,11 @@ const generateMealPlanFlow = ai.defineFlow(
         const adjustedMeal: Meal = { ...meal, items: [] };
         for (const item of meal.items) {
             const adjustedQuantity = (Number(item.quantity) || 0) * scalingFactor;
-            // Round to nearest whole number, with a minimum of 1 to avoid zero quantities
-            const finalQuantity = Math.max(1, Math.round(adjustedQuantity));
+            
+            // Round to nearest whole number for ingredients, or keep decimal for custom meal servings if needed
+            const finalQuantity = item.isCustom ? 
+              Math.max(0.25, Math.round(adjustedQuantity * 4) / 4) // Round to nearest 0.25 for servings
+              : Math.max(1, Math.round(adjustedQuantity)); // Round to whole number for ingredients
 
             adjustedMeal.items.push({
                 ...item,
