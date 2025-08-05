@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useTransition, useEffect } from 'react';
+import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
 import type { Meal, MealName, FoodItem, CustomMeal, MealItem, WeeklyPlan, DailyPlan } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
 import { Button } from '@/components/ui/button';
-import { generateMealPlanAction, saveWeeklyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction } from '@/app/actions';
+import { generateMealPlanAction, saveDailyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
@@ -26,10 +26,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
 import WeekNavigator from './week-navigator';
-
-const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, a } from 'date-fns';
+import { es } from 'date-fns/locale';
 
 const initialDailyPlan: DailyPlan = [
   { name: 'Breakfast', items: [] },
@@ -38,16 +38,10 @@ const initialDailyPlan: DailyPlan = [
   { name: 'Snacks', items: [] },
 ];
 
-const initialWeeklyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
-    acc[day] = JSON.parse(JSON.stringify(initialDailyPlan));
-    return acc;
-}, {} as WeeklyPlan);
-
-
 export default function Dashboard() {
-  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>(initialWeeklyPlan);
-  const [selectedDay, setSelectedDay] = useState<string>(daysOfWeek[0]);
-
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>({});
+  const [currentDate, setCurrentDate] = useState(new Date());
+  
   const [calorieGoal, setCalorieGoal] = useState<number>(2200);
   const [proteinGoal, setProteinGoal] = useState<number>(140);
   const [carbsGoal, setCarbsGoal] = useState<number>(250);
@@ -61,24 +55,41 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
 
-  const meals = weeklyPlan[selectedDay] || initialDailyPlan;
+  const selectedDateKey = format(currentDate, 'yyyy-MM-dd');
+  const meals = weeklyPlan[selectedDateKey] || initialDailyPlan;
 
-  // Carga inicial de datos
+  const weekDates = useMemo(() => {
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Lunes
+    const end = endOfWeek(currentDate, { weekStartsOn: 1 }); // Domingo
+    return eachDayOfInterval({ start, end });
+  }, [currentDate]);
+
+  const loadWeeklyPlan = useCallback(async (user: any, dates: Date[]) => {
+      try {
+          const plan = await getWeeklyPlanAction(user.uid, dates);
+          setWeeklyPlan(plan);
+      } catch (error) {
+          console.error("Failed to load weekly plan", error);
+          toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: 'Could not load your plan. Please try refreshing.'
+          });
+      }
+  }, [toast]);
+
+  // Carga inicial de datos de usuario y primer plan semanal
   useEffect(() => {
     async function loadInitialData() {
         if (user) {
             try {
-                const [foods, meals, plan] = await Promise.all([
+                const [foods, mealsData] = await Promise.all([
                     getFoodsAction(user.uid),
                     getCustomMealsAction(user.uid),
-                    getWeeklyPlanAction(user.uid)
                 ]);
-                
                 setFoodDatabase(foods);
-                setCustomMeals(meals);
-                if (plan && Object.keys(plan).length > 0) {
-                    setWeeklyPlan(plan);
-                }
+                setCustomMeals(mealsData);
+                loadWeeklyPlan(user, weekDates);
             } catch (error) {
                 console.error("Failed to load initial data", error);
                 toast({
@@ -90,17 +101,24 @@ export default function Dashboard() {
         }
     }
     loadInitialData();
-  }, [user, toast]);
-  
-  // Guardado automático de datos
+  }, [user, toast]); // Solo se ejecuta cuando el usuario cambia
+
+  // Recarga el plan semanal cuando cambia la semana
   useEffect(() => {
-      if (!user) {
+    if(user) {
+        loadWeeklyPlan(user, weekDates);
+    }
+  }, [weekDates, user, loadWeeklyPlan]);
+  
+  // Guardado automático del plan diario
+  useEffect(() => {
+      if (!user || !weeklyPlan[selectedDateKey]) {
           return;
       }
       
       const handler = setTimeout(() => {
-          saveWeeklyPlanAction(user.uid, weeklyPlan).catch(error => {
-              console.error("Failed to save weekly plan", error);
+          saveDailyPlanAction(user.uid, currentDate, weeklyPlan[selectedDateKey]).catch(error => {
+              console.error("Failed to save daily plan", error);
               toast({
                   variant: 'destructive',
                   title: 'Save Error',
@@ -112,13 +130,14 @@ export default function Dashboard() {
       return () => {
           clearTimeout(handler);
       };
-  }, [weeklyPlan, user, toast]);
+  }, [weeklyPlan, selectedDateKey, currentDate, user, toast]);
 
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
     setWeeklyPlan(prevPlan => {
         const newPlan = JSON.parse(JSON.stringify(prevPlan)); 
-        const dayMeals = newPlan[selectedDay].map((meal: Meal) => {
+        const dayPlan = newPlan[selectedDateKey] || JSON.parse(JSON.stringify(initialDailyPlan));
+        const updatedDayPlan = dayPlan.map((meal: Meal) => {
             if (meal.name === mealName) {
                 const newItem: MealItem = {
                     ...food,
@@ -129,7 +148,7 @@ export default function Dashboard() {
             }
             return meal;
         });
-        newPlan[selectedDay] = dayMeals;
+        newPlan[selectedDateKey] = updatedDayPlan;
         return newPlan; 
     });
   };
@@ -150,15 +169,16 @@ export default function Dashboard() {
         servingUnit: customMeal.servingUnit,
     };
 
-     setWeeklyPlan(prevPlan => {
+    setWeeklyPlan(prevPlan => {
         const newPlan = JSON.parse(JSON.stringify(prevPlan));
-        const dayMeals = newPlan[selectedDay].map((meal: Meal) => {
+        const dayPlan = newPlan[selectedDateKey] || JSON.parse(JSON.stringify(initialDailyPlan));
+        const updatedDayPlan = dayPlan.map((meal: Meal) => {
             if (meal.name === mealName) {
                 return { ...meal, items: [...meal.items, mealItem] };
             }
             return meal;
         });
-        newPlan[selectedDay] = dayMeals;
+        newPlan[selectedDateKey] = updatedDayPlan;
         return newPlan; 
     });
   };
@@ -166,12 +186,15 @@ export default function Dashboard() {
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
     setWeeklyPlan(prevPlan => {
         const newPlan = JSON.parse(JSON.stringify(prevPlan));
-        const dayMeals = newPlan[selectedDay].map((meal: Meal) =>
+        if (!newPlan[selectedDateKey]) return newPlan;
+
+        const dayPlan = newPlan[selectedDateKey];
+        const updatedDayPlan = dayPlan.map((meal: Meal) =>
             meal.name === mealName
               ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
               : meal
         );
-        newPlan[selectedDay] = dayMeals;
+        newPlan[selectedDateKey] = updatedDayPlan;
         return newPlan; 
     });
   };
@@ -262,11 +285,11 @@ export default function Dashboard() {
         } else {
             setWeeklyPlan(prevPlan => ({
                 ...prevPlan,
-                [selectedDay]: result.data as DailyPlan
+                [selectedDateKey]: result.data as DailyPlan
             }));
             toast({
                 title: 'Meal Plan Generated!',
-                description: `Your meal plan for ${selectedDay} has been populated by the AI.`
+                description: `Your meal plan for ${format(currentDate, 'PPP', { locale: es })} has been populated by the AI.`
             });
         }
     });
@@ -374,7 +397,7 @@ export default function Dashboard() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Generate Meal Plan for {selectedDay}</AlertDialogTitle>
+                      <AlertDialogTitle>Generate Meal Plan for {format(currentDate, 'PPP', { locale: es })}</AlertDialogTitle>
                       <AlertDialogDescription>
                         Choose which resources the AI should use to generate your meal plan.
                       </AlertDialogDescription>
@@ -406,9 +429,9 @@ export default function Dashboard() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
                 <WeekNavigator 
-                    days={daysOfWeek}
-                    selectedDay={selectedDay}
-                    onSelectDay={setSelectedDay}
+                    currentDate={currentDate}
+                    setCurrentDate={setCurrentDate}
+                    weekDates={weekDates}
                 />
                 <DailySummary
                     totalCalories={totalCalories}

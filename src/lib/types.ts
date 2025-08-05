@@ -28,7 +28,7 @@ export type Meal = {
 export type DailyPlan = Meal[];
 
 export type WeeklyPlan = {
-  [day: string]: DailyPlan;
+  [date: string]: DailyPlan; // Key is YYYY-MM-DD
 };
 
 export type CustomMeal = {

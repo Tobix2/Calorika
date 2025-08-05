@@ -11,6 +11,7 @@ import {
 } from '@/ai/flows/generate-meal-plan';
 import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan } from '@/lib/types';
 import { getDb } from '@/lib/firebase-admin';
+import { format } from 'date-fns';
 
 // --- AI Actions ---
 
@@ -198,42 +199,55 @@ export async function deleteCustomMealAction(userId: string, mealId: string): Pr
 }
 
 // Weekly Plan
-const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const initialWeeklyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
-  acc[day] = [
-    { name: 'Breakfast', items: [] },
-    { name: 'Lunch', items: [] },
-    { name: 'Dinner', items: [] },
-    { name: 'Snacks', items: [] },
-  ];
-  return acc;
-}, {} as WeeklyPlan);
+const initialDailyPlan: DailyPlan = [
+  { name: 'Breakfast', items: [] },
+  { name: 'Lunch', items: [] },
+  { name: 'Dinner', items: [] },
+  { name: 'Snacks', items: [] },
+];
 
-export async function getWeeklyPlanAction(userId: string): Promise<WeeklyPlan> {
+export async function getWeeklyPlanAction(userId: string, weekDates: Date[]): Promise<WeeklyPlan> {
     try {
         const db = getDb();
-        const docRef = db.collection('users').doc(userId).collection('plans').doc('weekly');
-        const docSnap = await docRef.get();
-        if (docSnap.exists) {
-            return docSnap.data() as WeeklyPlan;
-        } else {
-            await docRef.set(initialWeeklyPlan);
-            return initialWeeklyPlan;
-        }
+        const plansCollection = db.collection('users').doc(userId).collection('dailyPlans');
+        const dateStrings = weekDates.map(d => format(d, 'yyyy-MM-dd'));
+        
+        const planPromises = dateStrings.map(async (dateString) => {
+            const docRef = plansCollection.doc(dateString);
+            const docSnap = await docRef.get();
+            if (docSnap.exists) {
+                return { date: dateString, plan: docSnap.data() as DailyPlan };
+            }
+            return { date: dateString, plan: initialDailyPlan };
+        });
+
+        const dailyPlans = await Promise.all(planPromises);
+        
+        const weeklyPlan: WeeklyPlan = dailyPlans.reduce((acc, { date, plan }) => {
+            acc[date] = plan;
+            return acc;
+        }, {} as WeeklyPlan);
+
+        return weeklyPlan;
+
     } catch (error) {
         console.error("🔥 Error al obtener el weekly plan:", error);
         throw new Error("Failed to fetch weekly plan.");
     }
 }
 
-export async function saveWeeklyPlanAction(userId: string, plan: WeeklyPlan): Promise<void> {
+export async function saveDailyPlanAction(userId: string, date: Date, plan: DailyPlan): Promise<void> {
     try {
         const db = getDb();
-        const docRef = db.collection('users').doc(userId).collection('plans').doc('weekly');
+        const dateString = format(date, 'yyyy-MM-dd');
+        const docRef = db.collection('users').doc(userId).collection('dailyPlans').doc(dateString);
+        
+        // Convert plan to a plain JavaScript object to avoid any issues with custom classes or functions
         const plainPlanObject = JSON.parse(JSON.stringify(plan));
+
         await docRef.set(plainPlanObject, { merge: true });
     } catch (error) {
-        console.error("🔥 Error al guardar el weekly plan:", error);
-        throw new Error("Failed to save weekly plan.");
+        console.error(`🔥 Error al guardar el plan para ${format(date, 'yyyy-MM-dd')}:`, error);
+        throw new Error("Failed to save daily plan.");
     }
 }
