@@ -41,12 +41,12 @@ const MealItemSchema = z.union([
   FoodItemSchema.extend({
     mealItemId: z.string(),
     quantity: z.number(),
-    isCustom: z.literal(false),
+    isCustom: z.boolean().describe('Set to false for individual food items.'),
   }),
   CustomMealSchema.extend({
     mealItemId: z.string(),
     quantity: z.number(),
-    isCustom: z.literal(true),
+    isCustom: z.boolean().describe('Set to true for pre-made custom meals.'),
     // Map totalCalories to calories for consistency in the output item
     calories: z.number(),
     protein: z.number(),
@@ -108,8 +108,8 @@ Available pre-made meals:
 Instructions:
 1.  Create a full-day meal plan distributed across "Breakfast", "Lunch", "Dinner", and "Snacks".
 2.  Select a variety of items from the available resources to create a balanced plan.
-3.  For each individual food item you select, you MUST set the initial 'quantity' to be equal to its 'servingSize' and 'isCustom' to false.
-4.  For each pre-made meal you select, you MUST set the initial 'quantity' to 1 and 'isCustom' to true.
+3.  For each individual food item you select, you MUST set the 'quantity' to be equal to its 'servingSize' and 'isCustom' to false.
+4.  For each pre-made meal you select, you MUST set the 'quantity' to 1 and 'isCustom' to true.
 5.  When you select a pre-made meal, you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the 'totalCalories', 'totalProtein', 'totalCarbs', and 'totalFats' values from the input meal.
 6.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
 7.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId', the initial 'quantity', and the 'isCustom' flag.
@@ -134,19 +134,18 @@ const generateMealPlanFlow = ai.defineFlow(
 
     let totalCalories = 0;
     for (const meal of planTemplate) {
-      for (const item of meal.items) {
-        const quantity = Number(item.quantity) || 0;
-        if (item.isCustom) {
-          // For custom meals, `calories` is per serving, and `quantity` is number of servings.
-          // Note: The prompt maps `totalCalories` from input to `calories` in the output item.
-          totalCalories += (item.calories || 0) * quantity;
-        } else {
-          // For ingredients, `calories` is per `servingSize`.
-          const servingSize = Number(item.servingSize) || 1;
-          const ratio = servingSize > 0 ? quantity / servingSize : 0;
-          totalCalories += (item.calories || 0) * ratio;
+        for (const item of meal.items) {
+            const quantity = Number(item.quantity) || 0;
+            if (item.isCustom) {
+                // For custom meals, `calories` is per serving, and `quantity` is number of servings.
+                totalCalories += (item.calories || 0) * quantity;
+            } else {
+                // For ingredients, `calories` is per `servingSize`.
+                const servingSize = Number(item.servingSize) || 1;
+                const ratio = servingSize > 0 ? quantity / servingSize : 0;
+                totalCalories += (item.calories || 0) * ratio;
+            }
         }
-      }
     }
     
     if (totalCalories <= 0) {
