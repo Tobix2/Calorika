@@ -103,7 +103,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
     setOpen(isOpen);
   }
 
-  const isCustomMeal = selectedItem && 'items' in selectedItem;
+  const isCustomMeal = selectedItem && 'totalCalories' in selectedItem;
   const unitLabel = selectedItem?.servingUnit;
   const servingInfo = isCustomMeal 
     ? `${(selectedItem as CustomMeal)?.servingSize} ${unitLabel} = ${(selectedItem as CustomMeal)?.totalCalories.toFixed(0)} kcal`

@@ -29,15 +29,16 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
       {meals.map(meal => {
         const mealCalories = meal.items.reduce((sum, item) => {
             const quantity = Number(item.quantity) || 0;
+            const servingSize = Number(item.servingSize) || 1;
             
             if (item.isCustom) {
-                const totalCalories = (item as any).totalCalories || item.calories;
-                return sum + (Number(totalCalories) * quantity);
+                // For custom meals, item.calories is the total for one serving, and quantity is the number of servings.
+                return sum + (Number(item.calories) * quantity);
             }
             
-            const servingSize = Number(item.servingSize) || 1;
+            // For ingredients, item.calories is per servingSize.
             const ratio = servingSize > 0 ? quantity / servingSize : 0;
-            return sum + ((Number(item.calories) || 0) * ratio);
+            return sum + (Number(item.calories) * ratio);
         }, 0);
 
         return (
@@ -58,15 +59,15 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                   meal.items.map((item: MealItem) => {
                      let itemCalories, description;
                      const quantity = Number(item.quantity) || 0;
+                     const servingSize = Number(item.servingSize) || 1;
                     
                      if (item.isCustom) {
-                        const totalCalories = (item as any).totalCalories || item.calories;
-                        itemCalories = (Number(totalCalories) || 0) * quantity;
-                        const unit = (item as any).servingUnit || 'serving';
+                        itemCalories = (Number(item.calories) || 0) * quantity;
+                        const unit = item.servingUnit || 'serving';
+                        // Avoid pluralizing abbreviations like 'g' or 'ml'
                         const servingUnitLabel = quantity > 1 && unit.length > 2 ? `${unit}s` : unit;
                         description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
                      } else {
-                         const servingSize = Number(item.servingSize) || 1;
                          const ratio = servingSize > 0 ? quantity / servingSize : 0;
                          itemCalories = (Number(item.calories) || 0) * ratio;
                          description = `${quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
