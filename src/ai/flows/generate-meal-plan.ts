@@ -102,19 +102,20 @@ Available individual ingredients:
 {{#if availableMeals}}
 Available pre-made meals:
 {{#each availableMeals}}
-- {{this.name}} (Total: {{this.totalCalories}} kcal, {{this.totalProtein}}g P, {{this.totalCarbs}}g C, {{this.totalFats}}g F per {{this.servingSize}} {{this.servingUnit}})
+- {{this.name}} (Total: {{this.totalCalories}} kcal, {{this.totalProtein}}g P, {{this.totalCarbs}}g C, {{this.fats}}g F per {{this.servingSize}} {{this.servingUnit}})
 {{/each}}
 {{/if}}
 
 Instructions:
 1.  Create a full-day meal plan distributed across "Breakfast", "Lunch", "Dinner", and "Snacks".
-2.  Select a variety of items from the available resources to create a balanced plan.
-3.  For each individual food item you select, you MUST set the 'quantity' to be equal to its 'servingSize' and 'isCustom' to false.
-4.  For each pre-made meal you select, you MUST set the 'quantity' to 1 and 'isCustom' to true.
-5.  When you select a pre-made meal from 'availableMeals', you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the corresponding 'totalCalories', 'totalProtein', 'totalCarbs', and 'totalFats' values from the input meal.
-6.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
-7.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId', the initial 'quantity', and the 'isCustom' flag.
-8.  Do not invent new foods. Only use the ones provided.
+2.  Distribute the total calories in a balanced way. A good distribution would be: Breakfast (25%), Lunch (35%), Dinner (25%), and Snacks (15%). Do not put the majority of calories in the "Snacks" category.
+3.  Select a variety of items from the available resources to create a balanced and realistic plan.
+4.  For each individual food item you select, you MUST set the 'quantity' to be equal to its 'servingSize' and 'isCustom' to false.
+5.  For each pre-made meal you select, you MUST set the 'quantity' to 1 and 'isCustom' to true.
+6.  When you select a pre-made meal from 'availableMeals', you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the corresponding 'totalCalories', 'totalProtein', 'totalCarbs', and 'totalFats' values from the input meal.
+7.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
+8.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId', the initial 'quantity', and the 'isCustom' flag.
+9.  Do not invent new foods. Only use the ones provided.
 
 Return the final meal plan template in the specified JSON format. The quantities will be adjusted programmatically later.
 `,
@@ -133,29 +134,34 @@ const generateMealPlanFlow = ai.defineFlow(
         throw new Error('AI failed to generate a meal plan template.');
     }
 
+    // Calculate total calories from the AI's generated template
     let totalCalories = 0;
     for (const meal of planTemplate) {
         for (const item of meal.items) {
             const quantity = Number(item.quantity) || 0;
             const servingSize = Number(item.servingSize) || 1;
-            const itemCalories = item.calories || 0;
-            const ratio = servingSize > 0 ? quantity / servingSize : 0;
-            totalCalories += itemCalories * ratio;
+            const itemCalories = item.isCustom ? item.calories : (item.calories / servingSize);
+            
+            totalCalories += itemCalories * quantity;
         }
     }
     
+    // If the plan is empty or has no calories, return it as is to avoid division by zero
     if (totalCalories <= 0) {
       return planTemplate; 
     }
     
+    // Calculate scaling factor to match the user's calorie goal
     const scalingFactor = input.calorieGoal / totalCalories;
 
+    // Adjust the quantities in the plan based on the scaling factor
     const adjustedPlan: Meal[] = [];
 
     for (const meal of planTemplate) {
         const adjustedMeal: Meal = { ...meal, items: [] };
         for (const item of meal.items) {
             const adjustedQuantity = (Number(item.quantity) || 0) * scalingFactor;
+            // Round to nearest whole number, with a minimum of 1 to avoid zero quantities
             const finalQuantity = Math.max(1, Math.round(adjustedQuantity));
 
             adjustedMeal.items.push({
