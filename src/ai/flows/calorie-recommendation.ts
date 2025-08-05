@@ -68,7 +68,7 @@ const prompt = ai.definePrompt({
   name: 'calorieRecommendationPrompt',
   input: {schema: CalorieRecommendationInputSchema},
   output: {schema: CalorieRecommendationOutputSchema},
-  prompt: `Eres un entrenador personal experto y nutricionista. Tu tarea es recomendar una ingesta diaria de calorías y macronutrientes basada en los datos personales y objetivos de fitness del usuario.
+  prompt: `Eres un entrenador personal experto y nutricionista. Tu tarea es recomendar una ingesta diaria de calorías y macronutrientes basada en los datos personales y objetivos de fitness del usuario. La respuesta final DEBE estar completamente en español.
 
   Calcula la ingesta diaria de calorías recomendada y el desglose de macronutrientes (proteínas, carbohidratos, grasas) en gramos basándote en la siguiente información:
   Edad: {{{age}}}
@@ -93,9 +93,9 @@ const prompt = ai.definePrompt({
       *   **Carbohidratos:** El resto de las calorías.
       *   Recuerda: 1g Proteína = 4 kcal, 1g Carbs = 4 kcal, 1g Grasas = 9 kcal.
 
-  Proporciona una explicación detallada y estructurada rellenando el objeto JSON 'explanation'. Cada campo debe ser claro y conciso. La suma de los macros debe ser consistente con las calorías totales recomendadas. Proporciona al menos 4 consejos prácticos.
+  Proporciona una explicación detallada y estructurada en español rellenando el objeto JSON 'explanation'. Cada campo debe ser claro y conciso. La suma de los macros debe ser consistente con las calorías totales recomendadas. Proporciona al menos 4 consejos prácticos en español.
 
-  Devuelve el resultado final en el formato JSON especificado por el esquema de salida.
+  Devuelve el resultado final en el formato JSON especificado por el esquema de salida. Todo el texto de salida debe estar en español.
   `,
 });
 
