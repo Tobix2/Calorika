@@ -216,7 +216,9 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[]): Pr
             const docRef = plansCollection.doc(dateString);
             const docSnap = await docRef.get();
             if (docSnap.exists) {
-                return { date: dateString, plan: docSnap.data() as DailyPlan };
+                const data = docSnap.data();
+                // Firestore doesn't store top-level arrays, so data is { meals: DailyPlan }
+                return { date: dateString, plan: (data?.meals || initialDailyPlan) as DailyPlan };
             }
             return { date: dateString, plan: initialDailyPlan };
         });
@@ -242,10 +244,11 @@ export async function saveDailyPlanAction(userId: string, date: Date, plan: Dail
         const dateString = format(date, 'yyyy-MM-dd');
         const docRef = db.collection('users').doc(userId).collection('dailyPlans').doc(dateString);
         
-        // Convert plan to a plain JavaScript object to avoid any issues with custom classes or functions
+        // Firestore cannot save top-level arrays. Wrap it in an object.
         const plainPlanObject = JSON.parse(JSON.stringify(plan));
+        const dataToSave = { meals: plainPlanObject };
 
-        await docRef.set(plainPlanObject, { merge: true });
+        await docRef.set(dataToSave, { merge: true });
     } catch (error) {
         console.error(`🔥 Error al guardar el plan para ${format(date, 'yyyy-MM-dd')}:`, error);
         throw new Error("Failed to save daily plan.");
