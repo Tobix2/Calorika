@@ -68,19 +68,24 @@ export default function Dashboard() {
 
   const meals = weeklyPlan[selectedDay] || initialDailyPlan;
 
+  // --- FLUJO DE CARGA DE DATOS ---
+  // Este useEffect se ejecuta una vez cuando el componente se monta y el usuario está disponible.
   useEffect(() => {
     async function loadInitialData() {
         if (user) {
             try {
                 setIsLoadingData(true);
+                // 1. Se realizan tres llamadas en paralelo para obtener los datos iniciales.
                 const [foods, meals, plan] = await Promise.all([
-                    getFoods(user.uid),
-                    getCustomMeals(user.uid),
-                    getWeeklyPlan(user.uid)
+                    getFoods(user.uid), // Carga la base de datos de ingredientes.
+                    getCustomMeals(user.uid), // Carga las comidas personalizadas.
+                    getWeeklyPlan(user.uid) // Carga el plan semanal del usuario desde Firestore.
                 ]);
+                
+                // 2. Se actualiza el estado local con los datos recuperados.
                 setFoodDatabase(foods);
                 setCustomMeals(meals);
-                // If a plan is loaded and it is not null or empty, set it.
+                // Si se encontró un plan guardado, se establece como el estado actual.
                 if (plan && Object.keys(plan).length > 0) {
                     setWeeklyPlan(plan);
                 }
@@ -92,6 +97,7 @@ export default function Dashboard() {
                     description: 'Could not load your data. Please try refreshing the page.'
                 });
             } finally {
+                // 3. Se marca la carga como finalizada para mostrar la UI.
                 setIsLoadingData(false);
             }
         }
@@ -99,14 +105,19 @@ export default function Dashboard() {
     loadInitialData();
   }, [user, toast]);
   
-  // Effect to save the weekly plan whenever it changes
+  // --- FLUJO DE GUARDADO DE DATOS ---
+  // Este useEffect se ejecuta cada vez que el estado de `weeklyPlan` cambia.
   useEffect(() => {
-      // Don't save during initial load or if user is not logged in.
+      // No se guarda nada si los datos iniciales aún se están cargando o si el usuario no ha iniciado sesión.
       if (isLoadingData || !user) {
           return;
       }
       
+      // 1. Se inicia un temporizador para "retrasar" la operación de guardado.
+      // Esto previene que se guarde en la base de datos en cada milisegundo si el usuario hace muchos cambios rápidos.
       const handler = setTimeout(() => {
+          // 2. Después del retraso, se llama a la Server Action `saveWeeklyPlan`.
+          // Se le pasa el ID del usuario y el objeto completo del plan semanal actualizado.
           saveWeeklyPlan(user.uid, weeklyPlan).catch(error => {
               console.error("Failed to save weekly plan", error);
               toast({
@@ -115,8 +126,10 @@ export default function Dashboard() {
                   description: 'Could not save your latest changes.'
               });
           });
-      }, 1000); // Debounce save operations by 1 second
+      }, 1000); // Retraso de 1 segundo (debounce).
 
+      // 3. Si el usuario hace otro cambio antes de que pase el segundo, el temporizador anterior se cancela
+      // y se inicia uno nuevo. Esto asegura que solo se guarde la versión más reciente del plan.
       return () => {
           clearTimeout(handler);
       };
@@ -138,7 +151,7 @@ export default function Dashboard() {
             return meal;
         });
         newPlan[selectedDay] = dayMeals;
-        return newPlan;
+        return newPlan; // Este cambio de estado disparará el useEffect de guardado.
     });
   };
 
@@ -167,7 +180,7 @@ export default function Dashboard() {
             return meal;
         });
         newPlan[selectedDay] = dayMeals;
-        return newPlan;
+        return newPlan; // Este cambio de estado disparará el useEffect de guardado.
     });
   };
 
@@ -180,7 +193,7 @@ export default function Dashboard() {
               : meal
         );
         newPlan[selectedDay] = dayMeals;
-        return newPlan;
+        return newPlan; // Este cambio de estado disparará el useEffect de guardado.
     });
   };
 
@@ -268,6 +281,7 @@ export default function Dashboard() {
                 description: result.error || 'The AI could not generate a meal plan.'
             });
         } else {
+            // La actualización del plan con los datos de la IA también disparará el useEffect de guardado.
             setWeeklyPlan(prevPlan => ({
                 ...prevPlan,
                 [selectedDay]: result.data as DailyPlan

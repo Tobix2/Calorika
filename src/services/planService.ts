@@ -5,6 +5,7 @@ import { db } from '@/lib/firebase';
 import type { WeeklyPlan } from '@/lib/types';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
+// Se define una estructura inicial para el plan semanal de un nuevo usuario.
 const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 const initialWeeklyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
     acc[day] = [
@@ -17,22 +18,34 @@ const initialWeeklyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
 }, {} as WeeklyPlan);
 
 
+/**
+ * Obtiene una referencia al documento de Firestore donde se guarda el plan semanal del usuario.
+ * @param userId - El ID del usuario.
+ * @returns Una referencia a un documento de Firestore.
+ */
 function getPlanDocRef(userId: string) {
     if (!userId) throw new Error("User ID is required for server actions.");
-    // Store the entire weekly plan in a single document for efficiency.
+    // Para eficiencia, todo el plan semanal de un usuario se almacena en un único documento.
+    // La ruta es: /users/{userId}/plans/weekly
     return doc(db, 'users', userId, 'plans', 'weekly');
 }
 
+/**
+ * Obtiene el plan semanal de un usuario desde Firestore.
+ * Si el usuario no tiene un plan, crea y guarda uno inicial vacío.
+ * @param userId - El ID del usuario para el cual se obtendrá el plan.
+ * @returns Una promesa que se resuelve con el objeto WeeklyPlan del usuario.
+ */
 export async function getWeeklyPlan(userId: string): Promise<WeeklyPlan> {
     const planDocRef = getPlanDocRef(userId);
     try {
         const docSnap = await getDoc(planDocRef);
         if (docSnap.exists()) {
-            // Firestore data is plain objects, so we cast it to our type.
-            // Add validation here if needed (e.g., with Zod) for more robustness.
+            // Si el documento del plan existe, se devuelve su contenido.
+            // Se realiza un casting al tipo WeeklyPlan.
             return docSnap.data() as WeeklyPlan;
         } else {
-            // If the user has no plan, save an initial empty plan for them.
+            // Si el documento no existe (usuario nuevo), se crea uno vacío.
             await setDoc(planDocRef, initialWeeklyPlan);
             return initialWeeklyPlan;
         }
@@ -42,12 +55,18 @@ export async function getWeeklyPlan(userId: string): Promise<WeeklyPlan> {
     }
 }
 
+/**
+ * Guarda el objeto completo del plan semanal de un usuario en Firestore.
+ * Esta función sobrescribe cualquier plan existente con la nueva versión proporcionada.
+ * @param userId - El ID del usuario cuyo plan se va a guardar.
+ * @param plan - El objeto WeeklyPlan completo que se va to guardar.
+ * @returns Una promesa que se resuelve cuando la operación de guardado se completa.
+ */
 export async function saveWeeklyPlan(userId: string, plan: WeeklyPlan): Promise<void> {
     const planDocRef = getPlanDocRef(userId);
     try {
-        // Use setDoc with merge: true to update or create the document without overwriting.
-        // However, since we're saving the whole plan object, a simple setDoc is fine.
-        // We need to convert our object to a plain JS object for Firestore.
+        // Para asegurar la compatibilidad con Firestore, que solo acepta objetos planos,
+        // se convierte el objeto `plan` a un objeto JavaScript simple.
         const plainPlanObject = JSON.parse(JSON.stringify(plan));
         await setDoc(planDocRef, plainPlanObject);
     } catch (error) {
@@ -55,5 +74,3 @@ export async function saveWeeklyPlan(userId: string, plan: WeeklyPlan): Promise<
         throw new Error("Failed to save weekly plan.");
     }
 }
-
-    
