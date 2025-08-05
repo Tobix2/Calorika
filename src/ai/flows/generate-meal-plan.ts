@@ -28,8 +28,6 @@ const FoodItemSchema = z.object({
 const CustomMealSchema = z.object({
     id: z.string(),
     name: z.string(),
-    // The items within a custom meal are not needed for the prompt.
-    // We care about the total nutritional values of the pre-made meal.
     calories: z.number().describe("Total calories for the meal's serving size."),
     protein: z.number().describe("Total protein for the meal's serving size."),
     carbs: z.number().describe("Total carbs for the meal's serving size."),
@@ -104,26 +102,26 @@ Here are the resources you can use. You must only use the resources provided in 
 {{#if availableFoods}}
 Available individual ingredients:
 {{#each availableFoods}}
-- {{this.name}} ({{this.calories}} kcal, {{this.protein}}g P, {{this.carbs}}g C, {{this.fats}}g F per {{this.servingSize}} {{this.servingUnit}})
+- (ID: {{this.id}}) {{this.name}} ({{this.calories}} kcal, {{this.protein}}g P, {{this.carbs}}g C, {{this.fats}}g F per {{this.servingSize}} {{this.servingUnit}})
 {{/each}}
 {{/if}}
 
 {{#if availableMeals}}
 Available pre-made meals:
 {{#each availableMeals}}
-- {{this.name}} (Total: {{this.calories}} kcal, {{this.protein}}g P, {{this.carbs}}g C, {{this.fats}}g F per {{this.servingSize}} {{this.servingUnit}})
+- (ID: {{this.id}}) {{this.name}} (Total: {{this.calories}} kcal, {{this.protein}}g P, {{this.carbs}}g C, {{this.fats}}g F per {{this.servingSize}} {{this.servingUnit}})
 {{/each}}
 {{/if}}
 
 Instructions:
 1.  Create a full-day meal plan distributed across "Breakfast", "Lunch", "Dinner", and "Snacks".
 2.  Distribute the total calories in a balanced way. A good distribution would be: Breakfast (25%), Lunch (35%), Dinner (25%), and Snacks (15%). Do not put the majority of calories in the "Snacks" category.
-3.  Select a variety of items from the available resources to create a balanced and realistic plan.
-4.  For each individual food item you select, you MUST set the 'quantity' to be equal to its 'servingSize' and 'isCustom' to false.
-5.  For each pre-made meal you select, you MUST set the 'quantity' to 1 and 'isCustom' to true.
-6.  When you select a pre-made meal from 'availableMeals', you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the corresponding values from the input meal.
+3.  For each item you select, you MUST use the original 'id' from the available resources.
+4.  For each individual food item you select, you MUST set 'isCustom' to false. For pre-made meals, set 'isCustom' to true.
+5.  Set a reasonable initial 'quantity' for each item. For pre-made meals, this is typically 1. For ingredients, it should be a sensible amount like its 'servingSize'.
+6.  When you select an item, you MUST populate all of its nutritional fields ('calories', 'protein', 'carbs', 'fats', 'servingSize', 'servingUnit') in the output using the corresponding values from the input data.
 7.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
-8.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId', the initial 'quantity', and the 'isCustom' flag.
+8.  For each item in a meal, you must provide a unique 'mealItemId'.
 9.  Do not invent new foods. Only use the ones provided.
 
 Return the final meal plan template in the specified JSON format. The quantities will be adjusted programmatically later.
@@ -150,15 +148,8 @@ const generateMealPlanFlow = ai.defineFlow(
             const quantity = Number(item.quantity) || 0;
             const servingSize = Number(item.servingSize) || 1;
             const itemCalories = Number(item.calories) || 0;
-            
-            // For custom meals, the calories are per serving, and the quantity is the number of servings.
-            // For ingredients, calories are per servingSize, so we need to calculate the ratio.
-            if (item.isCustom) {
-                totalCalories += itemCalories * quantity;
-            } else {
-                const ratio = servingSize > 0 ? quantity / servingSize : 0;
-                totalCalories += itemCalories * ratio;
-            }
+            const ratio = servingSize > 0 ? quantity / servingSize : 0;
+            totalCalories += itemCalories * ratio;
         }
     }
     
@@ -178,7 +169,6 @@ const generateMealPlanFlow = ai.defineFlow(
         for (const item of meal.items) {
             const adjustedQuantity = (Number(item.quantity) || 0) * scalingFactor;
             
-            // Round to nearest whole number for ingredients, or keep decimal for custom meal servings if needed
             const finalQuantity = item.isCustom ? 
               Math.max(0.25, Math.round(adjustedQuantity * 4) / 4) // Round to nearest 0.25 for servings
               : Math.max(1, Math.round(adjustedQuantity)); // Round to whole number for ingredients

@@ -330,17 +330,7 @@ export default function Dashboard() {
         meal.items.forEach(item => {
           const quantity = Number(item.quantity) || 0;
           const servingSize = Number(item.servingSize) || 1;
-          let ratio = 0;
-
-          if (item.isCustom) {
-            if (item.servingUnit?.toLowerCase() === 'serving' || item.servingUnit?.toLowerCase() === 'porcion' || item.servingUnit?.toLowerCase() === 'comida') {
-              ratio = quantity;
-            } else {
-              ratio = servingSize > 0 ? quantity / servingSize : 0;
-            }
-          } else {
-             ratio = servingSize > 0 ? quantity / servingSize : 0;
-          }
+          const ratio = servingSize > 0 ? quantity / servingSize : 0;
           
           totals.totalCalories += (item.calories || 0) * ratio;
           totals.totalProtein += (item.protein || 0) * ratio;
@@ -359,17 +349,7 @@ export default function Dashboard() {
       calories: meal.items.reduce((sum, item) => {
           const quantity = Number(item.quantity) || 0;
           const servingSize = Number(item.servingSize) || 1;
-          let ratio = 0;
-
-          if (item.isCustom) {
-              if (item.servingUnit?.toLowerCase().includes('serving') || item.servingUnit?.toLowerCase().includes('porcion') || item.servingUnit?.toLowerCase() === 'comida') {
-                  ratio = quantity;
-              } else {
-                  ratio = servingSize > 0 ? quantity / servingSize : 0;
-              }
-          } else {
-             ratio = servingSize > 0 ? quantity / servingSize : 0;
-          }
+          const ratio = servingSize > 0 ? quantity / servingSize : 0;
           return sum + ((item.calories || 0) * ratio);
       }, 0),
     }));
@@ -442,10 +422,10 @@ export default function Dashboard() {
                     carbsGoal={carbsGoal}
                     fats={totalFats}
                     fatsGoal={fatsGoal}
-                    setCalorieGoal={useCallback(setCalorieGoal, [])}
-                    setProteinGoal={useCallback(setProteinGoal, [])}
-                    setCarbsGoal={useCallback(setCarbsGoal, [])}
-                    setFatsGoal={useCallback(setFatsGoal, [])}
+                    setCalorieGoal={setCalorieGoal}
+                    setProteinGoal={setProteinGoal}
+                    setCarbsGoal={setCarbsGoal}
+                    setFatsGoal={setFatsGoal}
                 />
                 <MealList
                     meals={meals}
