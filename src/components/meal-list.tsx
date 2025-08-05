@@ -31,7 +31,8 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
             const quantity = Number(item.quantity) || 0;
             
             if (item.isCustom) {
-                return sum + ((Number(item.calories) || 0) * quantity);
+                const totalCalories = (item as any).totalCalories || item.calories;
+                return sum + (Number(totalCalories) * quantity);
             }
             
             const servingSize = Number(item.servingSize) || 1;
@@ -59,8 +60,9 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                      const quantity = Number(item.quantity) || 0;
                     
                      if (item.isCustom) {
-                        itemCalories = (Number(item.calories) || 0) * quantity;
-                        const servingUnitLabel = quantity > 1 ? (item.servingUnit || 'servings').replace(/s$/, '') + 's' : (item.servingUnit || 'serving').replace(/s$/, '');
+                        const totalCalories = (item as any).totalCalories || item.calories;
+                        itemCalories = (Number(totalCalories) || 0) * quantity;
+                        const servingUnitLabel = quantity > 1 ? ((item as any).servingUnit || 'servings').replace(/s$/, '') + 's' : ((item as any).servingUnit || 'serving').replace(/s$/, '');
                         description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
                      } else {
                          const servingSize = Number(item.servingSize) || 1;

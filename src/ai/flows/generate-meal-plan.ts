@@ -39,8 +39,8 @@ const CustomMealSchema = z.object({
   totalProtein: z.number(),
   totalCarbs: z.number(),
   totalFats: z.number(),
-  servingSize: z.number().optional(),
-  servingUnit: z.string().optional(),
+  servingSize: z.number(),
+  servingUnit: z.string(),
 });
 
 const GenerateMealPlanInputSchema = z.object({

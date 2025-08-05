@@ -1,3 +1,4 @@
+
 export type FoodItem = {
   id: string;
   name: string;
@@ -28,10 +29,10 @@ export type CustomMeal = {
   name: string;
   items: MealItem[]; // Can be empty for meals with manual totals
   // Nutritional info per serving for manually entered meals
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
+  totalCalories: number;
+  totalProtein: number;
+  totalCarbs: number;
+  totalFats: number;
   servingSize: number;
   servingUnit: string;
 };

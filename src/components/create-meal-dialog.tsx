@@ -91,13 +91,6 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
   const handleCreateMeal = () => {
     if (!mealName.trim()) return;
 
-    let mealTotals = {
-        calories: 0,
-        protein: 0,
-        carbs: 0,
-        fats: 0,
-    };
-
     if (creationMode === 'ingredients' && selectedItems.length > 0) {
         const mealItemsForDb = selectedItems.map(item => {
             const cleanItem: MealItem = {
@@ -115,17 +108,10 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
             return cleanItem;
         });
         
-        mealTotals = {
-            calories: totalsFromIngredients.totalCalories,
-            protein: totalsFromIngredients.totalProtein,
-            carbs: totalsFromIngredients.totalCarbs,
-            fats: totalsFromIngredients.totalFats,
-        };
-
         const newMealData: Omit<CustomMeal, 'id'> = {
             name: mealName,
             items: mealItemsForDb,
-            ...mealTotals,
+            ...totalsFromIngredients,
             servingSize: 1, // Serving size is 1 "meal"
             servingUnit: 'meal',
         };
@@ -135,10 +121,10 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
          const newMealData: Omit<CustomMeal, 'id'> = {
             name: mealName,
             items: [], 
-            calories: Number(manualCalories),
-            protein: Number(manualProtein),
-            carbs: Number(manualCarbs),
-            fats: Number(manualFats),
+            totalCalories: Number(manualCalories),
+            totalProtein: Number(manualProtein),
+            totalCarbs: Number(manualCarbs),
+            totalFats: Number(manualFats),
             servingSize: Number(manualServingSize) || 1,
             servingUnit: manualServingUnit || 'serving',
         };

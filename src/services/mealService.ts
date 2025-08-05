@@ -15,21 +15,15 @@ export async function getCustomMeals(userId: string): Promise<CustomMeal[]> {
     return snapshot.docs.map(doc => {
         const data = doc.data();
 
-        // Manejar retrocompatibilidad para datos antiguos
-        const calories = data.calories ?? data.totalCalories ?? 0;
-        const protein = data.protein ?? data.totalProtein ?? 0;
-        const carbs = data.carbs ?? data.totalCarbs ?? 0;
-        const fats = data.fats ?? data.totalFats ?? 0;
-
         // Asegurar valores por defecto para campos opcionales para prevenir problemas de serialización.
         const meal: CustomMeal = {
             id: doc.id,
             name: data.name,
             items: data.items || [],
-            calories,
-            protein,
-            carbs,
-            fats,
+            totalCalories: data.totalCalories ?? data.calories ?? 0,
+            totalProtein: data.totalProtein ?? data.protein ?? 0,
+            totalCarbs: data.totalCarbs ?? data.carbs ?? 0,
+            totalFats: data.totalFats ?? data.fats ?? 0,
             servingSize: data.servingSize || 1,
             servingUnit: data.servingUnit || 'serving',
         };
