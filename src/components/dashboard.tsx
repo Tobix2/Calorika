@@ -7,8 +7,8 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut, Code } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Leaf, Bot, Loader2, LogOut } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
 import { Button } from '@/components/ui/button';
@@ -478,38 +478,6 @@ export default function Dashboard() {
                                 <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                             </BarChart>
                         </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Notas de Depuración</CardTitle>
-                        <CardDescription>Pasos clave para depurar la inicialización de Firebase Admin.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4 text-sm">
-                        <div className="flex items-start gap-3">
-                            <Code className="h-5 w-5 mt-1 text-primary"/>
-                            <div>
-                                <p className="font-semibold">1. Verificar Logs en el Servidor</p>
-                                <p className="text-muted-foreground">Revisa la terminal donde corre el servidor para ver los logs de Firebase Admin.</p>
-                                <pre className="mt-2 bg-gray-800 text-white p-2 rounded-md text-xs overflow-x-auto">
-                                    <code>{`Firebase Admin SDK imported. Apps count: 0\n🔥 Firebase Admin initialized successfully.`}</code>
-                                </pre>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Code className="h-5 w-5 mt-1 text-primary"/>
-                            <div>
-                                <p className="font-semibold">2. Revisar la `serviceAccount`</p>
-                                <p className="text-muted-foreground">Asegúrate de que la variable de entorno y el JSON de la cuenta de servicio sean válidos y correctos.</p>
-                            </div>
-                        </div>
-                        <div className="flex items-start gap-3">
-                            <Code className="h-5 w-5 mt-1 text-primary"/>
-                            <div>
-                                <p className="font-semibold">3. Llamar `initializeApp` solo una vez</p>
-                                <p className="text-muted-foreground">Usa un condicional como `if (admin.apps.length === 0)` para evitar errores de reinicialización.</p>
-                            </div>
-                        </div>
                     </CardContent>
                 </Card>
                 </div>
