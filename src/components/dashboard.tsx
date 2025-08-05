@@ -31,6 +31,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import WeekNavigator from './week-navigator';
+import { getWeeklyPlan, saveWeeklyPlan } from '@/services/planService';
 
 const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -72,12 +73,17 @@ export default function Dashboard() {
         if (user) {
             try {
                 setIsLoadingData(true);
-                const [foods, meals] = await Promise.all([
+                const [foods, meals, plan] = await Promise.all([
                     getFoods(user.uid),
-                    getCustomMeals(user.uid)
+                    getCustomMeals(user.uid),
+                    getWeeklyPlan(user.uid)
                 ]);
                 setFoodDatabase(foods);
                 setCustomMeals(meals);
+                // If a plan is loaded and it is not null or empty, set it.
+                if (plan && Object.keys(plan).length > 0) {
+                    setWeeklyPlan(plan);
+                }
             } catch (error) {
                 console.error("Failed to load initial data", error);
                 toast({
@@ -92,12 +98,35 @@ export default function Dashboard() {
     }
     loadInitialData();
   }, [user, toast]);
+  
+  // Effect to save the weekly plan whenever it changes
+  useEffect(() => {
+      // Don't save during initial load or if user is not logged in.
+      if (isLoadingData || !user) {
+          return;
+      }
+      
+      const handler = setTimeout(() => {
+          saveWeeklyPlan(user.uid, weeklyPlan).catch(error => {
+              console.error("Failed to save weekly plan", error);
+              toast({
+                  variant: 'destructive',
+                  title: 'Save Error',
+                  description: 'Could not save your latest changes.'
+              });
+          });
+      }, 1000); // Debounce save operations by 1 second
+
+      return () => {
+          clearTimeout(handler);
+      };
+  }, [weeklyPlan, user, isLoadingData, toast]);
 
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
     setWeeklyPlan(prevPlan => {
-        const newPlan = { ...prevPlan };
-        const dayMeals = newPlan[selectedDay].map(meal => {
+        const newPlan = JSON.parse(JSON.stringify(prevPlan)); // Deep copy
+        const dayMeals = newPlan[selectedDay].map((meal: Meal) => {
             if (meal.name === mealName) {
                 const newItem: MealItem = {
                     ...food,
@@ -130,8 +159,8 @@ export default function Dashboard() {
     };
 
      setWeeklyPlan(prevPlan => {
-        const newPlan = { ...prevPlan };
-        const dayMeals = newPlan[selectedDay].map(meal => {
+        const newPlan = JSON.parse(JSON.stringify(prevPlan)); // Deep copy
+        const dayMeals = newPlan[selectedDay].map((meal: Meal) => {
             if (meal.name === mealName) {
                 return { ...meal, items: [...meal.items, mealItem] };
             }
@@ -144,8 +173,8 @@ export default function Dashboard() {
 
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
     setWeeklyPlan(prevPlan => {
-        const newPlan = { ...prevPlan };
-        const dayMeals = newPlan[selectedDay].map(meal =>
+        const newPlan = JSON.parse(JSON.stringify(prevPlan)); // Deep copy
+        const dayMeals = newPlan[selectedDay].map((meal: Meal) =>
             meal.name === mealName
               ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
               : meal
@@ -417,3 +446,5 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
+
+    
