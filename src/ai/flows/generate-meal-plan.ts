@@ -11,7 +11,7 @@
 
 import { ai } from '@/ai/genkit';
 import { z } from 'genkit';
-import type { GenerateMealPlanInput, GenerateMealPlanOutput, MealItem, FoodItem, CustomMeal, Meal } from '@/lib/types';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput, Meal, MealItem } from '@/lib/types';
 
 // Schemas mirroring the types in src/lib/types.ts for robust validation.
 const FoodItemSchema = z.object({
@@ -37,15 +37,23 @@ const CustomMealSchema = z.object({
     servingUnit: z.string(),
 });
 
-const MealItemSchema = FoodItemSchema.extend({
-  mealItemId: z.string(),
-  quantity: z.number(),
-  isCustom: z.boolean().optional(),
-}).or(CustomMealSchema.extend({
+const MealItemSchema = z.union([
+  FoodItemSchema.extend({
     mealItemId: z.string(),
     quantity: z.number(),
-    isCustom: z.boolean().optional(),
-}));
+    isCustom: z.literal(false),
+  }),
+  CustomMealSchema.extend({
+    mealItemId: z.string(),
+    quantity: z.number(),
+    isCustom: z.literal(true),
+    // Map totalCalories to calories for consistency in the output item
+    calories: z.number(),
+    protein: z.number(),
+    carbs: z.number(),
+    fats: z.number(),
+  })
+]);
 
 
 const GenerateMealPlanInputSchema = z.object({
@@ -100,11 +108,12 @@ Available pre-made meals:
 Instructions:
 1.  Create a full-day meal plan distributed across "Breakfast", "Lunch", "Dinner", and "Snacks".
 2.  Select a variety of items from the available resources to create a balanced plan.
-3.  For each individual food item you select, you MUST set the initial 'quantity' to be equal to its 'servingSize'. The final adjustment will be done later.
-4.  For each pre-made meal you select, you MUST set the initial 'quantity' to be 1.
-5.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
-6.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId' and the initial 'quantity'.
-7.  Do not invent new foods. Only use the ones provided.
+3.  For each individual food item you select, you MUST set the initial 'quantity' to be equal to its 'servingSize' and 'isCustom' to false.
+4.  For each pre-made meal you select, you MUST set the initial 'quantity' to 1 and 'isCustom' to true.
+5.  When you select a pre-made meal, you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the 'totalCalories', 'totalProtein', 'totalCarbs', and 'totalFats' values from the input meal.
+6.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
+7.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId', the initial 'quantity', and the 'isCustom' flag.
+8.  Do not invent new foods. Only use the ones provided.
 
 Return the final meal plan template in the specified JSON format. The quantities will be adjusted programmatically later.
 `,
@@ -125,43 +134,46 @@ const generateMealPlanFlow = ai.defineFlow(
 
     let totalCalories = 0;
     for (const meal of planTemplate) {
-        for (const item of meal.items) {
-            const quantity = Number(item.quantity) || 0;
-            if (item.isCustom) {
-                const customItem = item as CustomMeal & { quantity: number };
-                totalCalories += (customItem.totalCalories || 0) * quantity;
-            } else {
-                const foodItem = item as FoodItem & { quantity: number };
-                const servingSize = Number(foodItem.servingSize) || 1; 
-                const ratio = servingSize > 0 ? quantity / servingSize : 0;
-                totalCalories += (foodItem.calories || 0) * ratio;
-            }
+      for (const item of meal.items) {
+        const quantity = Number(item.quantity) || 0;
+        if (item.isCustom) {
+          // For custom meals, 'calories' already holds totalCalories per serving.
+          totalCalories += (item.calories || 0) * quantity;
+        } else {
+          // For individual food items.
+          const servingSize = Number(item.servingSize) || 1;
+          const ratio = servingSize > 0 ? quantity / servingSize : 0;
+          totalCalories += (item.calories || 0) * ratio;
         }
+      }
     }
     
     if (totalCalories <= 0) {
-        return planTemplate; 
+      // Avoid division by zero and return the template if it's empty or has no calories.
+      return planTemplate; 
     }
     
+    // Scale quantities to better match the user's calorie goal.
     const scalingFactor = input.calorieGoal / totalCalories;
 
     const adjustedPlan: Meal[] = [];
 
-    if (scalingFactor < 1) {
-        for (const meal of planTemplate) {
-            const adjustedMeal: Meal = { ...meal, items: [] };
-            for (const item of meal.items) {
-                const adjustedQuantity = (Number(item.quantity) || 0) * scalingFactor;
-                adjustedMeal.items.push({
-                    ...item,
-                    quantity: Math.round(adjustedQuantity > 0 ? adjustedQuantity : 1), 
-                });
-            }
-            adjustedPlan.push(adjustedMeal);
-        }
-        return adjustedPlan;
-    }
+    for (const meal of planTemplate) {
+        const adjustedMeal: Meal = { ...meal, items: [] };
+        for (const item of meal.items) {
+            const adjustedQuantity = (Number(item.quantity) || 0) * scalingFactor;
+            
+            // For custom meals, quantity is # of servings, so rounding is fine.
+            // For ingredients, rounding might be less precise but is a good approximation.
+            const finalQuantity = Math.max(1, Math.round(adjustedQuantity));
 
-    return planTemplate;
+            adjustedMeal.items.push({
+                ...item,
+                quantity: finalQuantity,
+            } as MealItem);
+        }
+        adjustedPlan.push(adjustedMeal);
+    }
+    return adjustedPlan;
   }
 );
