@@ -136,23 +136,18 @@ const generateMealPlanFlow = ai.defineFlow(
     let totalCalories = 0;
     for (const meal of planTemplate) {
         for (const item of meal.items) {
-            if (item.isCustom) {
-                // For custom meals, `calories` is per serving, and the template quantity is 1 serving.
-                totalCalories += item.calories || 0;
-            } else {
-                // For ingredients, `calories` is per `servingSize`, and template quantity equals servingSize.
-                // The net effect is that the calories for the template item are just item.calories.
-                totalCalories += item.calories || 0;
-            }
+            const quantity = Number(item.quantity) || 0;
+            const servingSize = Number(item.servingSize) || 1;
+            const itemCalories = item.calories || 0;
+            const ratio = servingSize > 0 ? quantity / servingSize : 0;
+            totalCalories += itemCalories * ratio;
         }
     }
     
     if (totalCalories <= 0) {
-      // Avoid division by zero and return the template if it's empty or has no calories.
       return planTemplate; 
     }
     
-    // Scale quantities to better match the user's calorie goal.
     const scalingFactor = input.calorieGoal / totalCalories;
 
     const adjustedPlan: Meal[] = [];
@@ -161,9 +156,6 @@ const generateMealPlanFlow = ai.defineFlow(
         const adjustedMeal: Meal = { ...meal, items: [] };
         for (const item of meal.items) {
             const adjustedQuantity = (Number(item.quantity) || 0) * scalingFactor;
-            
-            // For custom meals, quantity is # of servings, so rounding is fine.
-            // For ingredients, rounding might be less precise but is a good approximation.
             const finalQuantity = Math.max(1, Math.round(adjustedQuantity));
 
             adjustedMeal.items.push({
