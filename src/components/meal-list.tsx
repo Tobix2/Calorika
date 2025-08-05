@@ -24,21 +24,28 @@ const mealIcons: Record<MealName, React.ReactNode> = {
 };
 
 export default function MealList({ meals, customMeals, foodDatabase, onAddFood, onRemoveFood, onAddCustomMeal, onDeleteItem }: MealListProps) {
+  
+  const calculateItemCalories = (item: MealItem) => {
+    const quantity = Number(item.quantity) || 0;
+    const servingSize = Number(item.servingSize) || 1;
+    const itemCalories = Number(item.calories) || 0;
+    
+    // For custom meals by 'serving' or similar unit, multiply by quantity.
+    // For ingredients or custom meals by weight/volume (like 'g'), calculate ratio.
+    if (item.isCustom && (item.servingUnit?.toLowerCase().includes('serving') || item.servingUnit?.toLowerCase().includes('porcion'))) {
+        return itemCalories * quantity;
+    }
+    
+    // For ingredients or custom meals by grams, calculate ratio.
+    const ratio = servingSize > 0 ? quantity / servingSize : 0;
+    return itemCalories * ratio;
+  }
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {meals.map(meal => {
         const mealCalories = meal.items.reduce((sum, item) => {
-            const quantity = Number(item.quantity) || 0;
-            const servingSize = Number(item.servingSize) || 1;
-            
-            if (item.isCustom) {
-                // For custom meals, item.calories is the total for one serving, and quantity is the number of servings.
-                return sum + (Number(item.calories) * quantity);
-            }
-            
-            // For ingredients, item.calories is per servingSize.
-            const ratio = servingSize > 0 ? quantity / servingSize : 0;
-            return sum + (Number(item.calories) * ratio);
+            return sum + calculateItemCalories(item);
         }, 0);
 
         return (
@@ -57,21 +64,13 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
               <div className="space-y-3 mb-4 flex-grow">
                 {meal.items.length > 0 ? (
                   meal.items.map((item: MealItem) => {
-                     let itemCalories, description;
+                     const itemCalories = calculateItemCalories(item);
                      const quantity = Number(item.quantity) || 0;
-                     const servingSize = Number(item.servingSize) || 1;
-                    
-                     if (item.isCustom) {
-                        itemCalories = (Number(item.calories) || 0) * quantity;
-                        const unit = item.servingUnit || 'serving';
-                        // Avoid pluralizing abbreviations like 'g' or 'ml'
-                        const servingUnitLabel = quantity > 1 && unit.length > 2 ? `${unit}s` : unit;
-                        description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
-                     } else {
-                         const ratio = servingSize > 0 ? quantity / servingSize : 0;
-                         itemCalories = (Number(item.calories) || 0) * ratio;
-                         description = `${quantity} ${item.servingUnit} • ${itemCalories.toFixed(0)} kcal`;
-                     }
+                     const unit = item.servingUnit || 'unit';
+                     // Avoid pluralizing abbreviations like 'g' or 'ml'
+                     const servingUnitLabel = quantity !== 1 && unit.length > 2 ? `${unit}s` : unit;
+
+                     const description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
 
                     return (
                         <div key={item.mealItemId} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
