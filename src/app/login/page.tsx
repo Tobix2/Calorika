@@ -1,22 +1,26 @@
 
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Leaf, LogIn } from "lucide-react";
+import { Leaf, Loader2, LogIn } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
   const { signInWithGoogle, user } = useAuth();
   const router = useRouter();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   const handleSignIn = async () => {
+    setIsSigningIn(true);
     try {
-      await signInWithGoogle();
+      // No need to await, as it will redirect
+      signInWithGoogle();
     } catch (error) {
-      console.error("Failed to sign in with Google", error);
+      console.error("Failed to initiate sign in with Google", error);
+      setIsSigningIn(false);
     }
   };
 
@@ -43,9 +47,18 @@ export default function LoginPage() {
           <CardDescription>Sign in to continue to your dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleSignIn} className="w-full" size="lg">
-            <LogIn className="mr-2" />
-            Sign In with Google
+          <Button onClick={handleSignIn} className="w-full" size="lg" disabled={isSigningIn}>
+            {isSigningIn ? (
+                <>
+                    <Loader2 className="mr-2 animate-spin" />
+                    Redirecting...
+                </>
+            ) : (
+                <>
+                    <LogIn className="mr-2" />
+                    Sign In with Google
+                </>
+            )}
           </Button>
         </CardContent>
       </Card>

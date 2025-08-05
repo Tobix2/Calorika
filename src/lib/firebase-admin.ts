@@ -1,30 +1,27 @@
 import * as admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
 
-const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
+let app: admin.app.App | null = null;
 
-if (!serviceAccount) {
-    console.warn("FIREBASE_SERVICE_ACCOUNT is not set. Server-side Firebase services will not be available.");
-}
+export function getFirestoreDb() {
+  if (!app) {
+    const serviceAccount = process.env.FIREBASE_SERVICE_ACCOUNT;
 
-function initAdminApp() {
-    if (serviceAccount && !admin.apps.length) {
-        try {
-            console.log("Attempting to initialize Firebase Admin SDK...");
-            const serviceAccountConfig = JSON.parse(serviceAccount);
-            admin.initializeApp({
-                credential: admin.credential.cert(serviceAccountConfig),
-            });
-            console.log("🔥 Firebase Admin SDK initialized successfully.");
-        } catch (error) {
-            console.error("🔥 Failed to parse FIREBASE_SERVICE_ACCOUNT or initialize Firebase Admin SDK:", error);
-        }
+    if (!serviceAccount) {
+      console.warn("FIREBASE_SERVICE_ACCOUNT no está definido.");
+      throw new Error("FIREBASE_SERVICE_ACCOUNT no está definido.");
     }
+
+    try {
+      const parsed = JSON.parse(serviceAccount);
+      app = admin.initializeApp({
+        credential: admin.credential.cert(parsed),
+      });
+      console.log("🔥 Firebase Admin inicializado.");
+    } catch (error) {
+      console.error("❌ Error inicializando Firebase Admin:", error);
+      throw new Error("Error inicializando Firebase Admin.");
+    }
+  }
+
+  return admin.firestore(app);
 }
-
-// Llama a la inicialización inmediatamente para que esté lista para cualquier importación.
-initAdminApp();
-
-// Exporta una instancia de Firestore que solo se creará si el admin se inicializó correctamente.
-// Si no hay serviceAccount, db será null.
-export const db = admin.apps.length ? getFirestore() : null;

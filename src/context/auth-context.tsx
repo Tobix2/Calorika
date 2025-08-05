@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut, type User } from "firebase/auth";
+import { onAuthStateChanged, signInWithRedirect, GoogleAuthProvider, signOut, type User } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from 'next/navigation';
 
@@ -46,10 +46,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
     try {
-      await signInWithPopup(auth, provider);
-      router.push('/');
+      // Use signInWithRedirect for a more robust authentication flow.
+      await signInWithRedirect(auth, provider);
+      // The user will be redirected to Google, and on return,
+      // the onAuthStateChanged listener will handle the result.
     } catch (error) {
-      console.error("Error signing in with Google", error);
+      console.error("Error initiating sign in with Google redirect", error);
     }
   };
 
