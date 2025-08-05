@@ -380,7 +380,7 @@ export default function Dashboard() {
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
-                      <Button onClick={() => handleGeneratePlan('both')}>Use Ingredients & My Meals</Button>
+                      <Button onClick={() => handleGeneratePlan('both')}>Use Ingredients &amp; My Meals</Button>
                       <Button variant="secondary" onClick={() => handleGeneratePlan('ingredients')}>Use Ingredients Only</Button>
                       <Button variant="secondary" onClick={() => handleGeneratePlan('meals')}>Use My Meals Only</Button>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
@@ -462,10 +462,10 @@ export default function Dashboard() {
                         <div className="flex items-start gap-3">
                             <Code className="h-5 w-5 mt-1 text-primary"/>
                             <div>
-                                <p className="font-semibold">1. Verificar si `admin` está definido</p>
-                                <p className="text-muted-foreground">Usa `console.log(admin)` para asegurarte de que el SDK se importa correctamente.</p>
-                                <pre className="mt-2 bg-gray-800 text-white p-2 rounded-md text-xs">
-                                    <code>{`> console.log(admin)\n{ ... }`}</code>
+                                <p className="font-semibold">1. Verificar Logs en el Servidor</p>
+                                <p className="text-muted-foreground">Revisa la terminal donde corre el servidor para ver los logs de Firebase Admin.</p>
+                                <pre className="mt-2 bg-gray-800 text-white p-2 rounded-md text-xs overflow-x-auto">
+                                    <code>{`Firebase Admin SDK imported. Apps count: 0\n🔥 Firebase Admin initialized successfully.`}</code>
                                 </pre>
                             </div>
                         </div>
