@@ -2,7 +2,7 @@
 'use server';
 // Este archivo se ejecuta exclusivamente en el servidor.
 
-import { db } from '@/lib/firebase';
+import { db } from '@/lib/firebase-admin';
 import type { WeeklyPlan } from '@/lib/types';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 
@@ -24,8 +24,12 @@ const initialWeeklyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
  */
 function getPlanDocRef(userId: string) {
     if (!userId) throw new Error("User ID is required for server actions.");
+    // PASO 3 (del flujo de guardado): La ejecución llega a este archivo.
     // La ruta es: /users/{userId}/plans/weekly
     // Toda la información del plan semanal se almacena en un único documento para eficiencia.
+    if (!db) {
+        throw new Error("Firestore is not initialized. Check server configuration.");
+    }
     return doc(db, 'users', userId, 'plans', 'weekly');
 }
 
@@ -48,7 +52,7 @@ export async function getWeeklyPlan(userId: string): Promise<WeeklyPlan> {
             return initialWeeklyPlan;
         }
     } catch (error) {
-        console.error("Error fetching weekly plan from Firestore:", error);
+        console.error("🔥 Error al obtener el weekly plan:", error);
         throw new Error("Failed to fetch weekly plan.");
     }
 }
@@ -61,17 +65,16 @@ export async function getWeeklyPlan(userId: string): Promise<WeeklyPlan> {
  * @returns Una promesa que se resuelve cuando la operación de guardado se completa.
  */
 export async function saveWeeklyPlan(userId: string, plan: WeeklyPlan): Promise<void> {
-    // PASO 3: La ejecución llega a este archivo (`planService.ts`) desde `dashboard.tsx`.
     const planDocRef = getPlanDocRef(userId);
     try {
-        // PASO 4: Se prepara el objeto para que sea compatible con Firestore y se guarda.
-        // `setDoc` sobrescribe el documento existente con los nuevos datos.
+        // PASO 4: Se prepara el objeto para que sea compatible con Firestore (elimina undefined, etc.) y se guarda.
+        // `setDoc` con `merge: true` actualiza el documento o lo crea si no existe.
         const plainPlanObject = JSON.parse(JSON.stringify(plan));
-        await setDoc(planDocRef, plainPlanObject);
+        await setDoc(planDocRef, plainPlanObject, { merge: true });
         // PASO 5 (implícito): Firestore confirma el guardado y la promesa se resuelve,
         // finalizando el ciclo de guardado.
     } catch (error) {
-        console.error("Error saving weekly plan to Firestore:", error);
-        throw new Error("Failed to save weekly plan.");
+        console.error('🔥 Error al guardar el weekly plan:', error);
+        throw new Error('Failed to save weekly plan.');
     }
 }
