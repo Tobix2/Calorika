@@ -10,11 +10,12 @@ if (!serviceAccount) {
 function initAdminApp() {
     if (serviceAccount && !admin.apps.length) {
         try {
+            console.log("Attempting to initialize Firebase Admin SDK...");
             const serviceAccountConfig = JSON.parse(serviceAccount);
             admin.initializeApp({
                 credential: admin.credential.cert(serviceAccountConfig),
             });
-            console.log("Firebase Admin SDK initialized successfully.");
+            console.log("🔥 Firebase Admin SDK initialized successfully.");
         } catch (error) {
             console.error("🔥 Failed to parse FIREBASE_SERVICE_ACCOUNT or initialize Firebase Admin SDK:", error);
         }
