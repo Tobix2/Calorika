@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useEffect, useActionState } from 'react';
+import { useEffect, useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { getRecommendationAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
@@ -45,6 +46,13 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
   const [state, formAction] = useActionState(getRecommendationAction, initialState);
   const { toast } = useToast();
 
+  const [age, setAge] = useState<number | string>(40);
+  const [gender, setGender] = useState('female');
+  const [weight, setWeight] = useState<number | string>(96);
+  const [height, setHeight] = useState<number | string>(166);
+  const [activityLevel, setActivityLevel] = useState('moderatelyActive');
+  const [goal, setGoal] = useState('loseWeight');
+
   useEffect(() => {
     if (state.error) {
       toast({
@@ -76,11 +84,11 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="age">Edad</Label>
-              <Input id="age" name="age" type="number" defaultValue="40" required />
+              <Input id="age" name="age" type="number" value={age} onChange={e => setAge(e.target.value)} required />
             </div>
              <div className="space-y-2">
               <Label htmlFor="gender">Género</Label>
-              <Select name="gender" defaultValue="female">
+              <Select name="gender" value={gender} onValueChange={setGender}>
                 <SelectTrigger id="gender">
                   <SelectValue placeholder="Selecciona género" />
                 </SelectTrigger>
@@ -94,16 +102,16 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
            <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="weight">Peso (kg)</Label>
-              <Input id="weight" name="weight" type="number" defaultValue="96" required />
+              <Input id="weight" name="weight" type="number" value={weight} onChange={e => setWeight(e.target.value)} required />
             </div>
             <div className="space-y-2">
               <Label htmlFor="height">Altura (cm)</Label>
-              <Input id="height" name="height" type="number" defaultValue="166" required />
+              <Input id="height" name="height" type="number" value={height} onChange={e => setHeight(e.target.value)} required />
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="activityLevel">Nivel de Actividad</Label>
-            <Select name="activityLevel" defaultValue="moderatelyActive">
+            <Select name="activityLevel" value={activityLevel} onValueChange={setActivityLevel}>
               <SelectTrigger id="activityLevel">
                 <SelectValue placeholder="Selecciona tu nivel de actividad" />
               </SelectTrigger>
@@ -118,7 +126,7 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
           </div>
           <div className="space-y-2">
             <Label htmlFor="goal">Objetivo</Label>
-            <Select name="goal" defaultValue="loseWeight">
+            <Select name="goal" value={goal} onValueChange={setGoal}>
               <SelectTrigger id="goal">
                 <SelectValue placeholder="Selecciona tu objetivo" />
               </SelectTrigger>
