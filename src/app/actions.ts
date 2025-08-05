@@ -9,7 +9,7 @@ import {
 import {
   generateMealPlan,
 } from '@/ai/flows/generate-meal-plan';
-import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan } from '@/lib/types';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem } from '@/lib/types';
 import { getDb } from '@/lib/firebase-admin';
 import { format } from 'date-fns';
 
@@ -24,6 +24,7 @@ export async function getRecommendationAction(
     age: Number(formData.get('age')) || 25,
     weight: Number(formData.get('weight')) || 70,
     height: Number(formData.get('height')) || 175,
+    gender: formData.get('gender') || 'female',
     activityLevel: formData.get('activityLevel') || 'lightlyActive',
     goal: formData.get('goal') || 'maintainWeight',
   };

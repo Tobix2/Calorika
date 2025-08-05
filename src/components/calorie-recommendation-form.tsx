@@ -10,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
-import { Lightbulb, Loader2, Sparkles, Beef, Wheat, Droplets } from 'lucide-react';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Sparkles, Loader2, Target, CheckCircle2, Beef, Wheat, Droplets, Dumbbell, Weight, BrainCircuit } from 'lucide-react';
 
 interface CalorieRecommendationFormProps {
   onGoalSet: (output: CalorieRecommendationOutput) => void;
@@ -75,20 +76,34 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="age">Edad</Label>
-              <Input id="age" name="age" type="number" defaultValue="25" required />
+              <Input id="age" name="age" type="number" defaultValue="40" required />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="weight">Peso (kg)</Label>
-              <Input id="weight" name="weight" type="number" defaultValue="70" required />
+             <div className="space-y-2">
+              <Label htmlFor="gender">Género</Label>
+              <Select name="gender" defaultValue="female">
+                <SelectTrigger id="gender">
+                  <SelectValue placeholder="Selecciona género" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="male">Masculino</SelectItem>
+                  <SelectItem value="female">Femenino</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="height">Altura (cm)</Label>
-            <Input id="height" name="height" type="number" defaultValue="175" required />
+           <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="weight">Peso (kg)</Label>
+              <Input id="weight" name="weight" type="number" defaultValue="96" required />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="height">Altura (cm)</Label>
+              <Input id="height" name="height" type="number" defaultValue="166" required />
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="activityLevel">Nivel de Actividad</Label>
-            <Select name="activityLevel" defaultValue="lightlyActive">
+            <Select name="activityLevel" defaultValue="moderatelyActive">
               <SelectTrigger id="activityLevel">
                 <SelectValue placeholder="Selecciona tu nivel de actividad" />
               </SelectTrigger>
@@ -103,7 +118,7 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
           </div>
           <div className="space-y-2">
             <Label htmlFor="goal">Objetivo</Label>
-            <Select name="goal" defaultValue="maintainWeight">
+            <Select name="goal" defaultValue="loseWeight">
               <SelectTrigger id="goal">
                 <SelectValue placeholder="Selecciona tu objetivo" />
               </SelectTrigger>
@@ -121,35 +136,81 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
       </form>
 
       {state.data && (
-        <CardContent className="border-t pt-6 space-y-4">
-            <div className="bg-primary/10 border-l-4 border-primary text-primary-foreground p-4 rounded-r-md space-y-4">
-                <div className="flex">
-                    <div className="py-1">
-                        <Lightbulb className="h-6 w-6 text-primary mr-4" />
-                    </div>
-                    <div>
-                        <p className="font-bold text-primary">Recomendado: {state.data.recommendedCalories.toFixed(0)} kcal/día</p>
-                        <div className="grid grid-cols-3 gap-2 mt-2">
-                            <div className="text-center">
-                                <Beef className="h-5 w-5 mx-auto text-red-500" />
-                                <p className="text-sm font-semibold text-foreground">{state.data.recommendedProtein.toFixed(0)}g</p>
-                                <p className="text-xs text-muted-foreground">Proteína</p>
+        <CardContent className="border-t pt-6 space-y-6">
+          <div className="text-center space-y-2">
+            <h3 className="text-lg font-semibold text-foreground">Tu Objetivo Diario Recomendado</h3>
+             <div className="flex items-center justify-center gap-2 text-3xl font-bold text-primary">
+                <Target className="h-8 w-8" />
+                <span>{state.data.recommendedCalories.toFixed(0)} kcal</span>
+            </div>
+          </div>
+          
+           <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-muted/50 p-3 rounded-lg">
+                    <Beef className="h-6 w-6 mx-auto text-red-500 mb-1" />
+                    <p className="text-lg font-semibold text-foreground">{state.data.recommendedProtein.toFixed(0)}g</p>
+                    <p className="text-xs text-muted-foreground">Proteína</p>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-lg">
+                    <Wheat className="h-6 w-6 mx-auto text-yellow-500 mb-1" />
+                    <p className="text-lg font-semibold text-foreground">{state.data.recommendedCarbs.toFixed(0)}g</p>
+                    <p className="text-xs text-muted-foreground">Carbs</p>
+                </div>
+                <div className="bg-muted/50 p-3 rounded-lg">
+                    <Droplets className="h-6 w-6 mx-auto text-blue-500 mb-1" />
+                    <p className="text-lg font-semibold text-foreground">{state.data.recommendedFats.toFixed(0)}g</p>
+                    <p className="text-xs text-muted-foreground">Grasas</p>
+                </div>
+            </div>
+            
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="explanation">
+                <AccordionTrigger>¿Cómo llegamos a esta recomendación?</AccordionTrigger>
+                <AccordionContent className="space-y-4 pt-2">
+                    <p className="text-sm text-muted-foreground">{state.data.explanation.summary}</p>
+                     <div className="space-y-3">
+                        <div className="flex items-start gap-3">
+                            <BrainCircuit className="h-5 w-5 mt-1 text-primary flex-shrink-0"/>
+                            <div>
+                                <h4 className="font-semibold">Tasa Metabólica Basal (TMB)</h4>
+                                <p className="text-xs text-muted-foreground">{state.data.explanation.basalMetabolicRate.description}</p>
+                                <p className="text-xs font-mono bg-muted p-1 rounded mt-1">{state.data.explanation.basalMetabolicRate.calculation} = {state.data.explanation.basalMetabolicRate.value.toFixed(0)} kcal</p>
                             </div>
-                            <div className="text-center">
-                                <Wheat className="h-5 w-5 mx-auto text-yellow-500" />
-                                <p className="text-sm font-semibold text-foreground">{state.data.recommendedCarbs.toFixed(0)}g</p>
-                                <p className="text-xs text-muted-foreground">Carbs</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Dumbbell className="h-5 w-5 mt-1 text-primary flex-shrink-0"/>
+                            <div>
+                                <h4 className="font-semibold">Gasto Energético Diario Total (GET)</h4>
+                                <p className="text-xs text-muted-foreground">{state.data.explanation.totalDailyEnergyExpenditure.description}</p>
+                                 <p className="text-xs font-mono bg-muted p-1 rounded mt-1">{state.data.explanation.totalDailyEnergyExpenditure.calculation} = {state.data.explanation.totalDailyEnergyExpenditure.value.toFixed(0)} kcal</p>
                             </div>
-                            <div className="text-center">
-                                <Droplets className="h-5 w-5 mx-auto text-blue-500" />
-                                <p className="text-sm font-semibold text-foreground">{state.data.recommendedFats.toFixed(0)}g</p>
-                                <p className="text-xs text-muted-foreground">Grasas</p>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Weight className="h-5 w-5 mt-1 text-primary flex-shrink-0"/>
+                            <div>
+                                <h4 className="font-semibold">Objetivo Calórico Final</h4>
+                                <p className="text-xs text-muted-foreground">{state.data.explanation.calorieGoal.description}</p>
+                                 <p className="text-xs font-mono bg-muted p-1 rounded mt-1">{state.data.explanation.calorieGoal.calculation} = {state.data.explanation.calorieGoal.value.toFixed(0)} kcal</p>
                             </div>
                         </div>
                     </div>
-                </div>
-                 <p className="text-sm text-foreground/80">{state.data.explanation}</p>
-            </div>
+                </AccordionContent>
+              </AccordionItem>
+              <AccordionItem value="tips">
+                <AccordionTrigger>Consejos Prácticos</AccordionTrigger>
+                <AccordionContent className="pt-2">
+                    <ul className="space-y-2">
+                        {state.data.explanation.practicalTips.map((tip, index) => (
+                            <li key={index} className="flex items-start gap-2 text-sm">
+                                <CheckCircle2 className="h-4 w-4 mt-0.5 text-green-500 flex-shrink-0" />
+                                <span>{tip}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+            
             <Button variant="outline" className="w-full" onClick={handleApplyGoal}>Aplicar como Objetivo</Button>
         </CardContent>
       )}
