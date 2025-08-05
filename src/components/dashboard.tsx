@@ -7,8 +7,8 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Leaf, Bot, Loader2, LogOut, Code } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
 import { Button } from '@/components/ui/button';
@@ -452,6 +452,35 @@ export default function Dashboard() {
                             </BarChart>
                         </ResponsiveContainer>
                     </CardContent>
+                </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Notas de Depuración</CardTitle>
+                    <CardDescription>Pasos clave para depurar la inicialización de Firebase Admin.</CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm">
+                    <div className="flex items-start gap-3">
+                      <Code className="h-5 w-5 mt-1 text-primary"/>
+                      <div>
+                        <p className="font-semibold">1. Verificar si `admin` está definido</p>
+                        <p className="text-muted-foreground">Usa `console.log(admin)` antes de `initializeApp` para asegurarte de que el SDK se importa correctamente.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Code className="h-5 w-5 mt-1 text-primary"/>
+                      <div>
+                        <p className="font-semibold">2. Revisar la `serviceAccount`</p>
+                        <p className="text-muted-foreground">Asegúrate de que la variable de entorno y el JSON de la cuenta de servicio sean válidos y correctos.</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Code className="h-5 w-5 mt-1 text-primary"/>
+                      <div>
+                        <p className="font-semibold">3. Llamar `initializeApp` solo una vez</p>
+                        <p className="text-muted-foreground">Usa un condicional como `if (admin.apps.length === 0)` para evitar errores de reinicialización.</p>
+                      </div>
+                    </div>
+                  </CardContent>
                 </Card>
                 </div>
             </div>
