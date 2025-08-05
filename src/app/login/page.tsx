@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,18 +9,14 @@ import { Leaf, Loader2, LogIn } from "lucide-react";
 import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
-  const { signInWithGoogle, user } = useAuth();
+  const { signInWithGoogle, user, loading } = useAuth();
   const router = useRouter();
-  const [isSigningIn, setIsSigningIn] = useState(false);
 
   const handleSignIn = async () => {
-    setIsSigningIn(true);
     try {
-      // No need to await, as it will redirect
-      signInWithGoogle();
+      await signInWithGoogle();
     } catch (error) {
       console.error("Failed to initiate sign in with Google", error);
-      setIsSigningIn(false);
     }
   };
 
@@ -29,7 +25,6 @@ export default function LoginPage() {
       router.push('/');
     }
   }, [user, router]);
-
 
   if (user) {
     return null;
@@ -47,8 +42,8 @@ export default function LoginPage() {
           <CardDescription>Sign in to continue to your dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={handleSignIn} className="w-full" size="lg" disabled={isSigningIn}>
-            {isSigningIn ? (
+          <Button onClick={handleSignIn} className="w-full" size="lg" disabled={loading}>
+            {loading ? (
                 <>
                     <Loader2 className="mr-2 animate-spin" />
                     Redirecting...
