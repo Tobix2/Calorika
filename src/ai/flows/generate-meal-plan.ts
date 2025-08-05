@@ -134,18 +134,18 @@ const generateMealPlanFlow = ai.defineFlow(
 
     let totalCalories = 0;
     for (const meal of planTemplate) {
-      for (const item of meal.items) {
-        const quantity = Number(item.quantity) || 0;
-        if (item.isCustom) {
-          // For custom meals, 'calories' already holds totalCalories per serving.
-          totalCalories += (item.calories || 0) * quantity;
-        } else {
-          // For individual food items.
-          const servingSize = Number(item.servingSize) || 1;
-          const ratio = servingSize > 0 ? quantity / servingSize : 0;
-          totalCalories += (item.calories || 0) * ratio;
+        for (const item of meal.items) {
+            const quantity = Number(item.quantity) || 0;
+            if (item.isCustom) {
+                // For custom meals, `calories` is per serving, and `quantity` is number of servings.
+                totalCalories += (item.calories || 0) * quantity;
+            } else {
+                // For ingredients, `calories` is per `servingSize`.
+                const servingSize = Number(item.servingSize) || 1;
+                const ratio = servingSize > 0 ? quantity / servingSize : 0;
+                totalCalories += (item.calories || 0) * ratio;
+            }
         }
-      }
     }
     
     if (totalCalories <= 0) {
