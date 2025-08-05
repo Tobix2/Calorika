@@ -19,6 +19,17 @@ import { getFoods } from '@/services/foodService';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
 import { deleteFood } from '@/services/foodServerActions';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 
 const initialMeals: Meal[] = [
@@ -42,6 +53,8 @@ export default function Dashboard() {
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
   const { user, logout } = useAuth();
+  const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
+
 
   useEffect(() => {
     async function loadInitialData() {
@@ -92,11 +105,12 @@ export default function Dashboard() {
         id: customMeal.id,
         mealItemId: crypto.randomUUID(),
         name: customMeal.name,
+        calories: customMeal.totalCalories,
+        protein: customMeal.totalProtein,
+        carbs: customMeal.totalCarbs,
+        fats: customMeal.totalFats,
         quantity: servings,
         isCustom: true,
-        // The total calories for the meal are already in customMeal.calories
-        // and other nutritional info.
-        // We set the servingSize here so future calculations know the base unit.
         servingSize: customMeal.servingSize, 
     };
 
@@ -156,8 +170,7 @@ export default function Dashboard() {
     console.log(`[Dashboard] Iniciando borrado para el ítem: ${item.name} (ID: ${item.id})`);
 
     try {
-        // Un CustomMeal tiene un array 'items', un FoodItem no. Esta es una forma fiable de diferenciarlos.
-        if ('items' in item) { // Es un CustomMeal
+      if ('items' in item) { 
             console.log(`[Dashboard] El ítem fue identificado como CustomMeal. Llamando a deleteCustomMeal...`);
             await deleteCustomMeal(user.uid, item.id);
             setCustomMeals(prev => prev.filter(meal => meal.id !== item.id));
@@ -179,16 +192,26 @@ export default function Dashboard() {
     }
   };
 
-  const handleGeneratePlan = () => {
+  const handleGeneratePlan = (mode: 'ingredients' | 'meals' | 'both') => {
+    setIsGeneratePlanDialogOpen(false);
     startTransition(async () => {
-        const result = await generateMealPlanAction({
+        let payload: any = {
             calorieGoal,
             proteinGoal,
             carbsGoal,
             fatsGoal,
-            availableFoods: foodDatabase,
-            availableMeals: customMeals
-        });
+        };
+
+        if (mode === 'ingredients') {
+            payload.availableFoods = foodDatabase;
+        } else if (mode === 'meals') {
+            payload.availableMeals = customMeals;
+        } else {
+            payload.availableFoods = foodDatabase;
+            payload.availableMeals = customMeals;
+        }
+
+        const result = await generateMealPlanAction(payload);
 
         if (result.error || !result.data) {
             toast({
@@ -218,14 +241,12 @@ export default function Dashboard() {
           let itemFats = 0;
 
           if (item.isCustom) {
-            // Para comidas personalizadas, el campo 'calories' contiene el total por porción.
-            // La cantidad es el número de porciones.
-            itemCalories = (Number(item.calories) || 0) * quantity;
-            itemProtein = (Number(item.protein) || 0) * quantity;
-            itemCarbs = (Number(item.carbs) || 0) * quantity;
-            itemFats = (Number(item.fats) || 0) * quantity;
+            const customItem = item as MealItem & CustomMeal;
+            itemCalories = (customItem.totalCalories || 0) * quantity;
+            itemProtein = (customItem.totalProtein || 0) * quantity;
+            itemCarbs = (customItem.totalCarbs || 0) * quantity;
+            itemFats = (customItem.totalFats || 0) * quantity;
           } else {
-             // Para alimentos individuales, calcular en base al tamaño de la porción.
              const servingSize = Number(item.servingSize) || 1;
              const ratio = servingSize > 0 ? quantity / servingSize : 0;
              itemCalories = (Number(item.calories) || 0) * ratio;
@@ -252,7 +273,8 @@ export default function Dashboard() {
           const quantity = Number(item.quantity) || 0;
           
           if (item.isCustom) {
-            return sum + (Number(item.calories) || 0) * quantity;
+            const customItem = item as MealItem & CustomMeal;
+            return sum + (customItem.totalCalories || 0) * quantity;
           }
 
           const itemServingSize = Number(item.servingSize) || 1;
@@ -274,10 +296,30 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
               </div>
               <div className="flex items-center gap-4">
-                <Button variant="ghost" onClick={handleGeneratePlan} disabled={isPending || isLoadingData}>
-                  {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
-                  Generate Plan
-                </Button>
+
+                <AlertDialog open={isGeneratePlanDialogOpen} onOpenChange={setIsGeneratePlanDialogOpen}>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" disabled={isPending || isLoadingData}>
+                      {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
+                      Generate Plan
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Generate Meal Plan</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Choose which resources the AI should use to generate your meal plan.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
+                      <Button onClick={() => handleGeneratePlan('both')}>Use Ingredients & My Meals</Button>
+                      <Button variant="secondary" onClick={() => handleGeneratePlan('ingredients')}>Use Ingredients Only</Button>
+                      <Button variant="secondary" onClick={() => handleGeneratePlan('meals')}>Use My Meals Only</Button>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
                 <CreateMealDialog 
                   onCreateMeal={handleCreateMeal} 
                   foodDatabase={foodDatabase} 

@@ -25,31 +25,36 @@ const FoodItemSchema = z.object({
   servingUnit: z.string(),
 });
 
+const CustomMealSchema = z.object({
+    id: z.string(),
+    name: z.string(),
+    items: z.array(z.any()), // Items are not needed for the prompt
+    totalCalories: z.number(),
+    totalProtein: z.number(),
+    totalCarbs: z.number(),
+    totalFats: z.number(),
+    servingSize: z.number(),
+    servingUnit: z.string(),
+});
+
 const MealItemSchema = FoodItemSchema.extend({
   mealItemId: z.string(),
   quantity: z.number(),
   isCustom: z.boolean().optional(),
-});
+}).or(CustomMealSchema.extend({
+    mealItemId: z.string(),
+    quantity: z.number(),
+    isCustom: z.boolean().optional(),
+}));
 
-const CustomMealSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  items: z.array(MealItemSchema),
-  totalCalories: z.number(),
-  totalProtein: z.number(),
-  totalCarbs: z.number(),
-  totalFats: z.number(),
-  servingSize: z.number(),
-  servingUnit: z.string(),
-});
 
 const GenerateMealPlanInputSchema = z.object({
   calorieGoal: z.number().describe('Target daily calorie intake.'),
   proteinGoal: z.number().describe('Target daily protein intake in grams.'),
   carbsGoal: z.number().describe('Target daily carbohydrates intake in grams.'),
   fatsGoal: z.number().describe('Target daily fats intake in grams.'),
-  availableFoods: z.array(FoodItemSchema).describe('A list of individual food items available to use.'),
-  availableMeals: z.array(CustomMealSchema).describe('A list of pre-defined custom meals available to use.'),
+  availableFoods: z.array(FoodItemSchema).describe('A list of individual food items available to use.').optional(),
+  availableMeals: z.array(CustomMealSchema).describe('A list of pre-defined custom meals available to use.').optional(),
 });
 
 
@@ -77,24 +82,29 @@ The user's goals are:
 - Carbohydrates: {{{carbsGoal}}} g
 - Fats: {{{fatsGoal}}} g
 
-Here are the resources you can use:
+Here are the resources you can use. You must only use the resources provided in the sections below.
+{{#if availableFoods}}
 Available individual ingredients:
 {{#each availableFoods}}
 - {{this.name}} ({{this.calories}} kcal, {{this.protein}}g P, {{this.carbs}}g C, {{this.fats}}g F per {{this.servingSize}} {{this.servingUnit}})
 {{/each}}
+{{/if}}
 
+{{#if availableMeals}}
 Available pre-made meals:
 {{#each availableMeals}}
-- {{this.name}} (Total: {{this.totalCalories}} kcal, {{this.totalProtein}}g P, {{this.totalCarbs}}g C, {{this.totalFats}}g F)
+- {{this.name}} (Total: {{this.totalCalories}} kcal, {{this.totalProtein}}g P, {{this.totalCarbs}}g C, {{this.totalFats}}g F per {{this.servingSize}} {{this.servingUnit}})
 {{/each}}
+{{/if}}
 
 Instructions:
 1.  Create a full-day meal plan distributed across "Breakfast", "Lunch", "Dinner", and "Snacks".
-2.  Select a variety of items from the available foods and meals to create a balanced plan.
+2.  Select a variety of items from the available resources to create a balanced plan.
 3.  For each individual food item you select, you MUST set the initial 'quantity' to be equal to its 'servingSize'. The final adjustment will be done later.
-4.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
-5.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId' and the initial 'quantity'.
-6.  Do not invent new foods. Only use the ones provided in the available foods and meals lists.
+4.  For each pre-made meal you select, you MUST set the initial 'quantity' to be 1.
+5.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
+6.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId' and the initial 'quantity'.
+7.  Do not invent new foods. Only use the ones provided.
 
 Return the final meal plan template in the specified JSON format. The quantities will be adjusted programmatically later.
 `,
@@ -116,35 +126,35 @@ const generateMealPlanFlow = ai.defineFlow(
     let totalCalories = 0;
     for (const meal of planTemplate) {
         for (const item of meal.items) {
-            // Defensively check for servingSize to avoid division by zero or NaN.
             const quantity = Number(item.quantity) || 0;
-            const servingSize = Number(item.servingSize) || 1; // Default to 1 to avoid division by zero
-            const calories = Number(item.calories) || 0;
-            const ratio = servingSize > 0 ? quantity / servingSize : 0;
-            totalCalories += calories * ratio;
+            if (item.isCustom) {
+                const customItem = item as CustomMeal & { quantity: number };
+                totalCalories += (customItem.totalCalories || 0) * quantity;
+            } else {
+                const foodItem = item as FoodItem & { quantity: number };
+                const servingSize = Number(foodItem.servingSize) || 1; 
+                const ratio = servingSize > 0 ? quantity / servingSize : 0;
+                totalCalories += (foodItem.calories || 0) * ratio;
+            }
         }
     }
     
-    // Avoid division by zero and handle cases where AI returns an empty plan.
     if (totalCalories <= 0) {
         return planTemplate; 
     }
     
-    // Calculate the scaling factor. If total calories are over the goal, this will be < 1.
     const scalingFactor = input.calorieGoal / totalCalories;
 
     const adjustedPlan: Meal[] = [];
 
-    // Scale down if over the goal. Don't scale up if under to respect user's template.
     if (scalingFactor < 1) {
         for (const meal of planTemplate) {
             const adjustedMeal: Meal = { ...meal, items: [] };
             for (const item of meal.items) {
-                // Adjust quantity based on the scaling factor to meet the calorie goal.
                 const adjustedQuantity = (Number(item.quantity) || 0) * scalingFactor;
                 adjustedMeal.items.push({
                     ...item,
-                    quantity: Math.round(adjustedQuantity > 0 ? adjustedQuantity : 1), // Ensure quantity is at least 1
+                    quantity: Math.round(adjustedQuantity > 0 ? adjustedQuantity : 1), 
                 });
             }
             adjustedPlan.push(adjustedMeal);
@@ -152,7 +162,6 @@ const generateMealPlanFlow = ai.defineFlow(
         return adjustedPlan;
     }
 
-    // If the initial plan is already under the goal, return it as is.
     return planTemplate;
   }
 );
