@@ -442,10 +442,10 @@ export default function Dashboard() {
                     carbsGoal={carbsGoal}
                     fats={totalFats}
                     fatsGoal={fatsGoal}
-                    setCalorieGoal={setCalorieGoal}
-                    setProteinGoal={setProteinGoal}
-                    setCarbsGoal={setCarbsGoal}
-                    setFatsGoal={setFatsGoal}
+                    setCalorieGoal={useCallback(setCalorieGoal, [])}
+                    setProteinGoal={useCallback(setProteinGoal, [])}
+                    setCarbsGoal={useCallback(setCarbsGoal, [])}
+                    setFatsGoal={useCallback(setFatsGoal, [])}
                 />
                 <MealList
                     meals={meals}
