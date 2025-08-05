@@ -12,13 +12,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
 import { Button } from '@/components/ui/button';
-import { generateMealPlanAction } from '@/app/actions';
+import { generateMealPlanAction, saveWeeklyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
-import { addCustomMeal, deleteCustomMeal, getCustomMeals } from '@/services/mealService';
-import { getFoods } from '@/services/foodService';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
-import { deleteFood } from '@/services/foodServerActions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -31,7 +28,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import WeekNavigator from './week-navigator';
-import { getWeeklyPlan, saveWeeklyPlan } from '@/services/planService';
 
 const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
@@ -59,7 +55,6 @@ export default function Dashboard() {
   
   const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>([]);
   const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
-  const [isLoadingData, setIsLoadingData] = useState(true);
   
   const [isPending, startTransition] = useTransition();
   const { toast } = useToast();
@@ -68,22 +63,17 @@ export default function Dashboard() {
 
   const meals = weeklyPlan[selectedDay] || initialDailyPlan;
 
-  // --- FLUJO DE CARGA DE DATOS ---
-  // Este useEffect se ejecuta una vez cuando el componente se monta y el usuario está disponible.
+  // Carga inicial de datos
   useEffect(() => {
     async function loadInitialData() {
         if (user) {
             try {
-                setIsLoadingData(true);
-                // 1. Se realizan tres llamadas en paralelo para obtener los datos iniciales.
-                // Se llama a la Server Action `getWeeklyPlan` en `src/services/planService.ts`.
                 const [foods, meals, plan] = await Promise.all([
-                    getFoods(user.uid),
-                    getCustomMeals(user.uid),
-                    getWeeklyPlan(user.uid)
+                    getFoodsAction(user.uid),
+                    getCustomMealsAction(user.uid),
+                    getWeeklyPlanAction(user.uid)
                 ]);
                 
-                // 2. Se actualiza el estado local con los datos recuperados.
                 setFoodDatabase(foods);
                 setCustomMeals(meals);
                 if (plan && Object.keys(plan).length > 0) {
@@ -96,30 +86,20 @@ export default function Dashboard() {
                     title: 'Error',
                     description: 'Could not load your data. Please try refreshing the page.'
                 });
-            } finally {
-                // 3. Se marca la carga como finalizada para mostrar la UI.
-                setIsLoadingData(false);
             }
         }
     }
     loadInitialData();
   }, [user, toast]);
   
-  // --- FLUJO DE GUARDADO DE DATOS (INICIADO DESDE ESTE ARCHIVO) ---
-  // Este `useEffect` es el punto de partida para guardar los datos.
+  // Guardado automático de datos
   useEffect(() => {
-      // No guardar si los datos iniciales aún están cargando o no hay usuario.
-      if (isLoadingData || !user) {
+      if (!user) {
           return;
       }
       
-      // PASO 1: Se inicia un temporizador de 1 segundo (debounce).
-      // Esto evita escrituras excesivas en la base de datos si el usuario hace muchos cambios rápidos.
       const handler = setTimeout(() => {
-          // PASO 2: Después del retraso, se invoca la Server Action `saveWeeklyPlan`.
-          // Se le pasa el ID del usuario y el estado `weeklyPlan` actualizado.
-          // La ejecución ahora se traslada al servidor, específicamente a `src/services/planService.ts`.
-          saveWeeklyPlan(user.uid, weeklyPlan).catch(error => {
+          saveWeeklyPlanAction(user.uid, weeklyPlan).catch(error => {
               console.error("Failed to save weekly plan", error);
               toast({
                   variant: 'destructive',
@@ -129,12 +109,10 @@ export default function Dashboard() {
           });
       }, 1000); 
 
-      // Función de limpieza: Si el usuario hace otro cambio, el temporizador anterior se cancela y se inicia uno nuevo.
       return () => {
           clearTimeout(handler);
       };
-      // Este `useEffect` se ejecuta cada vez que el estado `weeklyPlan` cambia.
-  }, [weeklyPlan, user, isLoadingData, toast]);
+  }, [weeklyPlan, user, toast]);
 
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
@@ -152,7 +130,6 @@ export default function Dashboard() {
             return meal;
         });
         newPlan[selectedDay] = dayMeals;
-        // ESTE CAMBIO de estado (`setWeeklyPlan`) disparará el `useEffect` de guardado.
         return newPlan; 
     });
   };
@@ -182,7 +159,6 @@ export default function Dashboard() {
             return meal;
         });
         newPlan[selectedDay] = dayMeals;
-        // ESTE CAMBIO de estado (`setWeeklyPlan`) disparará el `useEffect` de guardado.
         return newPlan; 
     });
   };
@@ -196,7 +172,6 @@ export default function Dashboard() {
               : meal
         );
         newPlan[selectedDay] = dayMeals;
-        // ESTE CAMBIO de estado (`setWeeklyPlan`) disparará el `useEffect` de guardado.
         return newPlan; 
     });
   };
@@ -214,7 +189,7 @@ export default function Dashboard() {
         return;
     }
     try {
-        const newMeal = await addCustomMeal(user.uid, newMealData);
+        const newMeal = await addCustomMealAction(user.uid, newMealData);
         setCustomMeals(prev => [...prev, newMeal]);
         toast({
             title: "Meal Created!",
@@ -238,11 +213,11 @@ export default function Dashboard() {
     }
     try {
       if ('items' in item) { 
-            await deleteCustomMeal(user.uid, item.id);
+            await deleteCustomMealAction(user.uid, item.id);
             setCustomMeals(prev => prev.filter(meal => meal.id !== item.id));
             toast({ title: "Comida Borrada", description: `${item.name} ha sido eliminada de tu base de datos.` });
         } else { // Es un FoodItem
-            await deleteFood(user.uid, item.id);
+            await deleteFoodAction(user.uid, item.id);
             setFoodDatabase(prev => prev.filter(food => food.id !== item.id));
             toast({ title: "Ingrediente Borrado", description: `${item.name} ha sido eliminado de tu base de datos.` });
         }
@@ -363,7 +338,7 @@ export default function Dashboard() {
 
                 <AlertDialog open={isGeneratePlanDialogOpen} onOpenChange={setIsGeneratePlanDialogOpen}>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" disabled={isPending || isLoadingData}>
+                    <Button variant="ghost" disabled={isPending}>
                       {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
                       Generate Plan
                     </Button>
@@ -398,64 +373,58 @@ export default function Dashboard() {
           </div>
         </header>
         <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-            {isLoadingData ? (
-                <div className="flex justify-center items-center h-96">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 space-y-6">
+                <WeekNavigator 
+                    days={daysOfWeek}
+                    selectedDay={selectedDay}
+                    onSelectDay={setSelectedDay}
+                />
+                <DailySummary
+                    totalCalories={totalCalories}
+                    calorieGoal={calorieGoal}
+                    protein={totalProtein}
+                    proteinGoal={proteinGoal}
+                    carbs={totalCarbs}
+                    carbsGoal={carbsGoal}
+                    fats={totalFats}
+                    fatsGoal={fatsGoal}
+                />
+                <MealList
+                    meals={meals}
+                    customMeals={customMeals}
+                    foodDatabase={foodDatabase}
+                    onAddFood={handleAddFood}
+                    onAddCustomMeal={handleAddCustomMeal}
+                    onRemoveFood={handleRemoveFood}
+                    onDeleteItem={handleDeleteItem}
+                />
                 </div>
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                    <div className="lg:col-span-2 space-y-6">
-                    <WeekNavigator 
-                        days={daysOfWeek}
-                        selectedDay={selectedDay}
-                        onSelectDay={setSelectedDay}
-                    />
-                    <DailySummary
-                        totalCalories={totalCalories}
-                        calorieGoal={calorieGoal}
-                        protein={totalProtein}
-                        proteinGoal={proteinGoal}
-                        carbs={totalCarbs}
-                        carbsGoal={carbsGoal}
-                        fats={totalFats}
-                        fatsGoal={fatsGoal}
-                    />
-                    <MealList
-                        meals={meals}
-                        customMeals={customMeals}
-                        foodDatabase={foodDatabase}
-                        onAddFood={handleAddFood}
-                        onAddCustomMeal={handleAddCustomMeal}
-                        onRemoveFood={handleRemoveFood}
-                        onDeleteItem={handleDeleteItem}
-                    />
-                    </div>
-                    <div className="space-y-6">
-                    <CalorieRecommendationForm onGoalSet={handleSetGoal} />
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>Meal Calories Breakdown</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <ResponsiveContainer width="100%" height={300}>
-                                <BarChart data={chartData}>
-                                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                    <Tooltip
-                                    contentStyle={{
-                                        background: "hsl(var(--background))",
-                                        border: "1px solid hsl(var(--border))",
-                                        borderRadius: "var(--radius)",
-                                    }}
-                                    />
-                                    <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </CardContent>
-                    </Card>
-                    </div>
+                <div className="space-y-6">
+                <CalorieRecommendationForm onGoalSet={handleSetGoal} />
+                <Card>
+                    <CardHeader>
+                        <CardTitle>Meal Calories Breakdown</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <ResponsiveContainer width="100%" height={300}>
+                            <BarChart data={chartData}>
+                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                <Tooltip
+                                contentStyle={{
+                                    background: "hsl(var(--background))",
+                                    border: "1px solid hsl(var(--border))",
+                                    borderRadius: "var(--radius)",
+                                }}
+                                />
+                                <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </CardContent>
+                </Card>
                 </div>
-            )}
+            </div>
         </main>
       </div>
     </AuthGuard>
