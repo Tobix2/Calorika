@@ -87,10 +87,10 @@ const prompt = ai.definePrompt({
       *   'loseWeight': Resta 500 calorías del GET.
       *   'maintainWeight': Usa el GET como está.
       *   'gainMuscle': Añade 300-500 calorías al GET.
-  4.  **Distribución de Macronutrientes:**
-      *   **Proteína:** 1.6-2.2 g por kg de peso corporal (usa el rango alto para 'gainMuscle' y 'loseWeight').
-      *   **Grasas:** 20-30% de las calorías totales (aproximadamente 0.8-1.0 g por kg).
-      *   **Carbohidratos:** El resto de las calorías.
+  4.  **Distribución de Macronutrientes (¡REGLAS IMPORTANTES!):**
+      *   **Proteína:** El objetivo es entre 1.6-2.2 g por kg de peso corporal. Para 'loseWeight', usa un valor moderado y sostenible como **1.8 g/kg**. Para 'gainMuscle', apunta al rango alto de **2.0-2.2 g/kg**.
+      *   **Grasas:** Este es un macronutriente esencial. DEBE constituir al menos el **25% de las calorías totales** para asegurar una correcta función hormonal. No debe ser inferior a 0.8 g/kg. Primero calcula las calorías de las grasas (25% del total) y luego conviértelas a gramos.
+      *   **Carbohidratos:** Asigna las calorías restantes a los carbohidratos.
       *   Recuerda: 1g Proteína = 4 kcal, 1g Carbs = 4 kcal, 1g Grasas = 9 kcal.
 
   Proporciona una explicación detallada y estructurada en español rellenando el objeto JSON 'explanation'. Cada campo debe ser claro y conciso. La suma de los macros debe ser consistente con las calorías totales recomendadas. Proporciona al menos 4 consejos prácticos en español.
