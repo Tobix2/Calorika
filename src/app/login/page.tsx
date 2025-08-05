@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useEffect } from "react";
@@ -21,10 +20,10 @@ export default function LoginPage() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (!loading && user) {
       router.push('/');
     }
-  }, [user, router]);
+  }, [user, loading, router]);
 
   if (user) {
     return null;
@@ -34,25 +33,25 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-muted/40">
       <Card className="w-full max-w-sm shadow-xl">
         <CardHeader className="text-center">
-            <div className="flex items-center justify-center gap-2 mb-4">
-              <Leaf className="h-10 w-10 text-primary" />
-              <h1 className="text-3xl font-bold font-headline text-foreground">NutriTrack</h1>
-            </div>
+          <div className="flex items-center justify-center gap-2 mb-4">
+            <Leaf className="h-10 w-10 text-primary" />
+            <h1 className="text-3xl font-bold font-headline text-foreground">NutriTrack</h1>
+          </div>
           <CardTitle className="text-2xl font-bold">Welcome Back!</CardTitle>
           <CardDescription>Sign in to continue to your dashboard.</CardDescription>
         </CardHeader>
         <CardContent>
           <Button onClick={handleSignIn} className="w-full" size="lg" disabled={loading}>
             {loading ? (
-                <>
-                    <Loader2 className="mr-2 animate-spin" />
-                    Redirecting...
-                </>
+              <>
+                <Loader2 className="mr-2 animate-spin" />
+                Redirecting...
+              </>
             ) : (
-                <>
-                    <LogIn className="mr-2" />
-                    Sign In with Google
-                </>
+              <>
+                <LogIn className="mr-2" />
+                Sign In with Google
+              </>
             )}
           </Button>
         </CardContent>
