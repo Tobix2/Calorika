@@ -1,6 +1,7 @@
 
 "use client";
 
+import { useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Flame, Target, Beef, Wheat, Droplets } from 'lucide-react';
@@ -37,10 +38,10 @@ export default function DailySummary({
 }: DailySummaryProps) {
   const progress = calorieGoal > 0 ? (totalCalories / calorieGoal) * 100 : 0;
   
-  const handleGoalChange = (setter: (value: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGoalChange = useCallback((setter: (value: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
     setter(value);
-  }
+  }, []);
 
   const MacroStat = ({ icon, title, value, goal, onGoalChange }: { icon: React.ReactNode, title: string, value: number, goal: number, onGoalChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
     <div className="bg-muted/50 p-4 rounded-lg">
