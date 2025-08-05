@@ -44,8 +44,8 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
   const [manualProtein, setManualProtein] = useState<number | ''>('');
   const [manualCarbs, setManualCarbs] = useState<number | ''>('');
   const [manualFats, setManualFats] = useState<number | ''>('');
-  const [manualServingSize, setManualServingSize] = useState<number | ''>(1);
-  const [manualServingUnit, setManualServingUnit] = useState('serving');
+  const [manualServingSize, setManualServingSize] = useState<number | ''>(100);
+  const [manualServingUnit, setManualServingUnit] = useState('g');
 
 
   const filteredFoods = foodDatabase.filter(food =>
@@ -143,8 +143,8 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
     setManualProtein('');
     setManualCarbs('');
     setManualFats('');
-    setManualServingSize(1);
-    setManualServingUnit('serving');
+    setManualServingSize(100);
+    setManualServingUnit('g');
   }
 
   const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>) => {
@@ -298,7 +298,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                     <TabsContent value="totals" className="pt-4">
                       <ScrollArea className="h-96 pr-4">
                         <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground">Enter the nutritional values per serving.</p>
+                            <p className="text-sm text-muted-foreground">Enter the nutritional values for the serving size you define.</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label htmlFor="manualServingSize">Serving Size</Label>
