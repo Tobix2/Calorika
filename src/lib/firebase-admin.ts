@@ -1,5 +1,4 @@
 import * as admin from 'firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
 
 let db: admin.firestore.Firestore;
 
@@ -11,17 +10,21 @@ function initAdminApp() {
     
     if (!admin.apps.length) {
         try {
+            const parsedAccount = JSON.parse(serviceAccount);
+            // The private key from the environment variable needs its newlines restored.
+            parsedAccount.private_key = parsedAccount.private_key.replace(/\\n/g, '\n');
+
             admin.initializeApp({
-                credential: admin.credential.cert(JSON.parse(serviceAccount)),
+                credential: admin.credential.cert(parsedAccount),
             });
             console.log("🔥 Firebase Admin initialized successfully.");
         } catch (error: any) {
             console.error("❌ Error initializing Firebase Admin:", error.message);
-            // Throw a more specific error to help with debugging
             throw new Error(`Failed to initialize Firebase Admin: ${error.message}`);
         }
     }
-    db = getFirestore();
+
+    db = admin.firestore();
 }
 
 // Initialize on module load
