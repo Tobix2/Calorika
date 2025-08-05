@@ -112,6 +112,7 @@ export default function Dashboard() {
         quantity: servings,
         isCustom: true,
         servingSize: customMeal.servingSize, 
+        servingUnit: customMeal.servingUnit,
     };
 
     setMeals(prevMeals => 
@@ -166,17 +167,12 @@ export default function Dashboard() {
         toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to delete items." });
         return;
     }
-
-    console.log(`[Dashboard] Iniciando borrado para el ítem: ${item.name} (ID: ${item.id})`);
-
     try {
       if ('items' in item) { 
-            console.log(`[Dashboard] El ítem fue identificado como CustomMeal. Llamando a deleteCustomMeal...`);
             await deleteCustomMeal(user.uid, item.id);
             setCustomMeals(prev => prev.filter(meal => meal.id !== item.id));
             toast({ title: "Comida Borrada", description: `${item.name} ha sido eliminada de tu base de datos.` });
         } else { // Es un FoodItem
-            console.log(`[Dashboard] El ítem fue identificado como FoodItem. Llamando a deleteFood...`);
             await deleteFood(user.uid, item.id);
             setFoodDatabase(prev => prev.filter(food => food.id !== item.id));
             toast({ title: "Ingrediente Borrado", description: `${item.name} ha sido eliminado de tu base de datos.` });
@@ -235,21 +231,25 @@ export default function Dashboard() {
         meal.items.forEach(item => {
           const quantity = Number(item.quantity) || 0;
           const servingSize = Number(item.servingSize) || 1;
+          let ratio = 0;
 
           if (item.isCustom) {
-            // For custom meals, nutrition is per serving, and quantity is the number of servings.
-            totals.totalCalories += (item.calories || 0) * quantity;
-            totals.totalProtein += (item.protein || 0) * quantity;
-            totals.totalCarbs += (item.carbs || 0) * quantity;
-            totals.totalFats += (item.fats || 0) * quantity;
+              // If the unit is a 'serving' or similar, ratio is just the quantity.
+              // If the unit is 'g' or another measurable unit, calculate the ratio.
+              if (item.servingUnit.toLowerCase().includes('serving')) {
+                  ratio = quantity;
+              } else {
+                  ratio = servingSize > 0 ? quantity / servingSize : 0;
+              }
           } else {
-             // For ingredients, nutrition is per servingSize, and quantity is the amount (e.g., in grams).
-             const ratio = servingSize > 0 ? quantity / servingSize : 0;
-             totals.totalCalories += (item.calories || 0) * ratio;
-             totals.totalProtein += (item.protein || 0) * ratio;
-             totals.totalCarbs += (item.carbs || 0) * ratio;
-             totals.totalFats += (item.fats || 0) * ratio;
+             // For regular ingredients, always calculate the ratio.
+             ratio = servingSize > 0 ? quantity / servingSize : 0;
           }
+          
+          totals.totalCalories += (item.calories || 0) * ratio;
+          totals.totalProtein += (item.protein || 0) * ratio;
+          totals.totalCarbs += (item.carbs || 0) * ratio;
+          totals.totalFats += (item.fats || 0) * ratio;
         });
         return totals;
       },
@@ -263,13 +263,18 @@ export default function Dashboard() {
       calories: meal.items.reduce((sum, item) => {
           const quantity = Number(item.quantity) || 0;
           const servingSize = Number(item.servingSize) || 1;
-          
-          if (item.isCustom) {
-            return sum + (item.calories || 0) * quantity;
-          }
+          let ratio = 0;
 
-          const ratio = servingSize > 0 ? quantity / servingSize : 0;
-          return sum + ((item.calories || 0) * ratio)
+          if (item.isCustom) {
+              if (item.servingUnit.toLowerCase().includes('serving')) {
+                  ratio = quantity;
+              } else {
+                  ratio = servingSize > 0 ? quantity / servingSize : 0;
+              }
+          } else {
+             ratio = servingSize > 0 ? quantity / servingSize : 0;
+          }
+          return sum + ((item.calories || 0) * ratio);
       }, 0),
     }));
   }, [meals]);
