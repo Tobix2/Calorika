@@ -28,7 +28,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import WeekNavigator from './week-navigator';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, a } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const initialDailyPlan: DailyPlan = [
@@ -442,6 +442,10 @@ export default function Dashboard() {
                     carbsGoal={carbsGoal}
                     fats={totalFats}
                     fatsGoal={fatsGoal}
+                    setCalorieGoal={setCalorieGoal}
+                    setProteinGoal={setProteinGoal}
+                    setCarbsGoal={setCarbsGoal}
+                    setFatsGoal={setFatsGoal}
                 />
                 <MealList
                     meals={meals}
