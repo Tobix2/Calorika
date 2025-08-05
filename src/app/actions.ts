@@ -11,7 +11,6 @@ import {
 } from '@/ai/flows/generate-meal-plan';
 import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan } from '@/lib/types';
 import { getDb } from '@/lib/firebase-admin';
-import { collection, getDocs, doc, setDoc, getDoc, addDoc, deleteDoc, query, where } from 'firebase/firestore';
 
 // --- AI Actions ---
 
@@ -71,30 +70,38 @@ async function populateInitialFoods(userId: string): Promise<FoodItem[]> {
       { name: 'Protein Powder', calories: 393, protein: 80, carbs: 8, fats: 4, servingSize: 100, servingUnit: 'g' },
     ];
 
-    const foodCollection = collection(db, 'users', userId, 'foods');
+    const foodCollection = db.collection('users').doc(userId).collection('foods');
+    const batch = db.batch();
     const addedFoods: FoodItem[] = [];
-    for (const food of initialFoods) {
+
+    initialFoods.forEach(food => {
         const docId = food.name.toLowerCase().replace(/\s+/g, '-');
-        const docRef = doc(foodCollection, docId);
-        await setDoc(docRef, food);
+        const docRef = foodCollection.doc(docId);
+        batch.set(docRef, food);
         addedFoods.push({ id: docId, ...food });
-    }
+    });
+
+    await batch.commit();
     return addedFoods;
 }
 
 export async function getFoodsAction(userId: string): Promise<FoodItem[]> {
-    const db = getDb();
-    const userDocRef = doc(db, 'users', userId);
     try {
-        const userDocSnap = await getDoc(userDocRef);
+        const db = getDb();
+        const userDocRef = db.collection('users').doc(userId);
+        const userDocSnap = await userDocRef.get();
 
-        if (!userDocSnap.exists()) {
-            await setDoc(userDocRef, { initialized: true }); // Mark user as initialized
+        if (!userDocSnap.exists) {
+            await userDocRef.set({ initialized: true }); // Mark user as initialized
             return await populateInitialFoods(userId);
         }
 
-        const foodCollection = collection(db, 'users', userId, 'foods');
-        const snapshot = await getDocs(foodCollection);
+        const foodCollection = userDocRef.collection('foods');
+        const snapshot = await foodCollection.get();
+        if (snapshot.empty) {
+             return await populateInitialFoods(userId);
+        }
+
         return snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -115,11 +122,11 @@ export async function getFoodsAction(userId: string): Promise<FoodItem[]> {
 }
 
 export async function addFoodAction(userId: string, food: Omit<FoodItem, 'id'>): Promise<FoodItem> {
-    const db = getDb();
-    const foodCollection = collection(db, 'users', userId, 'foods');
     try {
+        const db = getDb();
+        const foodCollection = db.collection('users').doc(userId).collection('foods');
         const cleanFood = JSON.parse(JSON.stringify(food));
-        const docRef = await addDoc(foodCollection, cleanFood);
+        const docRef = await foodCollection.add(cleanFood);
         return { id: docRef.id, ...cleanFood };
     } catch (error) {
         console.error("🔥 Error adding document to Firestore: ", error);
@@ -128,11 +135,11 @@ export async function addFoodAction(userId: string, food: Omit<FoodItem, 'id'>):
 }
 
 export async function deleteFoodAction(userId: string, foodId: string): Promise<void> {
-    const db = getDb();
-    if (!foodId) throw new Error("Food ID is required.");
-    const foodDocRef = doc(db, 'users', userId, 'foods', foodId);
     try {
-        await deleteDoc(foodDocRef);
+        const db = getDb();
+        if (!foodId) throw new Error("Food ID is required.");
+        const foodDocRef = db.collection('users').doc(userId).collection('foods').doc(foodId);
+        await foodDocRef.delete();
     } catch (error) {
         console.error("🔥 Error deleting document from Firestore: ", error);
         throw new Error('Failed to delete food.');
@@ -141,10 +148,10 @@ export async function deleteFoodAction(userId: string, foodId: string): Promise<
 
 // Custom Meals
 export async function getCustomMealsAction(userId: string): Promise<CustomMeal[]> {
-    const db = getDb();
-    const mealCollection = collection(db, 'users', userId, 'customMeals');
     try {
-        const snapshot = await getDocs(mealCollection);
+        const db = getDb();
+        const mealCollection = db.collection('users').doc(userId).collection('customMeals');
+        const snapshot = await mealCollection.get();
         return snapshot.docs.map(doc => {
             const data = doc.data();
             return {
@@ -166,11 +173,11 @@ export async function getCustomMealsAction(userId: string): Promise<CustomMeal[]
 }
 
 export async function addCustomMealAction(userId: string, meal: Omit<CustomMeal, 'id'>): Promise<CustomMeal> {
-    const db = getDb();
-    const mealCollection = collection(db, 'users', userId, 'customMeals');
     try {
+        const db = getDb();
+        const mealCollection = db.collection('users').doc(userId).collection('customMeals');
         const cleanMeal = JSON.parse(JSON.stringify(meal));
-        const docRef = await addDoc(mealCollection, cleanMeal);
+        const docRef = await mealCollection.add(cleanMeal);
         return { id: docRef.id, ...cleanMeal };
     } catch (error) {
         console.error("🔥 Error adding custom meal to Firestore: ", error);
@@ -179,11 +186,11 @@ export async function addCustomMealAction(userId: string, meal: Omit<CustomMeal,
 }
 
 export async function deleteCustomMealAction(userId: string, mealId: string): Promise<void> {
-    const db = getDb();
-    if (!mealId) throw new Error("Meal ID is required.");
-    const mealDocRef = doc(db, 'users', userId, 'customMeals', mealId);
     try {
-        await deleteDoc(mealDocRef);
+        const db = getDb();
+        if (!mealId) throw new Error("Meal ID is required.");
+        const mealDocRef = db.collection('users').doc(userId).collection('customMeals').doc(mealId);
+        await mealDocRef.delete();
     } catch (error) {
         console.error("🔥 Error deleting custom meal from Firestore: ", error);
         throw new Error('Failed to delete custom meal.');
@@ -192,7 +199,7 @@ export async function deleteCustomMealAction(userId: string, mealId: string): Pr
 
 // Weekly Plan
 const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
-const initialDailyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
+const initialWeeklyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
   acc[day] = [
     { name: 'Breakfast', items: [] },
     { name: 'Lunch', items: [] },
@@ -203,30 +210,30 @@ const initialDailyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
 }, {} as WeeklyPlan);
 
 export async function getWeeklyPlanAction(userId: string): Promise<WeeklyPlan> {
-  const db = getDb();
-  const docRef = doc(db, 'users', userId, 'plans', 'weekly');
-  try {
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return docSnap.data() as WeeklyPlan;
-    } else {
-      await setDoc(docRef, initialDailyPlan);
-      return initialDailyPlan;
+    try {
+        const db = getDb();
+        const docRef = db.collection('users').doc(userId).collection('plans').doc('weekly');
+        const docSnap = await docRef.get();
+        if (docSnap.exists) {
+            return docSnap.data() as WeeklyPlan;
+        } else {
+            await docRef.set(initialWeeklyPlan);
+            return initialWeeklyPlan;
+        }
+    } catch (error) {
+        console.error("🔥 Error al obtener el weekly plan:", error);
+        throw new Error("Failed to fetch weekly plan.");
     }
-  } catch (error) {
-    console.error("🔥 Error al obtener el weekly plan:", error);
-    throw new Error("Failed to fetch weekly plan.");
-  }
 }
 
 export async function saveWeeklyPlanAction(userId: string, plan: WeeklyPlan): Promise<void> {
-  const db = getDb();
-  const docRef = doc(db, 'users', userId, 'plans', 'weekly');
-  try {
-    const plainPlanObject = JSON.parse(JSON.stringify(plan));
-    await setDoc(docRef, plainPlanObject, { merge: true });
-  } catch (error) {
-    console.error("🔥 Error al guardar el weekly plan:", error);
-    throw new Error("Failed to save weekly plan.");
-  }
+    try {
+        const db = getDb();
+        const docRef = db.collection('users').doc(userId).collection('plans').doc('weekly');
+        const plainPlanObject = JSON.parse(JSON.stringify(plan));
+        await docRef.set(plainPlanObject, { merge: true });
+    } catch (error) {
+        console.error("🔥 Error al guardar el weekly plan:", error);
+        throw new Error("Failed to save weekly plan.");
+    }
 }
