@@ -454,33 +454,36 @@ export default function Dashboard() {
                     </CardContent>
                 </Card>
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Notas de Depuración</CardTitle>
-                    <CardDescription>Pasos clave para depurar la inicialización de Firebase Admin.</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4 text-sm">
-                    <div className="flex items-start gap-3">
-                      <Code className="h-5 w-5 mt-1 text-primary"/>
-                      <div>
-                        <p className="font-semibold">1. Verificar si `admin` está definido</p>
-                        <p className="text-muted-foreground">Usa `console.log(admin)` antes de `initializeApp` para asegurarte de que el SDK se importa correctamente.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Code className="h-5 w-5 mt-1 text-primary"/>
-                      <div>
-                        <p className="font-semibold">2. Revisar la `serviceAccount`</p>
-                        <p className="text-muted-foreground">Asegúrate de que la variable de entorno y el JSON de la cuenta de servicio sean válidos y correctos.</p>
-                      </div>
-                    </div>
-                    <div className="flex items-start gap-3">
-                      <Code className="h-5 w-5 mt-1 text-primary"/>
-                      <div>
-                        <p className="font-semibold">3. Llamar `initializeApp` solo una vez</p>
-                        <p className="text-muted-foreground">Usa un condicional como `if (admin.apps.length === 0)` para evitar errores de reinicialización.</p>
-                      </div>
-                    </div>
-                  </CardContent>
+                    <CardHeader>
+                        <CardTitle>Notas de Depuración</CardTitle>
+                        <CardDescription>Pasos clave para depurar la inicialización de Firebase Admin.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4 text-sm">
+                        <div className="flex items-start gap-3">
+                            <Code className="h-5 w-5 mt-1 text-primary"/>
+                            <div>
+                                <p className="font-semibold">1. Verificar si `admin` está definido</p>
+                                <p className="text-muted-foreground">Usa `console.log(admin)` para asegurarte de que el SDK se importa correctamente.</p>
+                                <pre className="mt-2 bg-gray-800 text-white p-2 rounded-md text-xs">
+                                    <code>{`> console.log(admin)\n{ ... }`}</code>
+                                </pre>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Code className="h-5 w-5 mt-1 text-primary"/>
+                            <div>
+                                <p className="font-semibold">2. Revisar la `serviceAccount`</p>
+                                <p className="text-muted-foreground">Asegúrate de que la variable de entorno y el JSON de la cuenta de servicio sean válidos y correctos.</p>
+                            </div>
+                        </div>
+                        <div className="flex items-start gap-3">
+                            <Code className="h-5 w-5 mt-1 text-primary"/>
+                            <div>
+                                <p className="font-semibold">3. Llamar `initializeApp` solo una vez</p>
+                                <p className="text-muted-foreground">Usa un condicional como `if (admin.apps.length === 0)` para evitar errores de reinicialización.</p>
+                            </div>
+                        </div>
+                    </CardContent>
                 </Card>
                 </div>
             </div>
