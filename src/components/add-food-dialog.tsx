@@ -67,20 +67,16 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
 
   const handleSelect = (item: FoodItem | CustomMeal) => {
     setSelectedItem(item);
-    if ('servingUnit' in item && 'servingSize' in item && !('items' in item)) { // It's a FoodItem
-        setQuantity(item.servingSize);
-    } else { // It's a CustomMeal
-        setQuantity(1);
-    }
+    setQuantity(item.servingSize);
     setStep(2);
   };
   
   const handleConfirmAdd = () => {
     if (selectedItem) {
-        if ('servingUnit' in selectedItem && 'servingSize' in selectedItem && !('items' in selectedItem)) { // FoodItem
-            onAddFood(selectedItem as FoodItem, Number(quantity));
-        } else { // CustomMeal
+        if ('items' in selectedItem) { // CustomMeal
             onAddCustomMeal(selectedItem as CustomMeal, Number(quantity));
+        } else { // FoodItem
+            onAddFood(selectedItem as FoodItem, Number(quantity));
         }
         resetAndClose();
     }
@@ -108,8 +104,10 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
   }
 
   const isCustomMeal = selectedItem && 'items' in selectedItem;
-  const unitLabel = isCustomMeal ? 'serving(s)' : (selectedItem as FoodItem)?.servingUnit;
-  const servingInfo = isCustomMeal ? `1 serving = ${(selectedItem as CustomMeal)?.totalCalories.toFixed(0)} kcal` : `${(selectedItem as FoodItem)?.servingSize} ${unitLabel} = ${(selectedItem as FoodItem)?.calories} kcal`;
+  const unitLabel = selectedItem?.servingUnit;
+  const servingInfo = isCustomMeal 
+    ? `${(selectedItem as CustomMeal)?.servingSize} ${unitLabel} = ${(selectedItem as CustomMeal)?.totalCalories.toFixed(0)} kcal`
+    : `${(selectedItem as FoodItem)?.servingSize} ${unitLabel} = ${(selectedItem as FoodItem)?.calories} kcal`;
 
 
   return (
@@ -166,7 +164,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
                           <div key={meal.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted group">
                           <div onClick={() => handleSelect(meal)} className="flex-grow cursor-pointer">
                               <p className="font-semibold">{meal.name}</p>
-                              <p className="text-sm text-muted-foreground">{meal.items.length} items &bull; {meal.totalCalories.toFixed(0)} kcal</p>
+                              <p className="text-sm text-muted-foreground">{meal.servingSize} {meal.servingUnit} &bull; {meal.totalCalories.toFixed(0)} kcal</p>
                           </div>
                            <div className="flex items-center">
                               <Button size="icon" variant="ghost" onClick={() => handleSelect(meal)}>
