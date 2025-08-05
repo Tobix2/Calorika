@@ -28,14 +28,14 @@ export type Meal = {
 export type DailyPlan = Meal[];
 
 export type WeeklyPlan = {
-  [date: string]: DailyPlan; // Key is YYYY-MM-DD
+  [date: string]: DailyPlan; // La clave es YYYY-MM-DD
 };
 
 export type CustomMeal = {
   id: string;
   name: string;
-  items: MealItem[]; // Can be empty for meals with manual totals
-  // Nutritional info per serving for manually entered meals
+  items: MealItem[]; // Puede estar vacío para comidas con totales manuales
+  // Información nutricional por ración para comidas introducidas manualmente
   totalCalories: number;
   totalProtein: number;
   totalCarbs: number;

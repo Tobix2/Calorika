@@ -116,10 +116,10 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{step === 1 ? 'Add to Meal' : `Add ${selectedItem?.name}`}</DialogTitle>
+            <DialogTitle>{step === 1 ? 'Añadir a Comida' : `Añadir ${selectedItem?.name}`}</DialogTitle>
             <DialogDescription>
               {step === 1
-                ? "Search for a food or meal to add to your plan."
+                ? "Busca un alimento o comida para añadir a tu plan."
                 : servingInfo}
             </DialogDescription>
           </DialogHeader>
@@ -127,15 +127,15 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
           {step === 1 && (
               <div className="py-4">
               <Input
-                  placeholder="Search for a food or meal..."
+                  placeholder="Buscar un alimento o comida..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   className="mb-4"
               />
               <Tabs defaultValue="foods">
                   <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="foods">Foods</TabsTrigger>
-                  <TabsTrigger value="meals">My Meals</TabsTrigger>
+                  <TabsTrigger value="foods">Alimentos</TabsTrigger>
+                  <TabsTrigger value="meals">Mis Comidas</TabsTrigger>
                   </TabsList>
                   <ScrollArea className="h-72 mt-4">
                   <TabsContent value="foods">
@@ -176,7 +176,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
                           </div>
                           </div>
                       )) : (
-                          <p className="text-sm text-muted-foreground text-center py-4">You haven&apos;t created any meals yet.</p>
+                          <p className="text-sm text-muted-foreground text-center py-4">Aún no has creado ninguna comida.</p>
                       )}
                       </div>
                   </TabsContent>
@@ -188,7 +188,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
           {step === 2 && selectedItem && (
                <div className="space-y-4 py-4">
                   <div className="space-y-2">
-                      <Label htmlFor="quantity">Quantity</Label>
+                      <Label htmlFor="quantity">Cantidad</Label>
                       <div className="flex items-center gap-2">
                            <Input
                               id="quantity"
@@ -204,11 +204,11 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
           )}
 
           <DialogFooter>
-              {step === 1 && <Button variant="outline" onClick={resetAndClose}>Cancel</Button>}
+              {step === 1 && <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>}
               {step === 2 && (
                   <>
-                      <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-                      <Button onClick={handleConfirmAdd} disabled={!quantity || Number(quantity) <= 0}>Add to Meal</Button>
+                      <Button variant="outline" onClick={() => setStep(1)}>Atrás</Button>
+                      <Button onClick={handleConfirmAdd} disabled={!quantity || Number(quantity) <= 0}>Añadir a Comida</Button>
                   </>
               )}
           </DialogFooter>
@@ -218,14 +218,14 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
       <AlertDialog open={isAlertOpen} onOpenChange={setIsAlertOpen}>
           <AlertDialogContent>
               <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogTitle>¿Estás absolutamente seguro?</AlertDialogTitle>
                   <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete "{itemToDelete?.name}" from your database.
+                      Esta acción no se puede deshacer. Esto eliminará permanentemente "{itemToDelete?.name}" de tu base de datos.
                   </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
-                  <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={confirmDelete}>Continue</AlertDialogAction>
+                  <AlertDialogCancel onClick={() => setItemToDelete(null)}>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={confirmDelete}>Continuar</AlertDialogAction>
               </AlertDialogFooter>
           </AlertDialogContent>
       </AlertDialog>

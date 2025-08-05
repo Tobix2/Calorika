@@ -23,12 +23,12 @@ function SubmitButton() {
       {pending ? (
         <>
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Calculating...
+          Calculando...
         </>
       ) : (
         <>
           <Sparkles className="mr-2 h-4 w-4" />
-          Get Recommendation
+          Obtener Recomendación
         </>
       )}
     </Button>
@@ -58,8 +58,8 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
     if (state.data) {
         onGoalSet(state.data);
         toast({
-            title: "Goal Updated!",
-            description: `Your daily goals have been updated.`,
+            title: "¡Objetivo Actualizado!",
+            description: `Tus objetivos diarios han sido actualizados.`,
         });
     }
   }
@@ -68,49 +68,49 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
     <Card className="shadow-md">
       <form action={formAction}>
         <CardHeader>
-          <CardTitle className="font-headline text-2xl">AI Calorie Advisor</CardTitle>
-          <CardDescription>Get a personalized calorie & macro recommendation from our AI.</CardDescription>
+          <CardTitle className="font-headline text-2xl">Asesor de Calorías IA</CardTitle>
+          <CardDescription>Obtén una recomendación personalizada de calorías y macros de nuestra IA.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="age">Age</Label>
+              <Label htmlFor="age">Edad</Label>
               <Input id="age" name="age" type="number" defaultValue="25" required />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="weight">Weight (kg)</Label>
+              <Label htmlFor="weight">Peso (kg)</Label>
               <Input id="weight" name="weight" type="number" defaultValue="70" required />
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="height">Height (cm)</Label>
+            <Label htmlFor="height">Altura (cm)</Label>
             <Input id="height" name="height" type="number" defaultValue="175" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="activityLevel">Activity Level</Label>
+            <Label htmlFor="activityLevel">Nivel de Actividad</Label>
             <Select name="activityLevel" defaultValue="lightlyActive">
               <SelectTrigger id="activityLevel">
-                <SelectValue placeholder="Select activity level" />
+                <SelectValue placeholder="Selecciona tu nivel de actividad" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="sedentary">Sedentary (little or no exercise)</SelectItem>
-                <SelectItem value="lightlyActive">Lightly Active (light exercise/sports 1-3 days/week)</SelectItem>
-                <SelectItem value="moderatelyActive">Moderately Active (moderate exercise/sports 3-5 days/week)</SelectItem>
-                <SelectItem value="veryActive">Very Active (hard exercise/sports 6-7 days a week)</SelectItem>
-                <SelectItem value="extraActive">Extra Active (very hard exercise/physical job)</SelectItem>
+                <SelectItem value="sedentary">Sedentario (poco o nada de ejercicio)</SelectItem>
+                <SelectItem value="lightlyActive">Poco Activo (ejercicio ligero 1-3 días/sem)</SelectItem>
+                <SelectItem value="moderatelyActive">Moderadamente Activo (ejercicio moderado 3-5 días/sem)</SelectItem>
+                <SelectItem value="veryActive">Muy Activo (ejercicio intenso 6-7 días/sem)</SelectItem>
+                <SelectItem value="extraActive">Extra Activo (ejercicio muy intenso/trabajo físico)</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="goal">Goal</Label>
+            <Label htmlFor="goal">Objetivo</Label>
             <Select name="goal" defaultValue="maintainWeight">
               <SelectTrigger id="goal">
-                <SelectValue placeholder="Select your goal" />
+                <SelectValue placeholder="Selecciona tu objetivo" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="loseWeight">Lose Weight</SelectItem>
-                <SelectItem value="maintainWeight">Maintain Weight</SelectItem>
-                <SelectItem value="gainMuscle">Gain Muscle</SelectItem>
+                <SelectItem value="loseWeight">Perder Peso</SelectItem>
+                <SelectItem value="maintainWeight">Mantener Peso</SelectItem>
+                <SelectItem value="gainMuscle">Ganar Músculo</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -128,12 +128,12 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
                         <Lightbulb className="h-6 w-6 text-primary mr-4" />
                     </div>
                     <div>
-                        <p className="font-bold text-primary">Recommended: {state.data.recommendedCalories.toFixed(0)} kcal/day</p>
+                        <p className="font-bold text-primary">Recomendado: {state.data.recommendedCalories.toFixed(0)} kcal/día</p>
                         <div className="grid grid-cols-3 gap-2 mt-2">
                             <div className="text-center">
                                 <Beef className="h-5 w-5 mx-auto text-red-500" />
                                 <p className="text-sm font-semibold text-foreground">{state.data.recommendedProtein.toFixed(0)}g</p>
-                                <p className="text-xs text-muted-foreground">Protein</p>
+                                <p className="text-xs text-muted-foreground">Proteína</p>
                             </div>
                             <div className="text-center">
                                 <Wheat className="h-5 w-5 mx-auto text-yellow-500" />
@@ -143,14 +143,14 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
                             <div className="text-center">
                                 <Droplets className="h-5 w-5 mx-auto text-blue-500" />
                                 <p className="text-sm font-semibold text-foreground">{state.data.recommendedFats.toFixed(0)}g</p>
-                                <p className="text-xs text-muted-foreground">Fats</p>
+                                <p className="text-xs text-muted-foreground">Grasas</p>
                             </div>
                         </div>
                     </div>
                 </div>
                  <p className="text-sm text-foreground/80">{state.data.explanation}</p>
             </div>
-            <Button variant="outline" className="w-full" onClick={handleApplyGoal}>Apply as Goal</Button>
+            <Button variant="outline" className="w-full" onClick={handleApplyGoal}>Aplicar como Objetivo</Button>
         </CardContent>
       )}
     </Card>

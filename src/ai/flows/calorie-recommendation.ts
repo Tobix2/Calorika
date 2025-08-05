@@ -12,22 +12,22 @@ import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 const CalorieRecommendationInputSchema = z.object({
-  age: z.number().describe('The age of the user.'),
-  weight: z.number().describe('The weight of the user in kilograms.'),
-  height: z.number().describe('The height of the user in centimeters.'),
+  age: z.number().describe('La edad del usuario.'),
+  weight: z.number().describe('El peso del usuario en kilogramos.'),
+  height: z.number().describe('La altura del usuario en centímetros.'),
   activityLevel: z
     .enum(['sedentary', 'lightlyActive', 'moderatelyActive', 'veryActive', 'extraActive'])
-    .describe('The activity level of the user.'),
-  goal: z.enum(['loseWeight', 'maintainWeight', 'gainMuscle']).describe('The fitness goal of the user.'),
+    .describe('El nivel de actividad del usuario.'),
+  goal: z.enum(['loseWeight', 'maintainWeight', 'gainMuscle']).describe('El objetivo de fitness del usuario.'),
 });
 export type CalorieRecommendationInput = z.infer<typeof CalorieRecommendationInputSchema>;
 
 const CalorieRecommendationOutputSchema = z.object({
-  recommendedCalories: z.number().describe('The recommended daily calorie intake.'),
-  recommendedProtein: z.number().describe('The recommended daily protein intake in grams.'),
-  recommendedCarbs: z.number().describe('The recommended daily carbohydrate intake in grams.'),
-  recommendedFats: z.number().describe('The recommended daily fat intake in grams.'),
-  explanation: z.string().describe('A detailed explanation of how the calorie and macronutrient recommendations were calculated.'),
+  recommendedCalories: z.number().describe('La ingesta diaria de calorías recomendada.'),
+  recommendedProtein: z.number().describe('La ingesta diaria de proteínas recomendada en gramos.'),
+  recommendedCarbs: z.number().describe('La ingesta diaria de carbohidratos recomendada en gramos.'),
+  recommendedFats: z.number().describe('La ingesta diaria de grasas recomendada en gramos.'),
+  explanation: z.string().describe('Una explicación detallada de cómo se calcularon las recomendaciones de calorías y macronutrientes.'),
 });
 export type CalorieRecommendationOutput = z.infer<typeof CalorieRecommendationOutputSchema>;
 
@@ -39,19 +39,19 @@ const prompt = ai.definePrompt({
   name: 'calorieRecommendationPrompt',
   input: {schema: CalorieRecommendationInputSchema},
   output: {schema: CalorieRecommendationOutputSchema},
-  prompt: `You are a personal trainer that recommends a daily calorie and macronutrient intake based on the user's personal data and fitness goals.
+  prompt: `Eres un entrenador personal que recomienda una ingesta diaria de calorías y macronutrientes basada en los datos personales y objetivos de fitness del usuario.
 
-  Calculate the recommended daily calorie intake and the macronutrient breakdown (protein, carbs, fats) in grams based on the following information:
-  Age: {{{age}}}
-  Weight: {{{weight}}} kg
-  Height: {{{height}}} cm
-  Activity Level: {{{activityLevel}}}
-  Goal: {{{goal}}}
+  Calcula la ingesta diaria de calorías recomendada y el desglose de macronutrientes (proteínas, carbohidratos, grasas) en gramos basándote en la siguiente información:
+  Edad: {{{age}}}
+  Peso: {{{weight}}} kg
+  Altura: {{{height}}} cm
+  Nivel de Actividad: {{{activityLevel}}}
+  Objetivo: {{{goal}}}
 
-  Provide a detailed explanation of how you calculated the calorie and macronutrient recommendations and why it is appropriate for the user's goal.
-  Ensure the explanation is easy to understand and provides actionable advice.
+  Proporciona una explicación detallada de cómo calculaste las recomendaciones de calorías y macronutrientes y por qué es apropiado para el objetivo del usuario.
+  Asegúrate de que la explicación sea fácil de entender y proporcione consejos prácticos.
 
-  Return the result in JSON format.
+  Devuelve el resultado en formato JSON.
   `,
 });
 

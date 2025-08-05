@@ -69,11 +69,11 @@ export default function Dashboard() {
           const plan = await getWeeklyPlanAction(user.uid, dates);
           setWeeklyPlan(plan);
       } catch (error) {
-          console.error("Failed to load weekly plan", error);
+          console.error("No se pudo cargar el plan semanal", error);
           toast({
               variant: 'destructive',
               title: 'Error',
-              description: 'Could not load your plan. Please try refreshing.'
+              description: 'No se pudo cargar tu plan. Por favor, intenta refrescar.'
           });
       }
   }, [toast]);
@@ -91,11 +91,11 @@ export default function Dashboard() {
                 setCustomMeals(mealsData);
                 loadWeeklyPlan(user, weekDates);
             } catch (error) {
-                console.error("Failed to load initial data", error);
+                console.error("No se pudieron cargar los datos iniciales", error);
                 toast({
                     variant: 'destructive',
                     title: 'Error',
-                    description: 'Could not load your data. Please try refreshing the page.'
+                    description: 'No se pudieron cargar tus datos. Por favor, refresca la página.'
                 });
             }
         }
@@ -118,11 +118,11 @@ export default function Dashboard() {
       
       const handler = setTimeout(() => {
           saveDailyPlanAction(user.uid, currentDate, weeklyPlan[selectedDateKey]).catch(error => {
-              console.error("Failed to save daily plan", error);
+              console.error("No se pudo guardar el plan diario", error);
               toast({
                   variant: 'destructive',
-                  title: 'Save Error',
-                  description: 'Could not save your latest changes.'
+                  title: 'Error de Guardado',
+                  description: 'No se pudieron guardar tus últimos cambios.'
               });
           });
       }, 1000); 
@@ -208,30 +208,30 @@ export default function Dashboard() {
 
   const handleCreateMeal = async (newMealData: Omit<CustomMeal, 'id'>) => {
     if (!user) {
-        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to create a meal." });
+        toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para crear una comida." });
         return;
     }
     try {
         const newMeal = await addCustomMealAction(user.uid, newMealData);
         setCustomMeals(prev => [...prev, newMeal]);
         toast({
-            title: "Meal Created!",
-            description: `${newMeal.name} has been saved to your meals.`,
+            title: "¡Comida Creada!",
+            description: `${newMeal.name} ha sido guardada en tus comidas.`,
         });
     } catch (error) {
-        console.error("Failed to create meal:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        console.error("Falló al crear la comida:", error);
+        const errorMessage = error instanceof Error ? error.message : "Ocurrió un error desconocido.";
         toast({
             variant: "destructive",
-            title: "Error Saving Meal",
-            description: `Could not save to database: ${errorMessage}`,
+            title: "Error al Guardar la Comida",
+            description: `No se pudo guardar en la base de datos: ${errorMessage}`,
         });
     }
   }
   
   const handleDeleteItem = async (item: FoodItem | CustomMeal) => {
     if (!user) {
-        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to delete items." });
+        toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para borrar ítems." });
         return;
     }
     try {
@@ -279,8 +279,8 @@ export default function Dashboard() {
         if (result.error || !result.data) {
             toast({
                 variant: 'destructive',
-                title: 'Error Generating Plan',
-                description: result.error || 'The AI could not generate a meal plan.'
+                title: 'Error al Generar Plan',
+                description: result.error || 'La IA no pudo generar un plan de comidas.'
             });
         } else {
             setWeeklyPlan(prevPlan => ({
@@ -288,8 +288,8 @@ export default function Dashboard() {
                 [selectedDateKey]: result.data as DailyPlan
             }));
             toast({
-                title: 'Meal Plan Generated!',
-                description: `Your meal plan for ${format(currentDate, 'PPP', { locale: es })} has been populated by the AI.`
+                title: '¡Plan de Comidas Generado!',
+                description: `Tu plan de comidas para el ${format(currentDate, 'PPP', { locale: es })} ha sido poblado por la IA.`
             });
         }
     });
@@ -297,7 +297,7 @@ export default function Dashboard() {
   
     const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>) => {
     if (!user) {
-        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to add an ingredient." });
+        toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para añadir un ingrediente." });
         return null;
     }
     try {
@@ -306,18 +306,18 @@ export default function Dashboard() {
       setFoodDatabase(prev => [...prev, newIngredient]);
       
       toast({
-        title: "Ingredient Saved!",
-        description: `${newIngredient.name} has been added to the database.`,
+        title: "¡Ingrediente Guardado!",
+        description: `${newIngredient.name} ha sido añadido a la base de datos.`,
       });
 
       return newIngredient;
     } catch (error) {
-      console.error("Failed to save ingredient:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+      console.error("Falló al guardar el ingrediente:", error);
+      const errorMessage = error instanceof Error ? error.message : "Ocurrió un error desconocido.";
       toast({
         variant: "destructive",
-        title: "Error Saving Ingredient",
-        description: `Could not save to database: ${errorMessage}`,
+        title: "Error al Guardar Ingrediente",
+        description: `No se pudo guardar en la base de datos: ${errorMessage}`,
       });
       return null;
     }
@@ -333,7 +333,7 @@ export default function Dashboard() {
           let ratio = 0;
 
           if (item.isCustom) {
-            if (item.servingUnit?.toLowerCase() === 'serving' || item.servingUnit?.toLowerCase() === 'porcion') {
+            if (item.servingUnit?.toLowerCase() === 'serving' || item.servingUnit?.toLowerCase() === 'porcion' || item.servingUnit?.toLowerCase() === 'comida') {
               ratio = quantity;
             } else {
               ratio = servingSize > 0 ? quantity / servingSize : 0;
@@ -362,7 +362,7 @@ export default function Dashboard() {
           let ratio = 0;
 
           if (item.isCustom) {
-              if (item.servingUnit?.toLowerCase().includes('serving') || item.servingUnit?.toLowerCase().includes('porcion')) {
+              if (item.servingUnit?.toLowerCase().includes('serving') || item.servingUnit?.toLowerCase().includes('porcion') || item.servingUnit?.toLowerCase() === 'comida') {
                   ratio = quantity;
               } else {
                   ratio = servingSize > 0 ? quantity / servingSize : 0;
@@ -392,21 +392,21 @@ export default function Dashboard() {
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" disabled={isPending}>
                       {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
-                      Generate Plan
+                      Generar Plan
                     </Button>
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Generate Meal Plan for {format(currentDate, 'PPP', { locale: es })}</AlertDialogTitle>
+                      <AlertDialogTitle>Generar Plan de Comidas para el {format(currentDate, 'PPP', { locale: es })}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        Choose which resources the AI should use to generate your meal plan.
+                        Elige qué recursos debe usar la IA para generar tu plan de comidas.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
-                      <Button onClick={() => handleGeneratePlan('both')}>Use Ingredients &amp; My Meals</Button>
-                      <Button variant="secondary" onClick={() => handleGeneratePlan('ingredients')}>Use Ingredients Only</Button>
-                      <Button variant="secondary" onClick={() => handleGeneratePlan('meals')}>Use My Meals Only</Button>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <Button onClick={() => handleGeneratePlan('both')}>Usar Ingredientes y Mis Comidas</Button>
+                      <Button variant="secondary" onClick={() => handleGeneratePlan('ingredients')}>Usar Solo Ingredientes</Button>
+                      <Button variant="secondary" onClick={() => handleGeneratePlan('meals')}>Usar Solo Mis Comidas</Button>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -419,7 +419,7 @@ export default function Dashboard() {
                 />
                 <Button variant="outline" onClick={logout}>
                     <LogOut className="mr-2"/>
-                    Sign Out
+                    Cerrar Sesión
                 </Button>
               </div>
             </div>
@@ -461,7 +461,7 @@ export default function Dashboard() {
                 <CalorieRecommendationForm onGoalSet={handleSetGoal} />
                 <Card>
                     <CardHeader>
-                        <CardTitle>Meal Calories Breakdown</CardTitle>
+                        <CardTitle>Desglose de Calorías por Comida</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <ResponsiveContainer width="100%" height={300}>

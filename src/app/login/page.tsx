@@ -1,30 +1,27 @@
 
 "use client";
 
-import { useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Loader2, Leaf } from "lucide-react";
 
 export default function LoginPage() {
   const { signInWithGoogle, user, loading } = useAuth();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!loading && user) {
-      router.push("/");
-    }
-  }, [user, loading, router]);
 
   const handleSignIn = () => {
-    signInWithGoogle().catch(err => {
-        console.error("Sign in failed", err);
-    });
+    console.log("🟡 Sign in button clicked");
+    signInWithGoogle()
+      .then(() => {
+        console.log("🟢 Sign in successful (redirect initiated)");
+      })
+      .catch(err => {
+        console.error("❌ Sign in failed:", err);
+      });
   };
 
-  // While loading or if user exists, show a loading state or nothing to avoid flashes
-  if (loading || user) {
+  // AuthGuard se encarga de la redirección, por lo que podemos simplificar esta página.
+  // Mostramos un loader general si la librería de autenticación todavía está determinando el estado.
+  if (loading) {
       return (
           <div className="flex min-h-screen w-full items-center justify-center bg-background">
               <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -32,6 +29,8 @@ export default function LoginPage() {
       );
   }
 
+  // Si el usuario ya está logueado, AuthGuard lo redirigirá.
+  // Si no, mostramos la página de login.
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">
         <div className="w-full max-w-sm text-center">
@@ -39,23 +38,22 @@ export default function LoginPage() {
                 <Leaf className="h-10 w-10" />
             </div>
             <h1 className="text-4xl font-bold font-headline text-foreground">
-                Welcome to NutriTrack
+                Bienvenido a NutriTrack
             </h1>
             <p className="mt-2 text-lg text-muted-foreground">
-                Your AI-powered nutrition partner.
+                Tu asistente de nutrición con IA.
             </p>
             <div className="mt-8">
                  <Button onClick={handleSignIn} size="lg" className="w-full">
                     {loading ? (
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     ) : (
-                        // Replace with a proper Google icon if available or just text
-                         "Sign In with Google"
+                         "Iniciar Sesión con Google"
                     )}
                 </Button>
             </div>
             <p className="mt-6 text-xs text-muted-foreground">
-                By signing in, you agree to our terms of service.
+                Al iniciar sesión, aceptas nuestros términos de servicio.
             </p>
         </div>
     </div>

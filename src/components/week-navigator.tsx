@@ -43,7 +43,7 @@ export default function WeekNavigator({ currentDate, setCurrentDate, weekDates }
           </Button>
         </div>
         <div className="hidden sm:block">
-            <h2 className="text-lg font-semibold">
+            <h2 className="text-lg font-semibold capitalize">
               {format(weekDates[0], 'MMMM yyyy', { locale: es })}
             </h2>
         </div>

@@ -33,8 +33,8 @@ export async function getRecommendationAction(
     return { data: result, error: null };
   } catch (e) {
     console.error(e);
-    const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-    return { data: null, error: `Failed to get recommendation: ${errorMessage}` };
+    const errorMessage = e instanceof Error ? e.message : 'Ocurrió un error desconocido.';
+    return { data: null, error: `Error al obtener recomendación: ${errorMessage}` };
   }
 }
 
@@ -46,8 +46,8 @@ export async function generateMealPlanAction(
         return { data: result, error: null };
     } catch (e) {
         console.error(e);
-        const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
-        return { data: null, error: `Failed to generate meal plan: ${errorMessage}` };
+        const errorMessage = e instanceof Error ? e.message : 'Ocurrió un error desconocido.';
+        return { data: null, error: `Error al generar el plan de comidas: ${errorMessage}` };
     }
 }
 
@@ -57,18 +57,18 @@ export async function generateMealPlanAction(
 async function populateInitialFoods(userId: string): Promise<FoodItem[]> {
     const db = getDb();
     const initialFoods: Omit<FoodItem, 'id'>[] = [
-      { name: 'Apple', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, servingSize: 1, servingUnit: 'medium' },
-      { name: 'Banana', calories: 105, protein: 1.3, carbs: 27, fats: 0.4, servingSize: 1, servingUnit: 'medium' },
-      { name: 'Chicken Breast', calories: 165, protein: 31, carbs: 0, fats: 3.6, servingSize: 100, servingUnit: 'g' },
-      { name: 'Brown Rice', calories: 111, protein: 2.6, carbs: 23, fats: 0.9, servingSize: 100, servingUnit: 'g cooked' },
-      { name: 'Whole Egg', calories: 78, protein: 6, carbs: 0.6, fats: 5, servingSize: 1, servingUnit: 'large' },
-      { name: 'Almonds', calories: 579, protein: 21, carbs: 22, fats: 49, servingSize: 100, servingUnit: 'g' },
-      { name: 'Greek Yogurt', calories: 59, protein: 10, carbs: 3.6, fats: 0.4, servingSize: 100, servingUnit: 'g' },
-      { name: 'Salmon', calories: 208, protein: 20, carbs: 0, fats: 13, servingSize: 100, servingUnit: 'g' },
-      { name: 'Broccoli', calories: 55, protein: 3.7, carbs: 11, fats: 0.6, servingSize: 1, servingUnit: 'cup' },
-      { name: 'Olive Oil', calories: 884, protein: 0, carbs: 0, fats: 100, servingSize: 100, servingUnit: 'g' },
-      { name: 'Oats', calories: 389, protein: 16.9, carbs: 66.3, fats: 6.9, servingSize: 100, servingUnit: 'g' },
-      { name: 'Protein Powder', calories: 393, protein: 80, carbs: 8, fats: 4, servingSize: 100, servingUnit: 'g' },
+      { name: 'Manzana', calories: 95, protein: 0.5, carbs: 25, fats: 0.3, servingSize: 1, servingUnit: 'mediana' },
+      { name: 'Plátano', calories: 105, protein: 1.3, carbs: 27, fats: 0.4, servingSize: 1, servingUnit: 'mediano' },
+      { name: 'Pechuga de Pollo', calories: 165, protein: 31, carbs: 0, fats: 3.6, servingSize: 100, servingUnit: 'g' },
+      { name: 'Arroz Integral', calories: 111, protein: 2.6, carbs: 23, fats: 0.9, servingSize: 100, servingUnit: 'g cocido' },
+      { name: 'Huevo Entero', calories: 78, protein: 6, carbs: 0.6, fats: 5, servingSize: 1, servingUnit: 'grande' },
+      { name: 'Almendras', calories: 579, protein: 21, carbs: 22, fats: 49, servingSize: 100, servingUnit: 'g' },
+      { name: 'Yogur Griego', calories: 59, protein: 10, carbs: 3.6, fats: 0.4, servingSize: 100, servingUnit: 'g' },
+      { name: 'Salmón', calories: 208, protein: 20, carbs: 0, fats: 13, servingSize: 100, servingUnit: 'g' },
+      { name: 'Brócoli', calories: 55, protein: 3.7, carbs: 11, fats: 0.6, servingSize: 1, servingUnit: 'taza' },
+      { name: 'Aceite de Oliva', calories: 884, protein: 0, carbs: 0, fats: 100, servingSize: 100, servingUnit: 'g' },
+      { name: 'Avena', calories: 389, protein: 16.9, carbs: 66.3, fats: 6.9, servingSize: 100, servingUnit: 'g' },
+      { name: 'Proteína en Polvo', calories: 393, protein: 80, carbs: 8, fats: 4, servingSize: 100, servingUnit: 'g' },
     ];
 
     const foodCollection = db.collection('users').doc(userId).collection('foods');
@@ -107,18 +107,18 @@ export async function getFoodsAction(userId: string): Promise<FoodItem[]> {
             const data = doc.data();
             return {
                 id: doc.id,
-                name: data.name || 'Unnamed Food',
+                name: data.name || 'Alimento sin nombre',
                 calories: data.calories || 0,
                 protein: data.protein || 0,
                 carbs: data.carbs || 0,
                 fats: data.fats || 0,
                 servingSize: data.servingSize || 1,
-                servingUnit: data.servingUnit || 'unit',
+                servingUnit: data.servingUnit || 'unidad',
             } as FoodItem;
         });
     } catch (error) {
-        console.error("🔥 Error fetching foods from Firestore:", error);
-        throw new Error("Failed to fetch foods.");
+        console.error("🔥 Error al obtener alimentos de Firestore:", error);
+        throw new Error("No se pudieron obtener los alimentos.");
     }
 }
 
@@ -130,20 +130,20 @@ export async function addFoodAction(userId: string, food: Omit<FoodItem, 'id'>):
         const docRef = await foodCollection.add(cleanFood);
         return { id: docRef.id, ...cleanFood };
     } catch (error) {
-        console.error("🔥 Error adding document to Firestore: ", error);
-        throw new Error('Failed to add food.');
+        console.error("🔥 Error al añadir documento a Firestore: ", error);
+        throw new Error('No se pudo añadir el alimento.');
     }
 }
 
 export async function deleteFoodAction(userId: string, foodId: string): Promise<void> {
     try {
         const db = getDb();
-        if (!foodId) throw new Error("Food ID is required.");
+        if (!foodId) throw new Error("Se requiere el ID del alimento.");
         const foodDocRef = db.collection('users').doc(userId).collection('foods').doc(foodId);
         await foodDocRef.delete();
     } catch (error) {
-        console.error("🔥 Error deleting document from Firestore: ", error);
-        throw new Error('Failed to delete food.');
+        console.error("🔥 Error al borrar documento de Firestore: ", error);
+        throw new Error('No se pudo borrar el alimento.');
     }
 }
 
@@ -164,12 +164,12 @@ export async function getCustomMealsAction(userId: string): Promise<CustomMeal[]
                 totalCarbs: data.totalCarbs ?? data.carbs ?? 0,
                 totalFats: data.totalFats ?? data.fats ?? 0,
                 servingSize: data.servingSize || 1,
-                servingUnit: data.servingUnit || 'serving',
+                servingUnit: data.servingUnit || 'ración',
             } as CustomMeal;
         });
     } catch (error) {
-        console.error("🔥 Error fetching custom meals from Firestore:", error);
-        throw new Error("Failed to fetch custom meals.");
+        console.error("🔥 Error al obtener comidas personalizadas de Firestore:", error);
+        throw new Error("No se pudieron obtener las comidas personalizadas.");
     }
 }
 
@@ -181,20 +181,20 @@ export async function addCustomMealAction(userId: string, meal: Omit<CustomMeal,
         const docRef = await mealCollection.add(cleanMeal);
         return { id: docRef.id, ...cleanMeal };
     } catch (error) {
-        console.error("🔥 Error adding custom meal to Firestore: ", error);
-        throw new Error('Failed to add custom meal.');
+        console.error("🔥 Error al añadir comida personalizada a Firestore: ", error);
+        throw new Error('No se pudo añadir la comida personalizada.');
     }
 }
 
 export async function deleteCustomMealAction(userId: string, mealId: string): Promise<void> {
     try {
         const db = getDb();
-        if (!mealId) throw new Error("Meal ID is required.");
+        if (!mealId) throw new Error("Se requiere el ID de la comida.");
         const mealDocRef = db.collection('users').doc(userId).collection('customMeals').doc(mealId);
         await mealDocRef.delete();
     } catch (error) {
-        console.error("🔥 Error deleting custom meal from Firestore: ", error);
-        throw new Error('Failed to delete custom meal.');
+        console.error("🔥 Error al borrar comida personalizada de Firestore: ", error);
+        throw new Error('No se pudo borrar la comida personalizada.');
     }
 }
 
@@ -233,8 +233,8 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[]): Pr
         return weeklyPlan;
 
     } catch (error) {
-        console.error("🔥 Error al obtener el weekly plan:", error);
-        throw new Error("Failed to fetch weekly plan.");
+        console.error("🔥 Error al obtener el plan semanal:", error);
+        throw new Error("No se pudo obtener el plan semanal.");
     }
 }
 
@@ -251,6 +251,6 @@ export async function saveDailyPlanAction(userId: string, date: Date, plan: Dail
         await docRef.set(dataToSave, { merge: true });
     } catch (error) {
         console.error(`🔥 Error al guardar el plan para ${format(date, 'yyyy-MM-dd')}:`, error);
-        throw new Error("Failed to save daily plan.");
+        throw new Error("No se pudo guardar el plan diario.");
     }
 }

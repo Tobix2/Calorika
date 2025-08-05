@@ -116,7 +116,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
             items: mealItemsForDb,
             ...totalsFromIngredients,
             servingSize: 1, // Serving size is 1 "meal"
-            servingUnit: 'meal',
+            servingUnit: 'comida',
         };
         onCreateMeal(newMealData);
         resetState();
@@ -129,7 +129,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
             totalCarbs: Number(manualCarbs),
             totalFats: Number(manualFats),
             servingSize: Number(manualServingSize) || 1,
-            servingUnit: manualServingUnit || 'serving',
+            servingUnit: manualServingUnit || 'ración',
         };
         onCreateMeal(newMealData);
         resetState();
@@ -175,24 +175,24 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
       <DialogTrigger asChild>
         <Button variant="outline">
             <UtensilsCrossed className="mr-2"/>
-            Create a Meal
+            Crear Comida
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-[95vw] sm:max-w-lg rounded-lg flex flex-col max-h-[90vh]">
         <DialogHeader>
-          <DialogTitle>Create a New Meal</DialogTitle>
+          <DialogTitle>Crear Nueva Comida</DialogTitle>
            <DialogDescription>
-             Compose a meal from ingredients or enter the nutritional totals directly. This will be saved to your database.
+             Crea una comida a partir de ingredientes o introduce los totales nutricionales directamente. Se guardará en tu base de datos.
           </DialogDescription>
         </DialogHeader>
         
         <div className="flex-grow py-4 overflow-y-auto">
             <div className="space-y-4 px-1">
                 <div className="space-y-2">
-                    <Label htmlFor="meal-name">Meal Name</Label>
+                    <Label htmlFor="meal-name">Nombre de la Comida</Label>
                     <Input
                         id="meal-name"
-                        placeholder="e.g., Post-Workout Shake"
+                        placeholder="Ej: Batido Post-Entreno"
                         value={mealName}
                         onChange={(e) => setMealName(e.target.value)}
                     />
@@ -200,22 +200,22 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
 
                 <Tabs value={creationMode} onValueChange={(value) => setCreationMode(value as any)} className="w-full">
                     <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="ingredients">From Ingredients</TabsTrigger>
-                        <TabsTrigger value="totals">Enter Totals</TabsTrigger>
+                        <TabsTrigger value="ingredients">Con Ingredientes</TabsTrigger>
+                        <TabsTrigger value="totals">Introducir Totales</TabsTrigger>
                     </TabsList>
                     <TabsContent value="ingredients" className="space-y-4 pt-4">
                       <ScrollArea className="h-96 pr-4">
                         <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <Label>Ingredients</Label>
+                                <Label>Ingredientes</Label>
                                 <AddIngredientDialog onAddIngredient={handleAddIngredientAndAddToMeal}>
                                     <Button variant="link" size="sm" className="p-0 h-auto">
-                                        Add New
+                                        Añadir Nuevo
                                     </Button>
                                 </AddIngredientDialog>
                             </div>
                             <Input
-                                placeholder="Search for an ingredient..."
+                                placeholder="Buscar un ingrediente..."
                                 value={searchTerm}
                                 onChange={e => setSearchTerm(e.target.value)}
                                 className="mb-2"
@@ -240,7 +240,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                         </div>
                         
                         <div className="space-y-2">
-                            <Label>Selected Ingredients</Label>
+                            <Label>Ingredientes Seleccionados</Label>
                             {selectedItems.length > 0 ? (
                                 <ScrollArea className="h-40 rounded-md border">
                                     <div className="p-2 space-y-2">
@@ -271,7 +271,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                                 </ScrollArea>
                             ) : (
                                 <div className="text-sm text-muted-foreground text-center py-4 border border-dashed rounded-md">
-                                    Search and click on an ingredient to add it.
+                                    Busca y haz clic en un ingrediente para añadirlo.
                                 </div>
                             )}
                         </div>
@@ -280,42 +280,42 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                     <TabsContent value="totals" className="pt-4">
                       <ScrollArea className="h-96 pr-4">
                         <div className="space-y-4">
-                            <p className="text-sm text-muted-foreground">Enter the nutritional values for the serving size you define.</p>
+                            <p className="text-sm text-muted-foreground">Introduce los valores nutricionales para la ración que definas.</p>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="manualServingSize">Serving Size</Label>
+                                    <Label htmlFor="manualServingSize">Tamaño de Ración</Label>
                                     <Input id="manualServingSize" type="number" value={manualServingSize} onChange={(e) => setManualServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="manualServingUnit">Unit</Label>
+                                    <Label htmlFor="manualServingUnit">Unidad</Label>
                                     <Select value={manualServingUnit} onValueChange={setManualServingUnit}>
                                       <SelectTrigger id="manualServingUnit">
-                                        <SelectValue placeholder="Select unit" />
+                                        <SelectValue placeholder="Seleccionar unidad" />
                                       </SelectTrigger>
                                       <SelectContent>
-                                        <SelectItem value="g">g (grams)</SelectItem>
-                                        <SelectItem value="serving">serving(s)</SelectItem>
+                                        <SelectItem value="g">g (gramos)</SelectItem>
+                                        <SelectItem value="ración">ración(es)</SelectItem>
                                       </SelectContent>
                                     </Select>
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="calories">Calories (kcal)</Label>
+                                    <Label htmlFor="calories">Calorías (kcal)</Label>
                                     <Input id="calories" type="number" value={manualCalories} onChange={(e) => setManualCalories(e.target.value === '' ? '' : parseFloat(e.target.value))} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="protein">Protein (g)</Label>
+                                    <Label htmlFor="protein">Proteína (g)</Label>
                                     <Input id="protein" type="number" value={manualProtein} onChange={(e) => setManualProtein(e.target.value === '' ? '' : parseFloat(e.target.value))} />
                                 </div>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="carbs">Carbs (g)</Label>
+                                    <Label htmlFor="carbs">Carbohidratos (g)</Label>
                                     <Input id="carbs" type="number" value={manualCarbs} onChange={(e) => setManualCarbs(e.target.value === '' ? '' : parseFloat(e.target.value))} />
                                 </div>
                                 <div className="space-y-2">
-                                    <Label htmlFor="fats">Fats (g)</Label>
+                                    <Label htmlFor="fats">Grasas (g)</Label>
                                     <Input id="fats" type="number" value={manualFats} onChange={(e) => setManualFats(e.target.value === '' ? '' : parseFloat(e.target.value))} />
                                 </div>
                             </div>
@@ -327,10 +327,10 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
         </div>
        
         <DialogFooter className="border-t pt-4 mt-auto">
-            <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>Cancelar</Button>
             <Button onClick={handleCreateMeal} disabled={!isFormValid}>
                 <Plus className="mr-2" />
-                Create Meal ({creationMode === 'ingredients' ? totalsFromIngredients.totalCalories.toFixed(0) : Number(manualCalories || 0).toFixed(0)} kcal)
+                Crear Comida ({creationMode === 'ingredients' ? totalsFromIngredients.totalCalories.toFixed(0) : Number(manualCalories || 0).toFixed(0)} kcal)
             </Button>
         </DialogFooter>
       </DialogContent>

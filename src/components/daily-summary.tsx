@@ -67,15 +67,15 @@ export default function DailySummary({
   return (
     <Card className="shadow-md">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">Daily Summary</CardTitle>
-        <CardDescription>Your nutritional intake and goals for today. You can edit your goals directly.</CardDescription>
+        <CardTitle className="font-headline text-2xl">Resumen Diario</CardTitle>
+        <CardDescription>Tu ingesta y objetivos nutricionales para hoy. Puedes editar tus objetivos directamente.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
             <div className="flex justify-between items-end">
                 <div className="flex items-center gap-2 text-muted-foreground">
                     <Target className="h-5 w-5" />
-                    <span>Calorie Goal</span>
+                    <span>Objetivo de Calorías</span>
                 </div>
                  <div className="flex items-baseline gap-2">
                     <p className="text-2xl font-bold text-primary">{totalCalories.toFixed(0)}</p>
@@ -95,9 +95,9 @@ export default function DailySummary({
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <MacroStat icon={<Beef className="h-5 w-5 text-red-500" />} title="Protein" value={protein} goal={proteinGoal} onGoalChange={handleGoalChange(setProteinGoal)} />
+            <MacroStat icon={<Beef className="h-5 w-5 text-red-500" />} title="Proteína" value={protein} goal={proteinGoal} onGoalChange={handleGoalChange(setProteinGoal)} />
             <MacroStat icon={<Wheat className="h-5 w-5 text-yellow-500" />} title="Carbs" value={carbs} goal={carbsGoal} onGoalChange={handleGoalChange(setCarbsGoal)} />
-            <MacroStat icon={<Droplets className="h-5 w-5 text-blue-500" />} title="Fats" value={fats} goal={fatsGoal} onGoalChange={handleGoalChange(setFatsGoal)} />
+            <MacroStat icon={<Droplets className="h-5 w-5 text-blue-500" />} title="Grasas" value={fats} goal={fatsGoal} onGoalChange={handleGoalChange(setFatsGoal)} />
         </div>
       </CardContent>
     </Card>

@@ -23,6 +23,13 @@ const mealIcons: Record<MealName, React.ReactNode> = {
   Snacks: <Cookie className="h-6 w-6 text-orange-400" />,
 };
 
+const mealNames: Record<MealName, string> = {
+    Breakfast: "Desayuno",
+    Lunch: "Almuerzo",
+    Dinner: "Cena",
+    Snacks: "Snacks"
+}
+
 export default function MealList({ meals, customMeals, foodDatabase, onAddFood, onRemoveFood, onAddCustomMeal, onDeleteItem }: MealListProps) {
   
   const calculateItemCalories = (item: MealItem) => {
@@ -30,13 +37,10 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
     const servingSize = Number(item.servingSize) || 1;
     const itemCalories = Number(item.calories) || 0;
     
-    // For custom meals by 'serving' or similar unit, multiply by quantity.
-    // For ingredients or custom meals by weight/volume (like 'g'), calculate ratio.
-    if (item.isCustom && (item.servingUnit?.toLowerCase().includes('serving') || item.servingUnit?.toLowerCase().includes('porcion'))) {
+    if (item.isCustom && (item.servingUnit?.toLowerCase().includes('ración') || item.servingUnit?.toLowerCase().includes('serving') || item.servingUnit?.toLowerCase().includes('comida'))) {
         return itemCalories * quantity;
     }
     
-    // For ingredients or custom meals by grams, calculate ratio.
     const ratio = servingSize > 0 ? quantity / servingSize : 0;
     return itemCalories * ratio;
   }
@@ -53,7 +57,7 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="flex items-center gap-3">
                 {mealIcons[meal.name]}
-                <CardTitle className="font-headline text-xl">{meal.name}</CardTitle>
+                <CardTitle className="font-headline text-xl">{mealNames[meal.name]}</CardTitle>
               </div>
               <div className="flex items-center gap-2 font-bold text-lg text-muted-foreground">
                 <Flame className="h-5 w-5 text-orange-500" />
@@ -66,8 +70,7 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                   meal.items.map((item: MealItem) => {
                      const itemCalories = calculateItemCalories(item);
                      const quantity = Number(item.quantity) || 0;
-                     const unit = item.servingUnit || 'unit';
-                     // Avoid pluralizing abbreviations like 'g' or 'ml'
+                     const unit = item.servingUnit || 'unidad';
                      const servingUnitLabel = quantity !== 1 && unit.length > 2 ? `${unit}s` : unit;
 
                      const description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
@@ -85,7 +88,7 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
                     )
                   })
                 ) : (
-                  <p className="text-sm text-muted-foreground text-center py-4">No food logged yet.</p>
+                  <p className="text-sm text-muted-foreground text-center py-4">Aún no has registrado nada.</p>
                 )}
               </div>
               <AddFoodDialog
@@ -97,7 +100,7 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
               >
                  <button className="w-full flex items-center justify-center gap-2 py-2 px-4 rounded-md border-2 border-dashed border-muted-foreground/50 text-muted-foreground hover:bg-accent hover:border-accent-foreground hover:text-accent-foreground transition-colors">
                     <PlusCircle className="h-4 w-4" />
-                    Add Food
+                    Añadir Alimento
                 </button>
               </AddFoodDialog>
             </CardContent>
