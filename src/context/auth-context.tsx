@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -34,38 +35,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    let redirectHandled = false;
-    console.log("AuthProvider: useEffect - start");
-
+    // This effect runs once on mount to handle auth state.
+    
+    // First, check if a redirect result is pending.
     getRedirectResult(auth)
       .then((result) => {
-        console.log("AuthProvider: getRedirectResult", result);
+        // If we get a result, it means the user just signed in via redirect.
+        // onAuthStateChanged will handle setting the user, so we don't need to do it here.
         if (result?.user) {
-          setUser(result.user);
           router.push("/");
-          redirectHandled = true;
         }
       })
       .catch((error) => {
-        console.error("AuthProvider: getRedirectResult error", error);
-      })
-      .finally(() => {
-        console.log("AuthProvider: getRedirectResult finally");
-        if (!redirectHandled) {
-          setLoading(false);
-        }
+        console.error("Auth Error: Failed to get redirect result.", error);
       });
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log("AuthProvider: onAuthStateChanged user", user);
-      setUser(user);
+    // Then, set up the onAuthStateChanged listener.
+    // This is the primary source of truth for the user's auth state.
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
       setLoading(false);
     });
 
-    return () => {
-      console.log("AuthProvider: unsubscribing");
-      unsubscribe();
-    };
+    // Cleanup the listener when the component unmounts.
+    return () => unsubscribe();
   }, [router]);
 
   const getIdToken = async (): Promise<string | null> => {
@@ -77,16 +70,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
+    setLoading(true); // Set loading to true before redirecting
     try {
       await signInWithRedirect(auth, provider);
+      // The page will redirect, and the useEffect will handle the result on return.
     } catch (error) {
       console.error("Error initiating sign in with Google redirect", error);
+      setLoading(false); // Reset loading state on error
     }
   };
 
   const logout = async () => {
     try {
       await signOut(auth);
+      // onAuthStateChanged will set user to null, triggering redirect in AuthGuard
       router.push("/login");
     } catch (error) {
       console.error("Error signing out", error);
