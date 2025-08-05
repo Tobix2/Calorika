@@ -28,7 +28,8 @@ const FoodItemSchema = z.object({
 const CustomMealSchema = z.object({
     id: z.string(),
     name: z.string(),
-    items: z.array(z.any()), // Items are not needed for the prompt
+    // The items within a custom meal are not needed for the prompt, and cause a schema error.
+    // We only care about the total nutritional values of the pre-made meal.
     totalCalories: z.number(),
     totalProtein: z.number(),
     totalCarbs: z.number(),
@@ -110,7 +111,7 @@ Instructions:
 2.  Select a variety of items from the available resources to create a balanced plan.
 3.  For each individual food item you select, you MUST set the 'quantity' to be equal to its 'servingSize' and 'isCustom' to false.
 4.  For each pre-made meal you select, you MUST set the 'quantity' to 1 and 'isCustom' to true.
-5.  When you select a pre-made meal, you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the 'totalCalories', 'totalProtein', 'totalCarbs', and 'totalFats' values from the input meal.
+5.  When you select a pre-made meal from 'availableMeals', you MUST populate the 'calories', 'protein', 'carbs', and 'fats' fields in the output item using the corresponding 'totalCalories', 'totalProtein', 'totalCarbs', and 'totalFats' values from the input meal.
 6.  You MUST return an array of four meal objects, one for each meal type: 'Breakfast', 'Lunch', 'Dinner', 'Snacks'. If a meal has no items, return an empty 'items' array for it.
 7.  For each item in a meal, you must provide the complete food item data, plus a unique 'mealItemId', the initial 'quantity', and the 'isCustom' flag.
 8.  Do not invent new foods. Only use the ones provided.
