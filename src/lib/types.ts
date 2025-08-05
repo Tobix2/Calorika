@@ -1,4 +1,5 @@
 
+
 export type FoodItem = {
   id: string;
   name: string;
@@ -22,6 +23,12 @@ export type MealName = "Breakfast" | "Lunch" | "Dinner" | "Snacks";
 export type Meal = {
   name: MealName;
   items: MealItem[];
+};
+
+export type DailyPlan = Meal[];
+
+export type WeeklyPlan = {
+  [day: string]: DailyPlan;
 };
 
 export type CustomMeal = {

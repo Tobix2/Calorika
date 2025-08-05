@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useTransition, useEffect } from 'react';
-import type { Meal, MealName, FoodItem, CustomMeal, MealItem } from '@/lib/types';
+import type { Meal, MealName, FoodItem, CustomMeal, MealItem, WeeklyPlan, DailyPlan } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
@@ -30,17 +30,27 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import WeekNavigator from './week-navigator';
 
+const daysOfWeek = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-const initialMeals: Meal[] = [
+const initialDailyPlan: DailyPlan = [
   { name: 'Breakfast', items: [] },
   { name: 'Lunch', items: [] },
   { name: 'Dinner', items: [] },
   { name: 'Snacks', items: [] },
 ];
 
+const initialWeeklyPlan: WeeklyPlan = daysOfWeek.reduce((acc, day) => {
+    acc[day] = JSON.parse(JSON.stringify(initialDailyPlan));
+    return acc;
+}, {} as WeeklyPlan);
+
+
 export default function Dashboard() {
-  const [meals, setMeals] = useState<Meal[]>(initialMeals);
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>(initialWeeklyPlan);
+  const [selectedDay, setSelectedDay] = useState<string>(daysOfWeek[0]);
+
   const [calorieGoal, setCalorieGoal] = useState<number>(2200);
   const [proteinGoal, setProteinGoal] = useState<number>(140);
   const [carbsGoal, setCarbsGoal] = useState<number>(250);
@@ -55,6 +65,7 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
 
+  const meals = weeklyPlan[selectedDay] || initialDailyPlan;
 
   useEffect(() => {
     async function loadInitialData() {
@@ -84,19 +95,22 @@ export default function Dashboard() {
 
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
-    setMeals(prevMeals =>
-      prevMeals.map(meal => {
-        if (meal.name === mealName) {
-            const newItem: MealItem = {
-                ...food,
-                mealItemId: crypto.randomUUID(),
-                quantity: quantity
-            };
-            return { ...meal, items: [...meal.items, newItem] };
-        }
-        return meal;
-      })
-    );
+    setWeeklyPlan(prevPlan => {
+        const newPlan = { ...prevPlan };
+        const dayMeals = newPlan[selectedDay].map(meal => {
+            if (meal.name === mealName) {
+                const newItem: MealItem = {
+                    ...food,
+                    mealItemId: crypto.randomUUID(),
+                    quantity: quantity
+                };
+                return { ...meal, items: [...meal.items, newItem] };
+            }
+            return meal;
+        });
+        newPlan[selectedDay] = dayMeals;
+        return newPlan;
+    });
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
@@ -115,21 +129,30 @@ export default function Dashboard() {
         servingUnit: customMeal.servingUnit,
     };
 
-    setMeals(prevMeals => 
-        prevMeals.map(meal => 
-            meal.name === mealName ? { ...meal, items: [...meal.items, mealItem] } : meal
-        )
-    );
+     setWeeklyPlan(prevPlan => {
+        const newPlan = { ...prevPlan };
+        const dayMeals = newPlan[selectedDay].map(meal => {
+            if (meal.name === mealName) {
+                return { ...meal, items: [...meal.items, mealItem] };
+            }
+            return meal;
+        });
+        newPlan[selectedDay] = dayMeals;
+        return newPlan;
+    });
   };
 
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
-    setMeals(prevMeals =>
-      prevMeals.map(meal =>
-        meal.name === mealName
-          ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
-          : meal
-      )
-    );
+    setWeeklyPlan(prevPlan => {
+        const newPlan = { ...prevPlan };
+        const dayMeals = newPlan[selectedDay].map(meal =>
+            meal.name === mealName
+              ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
+              : meal
+        );
+        newPlan[selectedDay] = dayMeals;
+        return newPlan;
+    });
   };
 
   const handleSetGoal = (output: CalorieRecommendationOutput) => {
@@ -216,10 +239,13 @@ export default function Dashboard() {
                 description: result.error || 'The AI could not generate a meal plan.'
             });
         } else {
-            setMeals(result.data);
+            setWeeklyPlan(prevPlan => ({
+                ...prevPlan,
+                [selectedDay]: result.data as DailyPlan
+            }));
             toast({
                 title: 'Meal Plan Generated!',
-                description: 'Your daily meal plan has been populated by the AI.'
+                description: `Your meal plan for ${selectedDay} has been populated by the AI.`
             });
         }
     });
@@ -234,13 +260,12 @@ export default function Dashboard() {
           let ratio = 0;
 
           if (item.isCustom) {
-              // If the unit is a 'serving' or similar, ratio is just the quantity.
-              // If the unit is 'g' or another measurable unit, calculate the ratio.
-              if (item.servingUnit.toLowerCase().includes('serving')) {
-                  ratio = quantity;
-              } else {
-                  ratio = servingSize > 0 ? quantity / servingSize : 0;
-              }
+            // Check if the custom meal is by serving or by a measurable unit like grams
+            if (item.servingUnit?.toLowerCase() === 'serving' || item.servingUnit?.toLowerCase() === 'porcion') {
+              ratio = quantity;
+            } else {
+              ratio = servingSize > 0 ? quantity / servingSize : 0;
+            }
           } else {
              // For regular ingredients, always calculate the ratio.
              ratio = servingSize > 0 ? quantity / servingSize : 0;
@@ -266,7 +291,7 @@ export default function Dashboard() {
           let ratio = 0;
 
           if (item.isCustom) {
-              if (item.servingUnit.toLowerCase().includes('serving')) {
+              if (item.servingUnit?.toLowerCase().includes('serving') || item.servingUnit?.toLowerCase().includes('porcion')) {
                   ratio = quantity;
               } else {
                   ratio = servingSize > 0 ? quantity / servingSize : 0;
@@ -301,7 +326,7 @@ export default function Dashboard() {
                   </AlertDialogTrigger>
                   <AlertDialogContent>
                     <AlertDialogHeader>
-                      <AlertDialogTitle>Generate Meal Plan</AlertDialogTitle>
+                      <AlertDialogTitle>Generate Meal Plan for {selectedDay}</AlertDialogTitle>
                       <AlertDialogDescription>
                         Choose which resources the AI should use to generate your meal plan.
                       </AlertDialogDescription>
@@ -336,6 +361,11 @@ export default function Dashboard() {
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2 space-y-6">
+                    <WeekNavigator 
+                        days={daysOfWeek}
+                        selectedDay={selectedDay}
+                        onSelectDay={setSelectedDay}
+                    />
                     <DailySummary
                         totalCalories={totalCalories}
                         calorieGoal={calorieGoal}
