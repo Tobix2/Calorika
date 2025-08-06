@@ -169,7 +169,7 @@ export default function TrackerPage() {
                         <History className="h-5 w-5"/>
                         Historial de Registros
                     </CardTitle>
-                    <CardDescription>Tus registros de peso semanales.</CardDescription>
+                    <CardDescription>Tus registros de peso semanales (la semana empieza el lunes).</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <ScrollArea className="h-72">
@@ -226,7 +226,7 @@ export default function TrackerPage() {
                         angle={-45} 
                         textAnchor="end" 
                         height={80} 
-                        tickFormatter={(tick, index) => `Semana ${index + 1}: ${tick}`} 
+                        tickFormatter={(tick, index) => `Semana ${index + 1}`} 
                       />
                       <YAxis domain={['dataMin - 2', 'dataMax + 2']} />
                       <Tooltip 
