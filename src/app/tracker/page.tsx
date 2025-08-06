@@ -139,6 +139,32 @@ export default function TrackerPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card className="shadow-md">
                     <CardHeader>
+                        <CardTitle>Registrar Peso Semanal</CardTitle>
+                        <CardDescription>Añade o actualiza tu peso de esta semana. Solo se guarda un registro por semana.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                        <Label htmlFor="weight">Peso Actual (kg)</Label>
+                        <Input
+                            id="weight"
+                            type="number"
+                            value={currentWeight}
+                            onChange={e => setCurrentWeight(e.target.value)}
+                            placeholder="Ej: 95.5"
+                        />
+                        </div>
+                        <Button onClick={handleAddWeight} disabled={isPending || !currentWeight} className="w-full">
+                        {isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Plus className="mr-2 h-4 w-4" />
+                        )}
+                        Guardar Peso
+                        </Button>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-md">
+                    <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                         <History className="h-5 w-5"/>
                         Historial de Registros
@@ -177,32 +203,6 @@ export default function TrackerPage() {
                                 </TableBody>
                             </Table>
                         </ScrollArea>
-                    </CardContent>
-                </Card>
-                <Card className="shadow-md">
-                    <CardHeader>
-                        <CardTitle>Registrar Peso Semanal</CardTitle>
-                        <CardDescription>Añade o actualiza tu peso de esta semana. Solo se guarda un registro por semana.</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                        <Label htmlFor="weight">Peso Actual (kg)</Label>
-                        <Input
-                            id="weight"
-                            type="number"
-                            value={currentWeight}
-                            onChange={e => setCurrentWeight(e.target.value)}
-                            placeholder="Ej: 95.5"
-                        />
-                        </div>
-                        <Button onClick={handleAddWeight} disabled={isPending || !currentWeight} className="w-full">
-                        {isPending ? (
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        ) : (
-                            <Plus className="mr-2 h-4 w-4" />
-                        )}
-                        Guardar Peso
-                        </Button>
                     </CardContent>
                 </Card>
             </div>
