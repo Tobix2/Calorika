@@ -135,122 +135,120 @@ export default function TrackerPage() {
         </header>
 
         <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
-              <Card className="shadow-md">
-                <CardHeader>
-                  <CardTitle>Progreso de Peso Corporal</CardTitle>
-                  <CardDescription>Visualiza la evolución de tu peso semanal a lo largo del tiempo.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {isLoading ? (
-                    <div className="flex justify-center items-center h-80">
-                      <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                    </div>
-                  ) : weightHistory.length > 1 ? (
-                    <ResponsiveContainer width="100%" height={400}>
-                      <LineChart data={formattedData}>
-                        <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis 
-                          dataKey="formattedDate" 
-                          angle={-45} 
-                          textAnchor="end" 
-                          height={80} 
-                          tickFormatter={(tick, index) => `Semana ${index + 1}: ${tick}`} 
-                        />
-                        <YAxis domain={['dataMin - 2', 'dataMax + 2']} />
-                        <Tooltip 
-                            labelFormatter={(label, payload) => `Semana ${payload?.[0]?.payload.weekNumber}: ${label}`}
-                            formatter={(value) => [`${value} kg`, 'Peso']}
-                        />
-                        <Legend formatter={() => "Peso (kg)"}/>
-                        <Line type="monotone" dataKey="weight" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  ) : (
-                    <div className="flex flex-col items-center justify-center h-80 text-center">
-                        <WeightIcon className="h-16 w-16 text-muted-foreground mb-4" />
-                        <h3 className="text-xl font-semibold">No hay suficientes datos</h3>
-                        <p className="text-muted-foreground">Necesitas al menos dos registros de peso semanales para ver un gráfico.</p>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-            <div className="space-y-6">
-              <Card className="shadow-md">
-                <CardHeader>
-                  <CardTitle>Registrar Peso Semanal</CardTitle>
-                  <CardDescription>Añade o actualiza tu peso de esta semana. Solo se guarda un registro por semana.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="weight">Peso Actual (kg)</Label>
-                    <Input
-                      id="weight"
-                      type="number"
-                      value={currentWeight}
-                      onChange={e => setCurrentWeight(e.target.value)}
-                      placeholder="Ej: 95.5"
-                    />
-                  </div>
-                  <Button onClick={handleAddWeight} disabled={isPending || !currentWeight} className="w-full">
-                    {isPending ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Plus className="mr-2 h-4 w-4" />
-                    )}
-                    Guardar Peso
-                  </Button>
-                </CardContent>
-              </Card>
-               <Card className="shadow-md">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="h-5 w-5"/>
-                    Historial de Registros
-                  </CardTitle>
-                   <CardDescription>Tus registros de peso semanales.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ScrollArea className="h-72">
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                <TableHead>Semana</TableHead>
-                                <TableHead className="text-right">Peso (kg)</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                             <TableBody>
-                                {reversedHistoryWithWeek.length > 0 ? (
-                                    reversedHistoryWithWeek.map(entry => (
-                                        <TableRow key={entry.id}>
-                                            <TableCell className="font-medium">
-                                                <div className='flex flex-col'>
-                                                  <span>Semana {entry.weekNumber}</span>
-                                                  <span className='text-xs text-muted-foreground'>{format(new Date(entry.date), 'dd MMM yyyy', { locale: es })}</span>
-                                                </div>
-                                            </TableCell>
-                                            <TableCell className="text-right">{entry.weight.toFixed(1)}</TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
+          <div className="flex flex-col gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="shadow-md">
+                    <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                        <History className="h-5 w-5"/>
+                        Historial de Registros
+                    </CardTitle>
+                    <CardDescription>Tus registros de peso semanales.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <ScrollArea className="h-72">
+                            <Table>
+                                <TableHeader>
                                     <TableRow>
-                                        <TableCell colSpan={2} className="text-center text-muted-foreground">
-                                            Aún no hay registros.
-                                        </TableCell>
+                                    <TableHead>Semana</TableHead>
+                                    <TableHead className="text-right">Peso (kg)</TableHead>
                                     </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </ScrollArea>
-                </CardContent>
-              </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {reversedHistoryWithWeek.length > 0 ? (
+                                        reversedHistoryWithWeek.map(entry => (
+                                            <TableRow key={entry.id}>
+                                                <TableCell className="font-medium">
+                                                    <div className='flex flex-col'>
+                                                    <span>Semana {entry.weekNumber}</span>
+                                                    <span className='text-xs text-muted-foreground'>{format(new Date(entry.date), 'dd MMM yyyy', { locale: es })}</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-right">{entry.weight.toFixed(1)}</TableCell>
+                                            </TableRow>
+                                        ))
+                                    ) : (
+                                        <TableRow>
+                                            <TableCell colSpan={2} className="text-center text-muted-foreground">
+                                                Aún no hay registros.
+                                            </TableCell>
+                                        </TableRow>
+                                    )}
+                                </TableBody>
+                            </Table>
+                        </ScrollArea>
+                    </CardContent>
+                </Card>
+                <Card className="shadow-md">
+                    <CardHeader>
+                        <CardTitle>Registrar Peso Semanal</CardTitle>
+                        <CardDescription>Añade o actualiza tu peso de esta semana. Solo se guarda un registro por semana.</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="space-y-2">
+                        <Label htmlFor="weight">Peso Actual (kg)</Label>
+                        <Input
+                            id="weight"
+                            type="number"
+                            value={currentWeight}
+                            onChange={e => setCurrentWeight(e.target.value)}
+                            placeholder="Ej: 95.5"
+                        />
+                        </div>
+                        <Button onClick={handleAddWeight} disabled={isPending || !currentWeight} className="w-full">
+                        {isPending ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                            <Plus className="mr-2 h-4 w-4" />
+                        )}
+                        Guardar Peso
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
+            
+            <Card className="shadow-md">
+              <CardHeader>
+                <CardTitle>Progreso de Peso Corporal</CardTitle>
+                <CardDescription>Visualiza la evolución de tu peso semanal a lo largo del tiempo.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex justify-center items-center h-80">
+                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                  </div>
+                ) : weightHistory.length > 1 ? (
+                  <ResponsiveContainer width="100%" height={400}>
+                    <LineChart data={formattedData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="formattedDate" 
+                        angle={-45} 
+                        textAnchor="end" 
+                        height={80} 
+                        tickFormatter={(tick, index) => `Semana ${index + 1}: ${tick}`} 
+                      />
+                      <YAxis domain={['dataMin - 2', 'dataMax + 2']} />
+                      <Tooltip 
+                          labelFormatter={(label, payload) => `Semana ${payload?.[0]?.payload.weekNumber}: ${label}`}
+                          formatter={(value) => [`${value} kg`, 'Peso']}
+                      />
+                      <Legend formatter={() => "Peso (kg)"}/>
+                      <Line type="monotone" dataKey="weight" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ r: 4 }} activeDot={{ r: 8 }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-80 text-center">
+                      <WeightIcon className="h-16 w-16 text-muted-foreground mb-4" />
+                      <h3 className="text-xl font-semibold">No hay suficientes datos</h3>
+                      <p className="text-muted-foreground">Necesitas al menos dos registros de peso semanales para ver un gráfico.</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </main>
       </div>
     </AuthGuard>
   );
 }
-
