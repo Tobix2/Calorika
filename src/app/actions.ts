@@ -9,9 +9,9 @@ import {
 import {
   generateMealPlan,
 } from '@/ai/flows/generate-meal-plan';
-import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeightEntry } from '@/lib/types';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeeklyWeightEntry } from '@/lib/types';
 import { getDb } from '@/lib/firebase-admin';
-import { format } from 'date-fns';
+import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
 
 // --- AI Actions ---
@@ -259,26 +259,59 @@ export async function saveDailyPlanAction(userId: string, date: Date, plan: Dail
 
 
 // Weight History
-export async function addWeightEntryAction(userId: string, weightEntry: Omit<WeightEntry, 'id'>): Promise<WeightEntry> {
+export async function addWeightEntryAction(userId: string, weightEntry: Omit<WeeklyWeightEntry, 'id'>): Promise<{entry: WeeklyWeightEntry, updated: boolean}> {
     try {
         const db = getDb();
         const weightCollection = db.collection('users').doc(userId).collection('weightHistory');
+        const entryDate = new Date(weightEntry.date);
         
-        const dataToSave = {
-            ...weightEntry,
-            date: admin.firestore.Timestamp.fromDate(new Date(weightEntry.date)),
-        };
+        // Find the start of the week (assuming week starts on Monday)
+        const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 });
+        const weekEnd = endOfWeek(entryDate, { weekStartsOn: 1 });
 
-        const docRef = await weightCollection.add(dataToSave);
-        return { id: docRef.id, ...weightEntry };
+        // Query for an existing entry in the same week
+        const query = weightCollection
+            .where('date', '>=', admin.firestore.Timestamp.fromDate(weekStart))
+            .where('date', '<=', admin.firestore.Timestamp.fromDate(weekEnd));
 
+        const snapshot = await query.get();
+
+        if (snapshot.empty) {
+            // No entry for this week, create a new one
+            const dataToSave = {
+                weight: weightEntry.weight,
+                date: admin.firestore.Timestamp.fromDate(weekStart), // Store the start of the week
+            };
+            const docRef = await weightCollection.add(dataToSave);
+            return {
+                entry: {
+                    id: docRef.id,
+                    weight: weightEntry.weight,
+                    date: weekStart.toISOString(),
+                },
+                updated: false
+            };
+        } else {
+            // Entry exists, update it
+            const doc = snapshot.docs[0];
+            await doc.ref.update({ weight: weightEntry.weight });
+            return {
+                entry: {
+                    id: doc.id,
+                    weight: weightEntry.weight,
+                    date: (doc.data().date as admin.firestore.Timestamp).toDate().toISOString(),
+                },
+                updated: true
+            };
+        }
     } catch (error) {
-        console.error("🔥 Error al añadir entrada de peso a Firestore: ", error);
-        throw new Error('No se pudo añadir la entrada de peso.');
+        console.error("🔥 Error al añadir/actualizar entrada de peso en Firestore: ", error);
+        throw new Error('No se pudo guardar la entrada de peso.');
     }
 }
 
-export async function getWeightHistoryAction(userId: string): Promise<WeightEntry[]> {
+
+export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeightEntry[]> {
     try {
         const db = getDb();
         const weightCollection = db.collection('users').doc(userId).collection('weightHistory').orderBy('date', 'asc');
@@ -290,7 +323,7 @@ export async function getWeightHistoryAction(userId: string): Promise<WeightEntr
                 id: doc.id,
                 weight: data.weight,
                 date: (data.date as admin.firestore.Timestamp).toDate().toISOString(),
-            } as WeightEntry;
+            } as WeeklyWeightEntry;
         });
 
     } catch (error) {
@@ -298,3 +331,5 @@ export async function getWeightHistoryAction(userId: string): Promise<WeightEntr
         throw new Error("No se pudo obtener el historial de peso.");
     }
 }
+
+    

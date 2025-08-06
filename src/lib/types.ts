@@ -55,8 +55,10 @@ export type GenerateMealPlanInput = {
 
 export type GenerateMealPlanOutput = Meal[];
 
-export type WeightEntry = {
+export type WeeklyWeightEntry = {
   id: string;
-  date: string; // ISO 8601 format
+  date: string; // ISO 8601 format, represents start of the week
   weight: number; // in kg
 };
+
+    

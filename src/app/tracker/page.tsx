@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import type { WeightEntry } from '@/lib/types';
+import type { WeeklyWeightEntry } from '@/lib/types';
 import { getWeightHistoryAction, addWeightEntryAction } from '@/app/actions';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
@@ -20,7 +20,7 @@ import Link from 'next/link';
 export default function TrackerPage() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [weightHistory, setWeightHistory] = useState<WeightEntry[]>([]);
+  const [weightHistory, setWeightHistory] = useState<WeeklyWeightEntry[]>([]);
   const [currentWeight, setCurrentWeight] = useState<string>('');
   const [isPending, startTransition] = useTransition();
   const [isLoading, setIsLoading] = useState(true);
@@ -32,7 +32,11 @@ export default function TrackerPage() {
         .then(history => {
           setWeightHistory(history);
           if (history.length > 0) {
-            setCurrentWeight(history[history.length - 1].weight.toString());
+            // Find the most recent entry to display in the input
+            const lastEntry = history.reduce((latest, entry) => 
+                new Date(latest.date) > new Date(entry.date) ? latest : entry
+            );
+            setCurrentWeight(lastEntry.weight.toString());
           }
         })
         .catch(error => {
@@ -60,18 +64,29 @@ export default function TrackerPage() {
     }
 
     startTransition(async () => {
-      const newEntry: Omit<WeightEntry, 'id'> = {
+      const newEntry: Omit<WeeklyWeightEntry, 'id'> = {
         weight: weightValue,
         date: new Date().toISOString(),
       };
 
       try {
-        const addedEntry = await addWeightEntryAction(user.uid, newEntry);
-        setWeightHistory(prev => [...prev, addedEntry]);
-        toast({
-          title: '¡Éxito!',
-          description: `Peso de ${weightValue} kg registrado.`,
-        });
+        const { entry, updated } = await addWeightEntryAction(user.uid, newEntry);
+        
+        if (updated) {
+          // If updated, replace the existing entry for that week
+          setWeightHistory(prev => prev.map(item => item.id === entry.id ? entry : item));
+           toast({
+              title: '¡Registro Actualizado!',
+              description: `El peso de esta semana se ha actualizado a ${weightValue} kg.`,
+            });
+        } else {
+          // If new, add it to the list
+          setWeightHistory(prev => [...prev, entry]);
+           toast({
+              title: '¡Éxito!',
+              description: `Peso de ${weightValue} kg registrado para esta semana.`,
+            });
+        }
       } catch (error) {
         toast({
           variant: 'destructive',
@@ -115,7 +130,7 @@ export default function TrackerPage() {
               <Card className="shadow-md">
                 <CardHeader>
                   <CardTitle>Progreso de Peso Corporal</CardTitle>
-                  <CardDescription>Visualiza la evolución de tu peso a lo largo del tiempo.</CardDescription>
+                  <CardDescription>Visualiza la evolución de tu peso semanal a lo largo del tiempo.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {isLoading ? (
@@ -126,10 +141,10 @@ export default function TrackerPage() {
                     <ResponsiveContainer width="100%" height={400}>
                       <LineChart data={formattedData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="formattedDate" angle={-45} textAnchor="end" height={80} />
+                        <XAxis dataKey="formattedDate" angle={-45} textAnchor="end" height={80} tickFormatter={(tick) => `Semana del ${tick}`} />
                         <YAxis domain={['dataMin - 2', 'dataMax + 2']} />
                         <Tooltip 
-                            labelFormatter={(label) => `Fecha: ${label}`}
+                            labelFormatter={(label) => `Semana del: ${label}`}
                             formatter={(value) => [`${value} kg`, 'Peso']}
                         />
                         <Legend formatter={() => "Peso (kg)"}/>
@@ -140,7 +155,7 @@ export default function TrackerPage() {
                     <div className="flex flex-col items-center justify-center h-80 text-center">
                         <WeightIcon className="h-16 w-16 text-muted-foreground mb-4" />
                         <h3 className="text-xl font-semibold">No hay suficientes datos</h3>
-                        <p className="text-muted-foreground">Necesitas al menos dos registros de peso para ver un gráfico.</p>
+                        <p className="text-muted-foreground">Necesitas al menos dos registros de peso semanales para ver un gráfico.</p>
                     </div>
                   )}
                 </CardContent>
@@ -149,8 +164,8 @@ export default function TrackerPage() {
             <div className="space-y-6">
               <Card className="shadow-md">
                 <CardHeader>
-                  <CardTitle>Registrar Nuevo Peso</CardTitle>
-                  <CardDescription>Añade tu peso actual para mantener tu seguimiento al día.</CardDescription>
+                  <CardTitle>Registrar Peso Semanal</CardTitle>
+                  <CardDescription>Añade o actualiza tu peso de esta semana. Solo se guarda un registro por semana.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
@@ -169,7 +184,7 @@ export default function TrackerPage() {
                     ) : (
                       <Plus className="mr-2 h-4 w-4" />
                     )}
-                    Añadir Registro
+                    Guardar Peso
                   </Button>
                 </CardContent>
               </Card>
@@ -180,3 +195,5 @@ export default function TrackerPage() {
     </AuthGuard>
   );
 }
+
+    
