@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useTransition } from 'react';
+import { useState, useEffect, useTransition, useMemo } from 'react';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from '@/components/auth-guard';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,10 @@ import { getWeightHistoryAction, addWeightEntryAction } from '@/app/actions';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { ArrowLeft, Loader2, Plus, WeightIcon } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, WeightIcon, History } from 'lucide-react';
 import Link from 'next/link';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function TrackerPage() {
   const { user } = useAuth();
@@ -32,7 +34,6 @@ export default function TrackerPage() {
         .then(history => {
           setWeightHistory(history);
           if (history.length > 0) {
-            // Find the most recent entry to display in the input
             const lastEntry = history.reduce((latest, entry) => 
                 new Date(latest.date) > new Date(entry.date) ? latest : entry
             );
@@ -73,15 +74,13 @@ export default function TrackerPage() {
         const { entry, updated } = await addWeightEntryAction(user.uid, newEntry);
         
         if (updated) {
-          // If updated, replace the existing entry for that week
-          setWeightHistory(prev => prev.map(item => item.id === entry.id ? entry : item));
+          setWeightHistory(prev => prev.map(item => item.id === entry.id ? entry : item).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
            toast({
               title: '¡Registro Actualizado!',
               description: `El peso de esta semana se ha actualizado a ${weightValue} kg.`,
             });
         } else {
-          // If new, add it to the list
-          setWeightHistory(prev => [...prev, entry]);
+          setWeightHistory(prev => [...prev, entry].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
            toast({
               title: '¡Éxito!',
               description: `Peso de ${weightValue} kg registrado para esta semana.`,
@@ -99,9 +98,12 @@ export default function TrackerPage() {
 
   const formattedData = weightHistory.map(entry => ({
     ...entry,
-    // Format date for the chart tooltip and axis
     formattedDate: format(new Date(entry.date), 'd MMM yyyy', { locale: es }),
   }));
+
+  const reversedHistory = useMemo(() => {
+      return [...weightHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [weightHistory]);
 
   return (
     <AuthGuard>
@@ -188,6 +190,43 @@ export default function TrackerPage() {
                   </Button>
                 </CardContent>
               </Card>
+               <Card className="shadow-md">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <History className="h-5 w-5"/>
+                    Historial de Registros
+                  </CardTitle>
+                   <CardDescription>Tus registros de peso semanales.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ScrollArea className="h-72">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                <TableHead>Fecha (Semana del)</TableHead>
+                                <TableHead className="text-right">Peso (kg)</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                             <TableBody>
+                                {reversedHistory.length > 0 ? (
+                                    reversedHistory.map(entry => (
+                                        <TableRow key={entry.id}>
+                                            <TableCell className="font-medium">{format(new Date(entry.date), 'dd MMM yyyy', { locale: es })}</TableCell>
+                                            <TableCell className="text-right">{entry.weight.toFixed(1)}</TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
+                                    <TableRow>
+                                        <TableCell colSpan={2} className="text-center text-muted-foreground">
+                                            Aún no hay registros.
+                                        </TableCell>
+                                    </TableRow>
+                                )}
+                            </TableBody>
+                        </Table>
+                    </ScrollArea>
+                </CardContent>
+              </Card>
             </div>
           </div>
         </main>
@@ -195,5 +234,3 @@ export default function TrackerPage() {
     </AuthGuard>
   );
 }
-
-    
