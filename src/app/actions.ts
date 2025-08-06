@@ -9,9 +9,10 @@ import {
 import {
   generateMealPlan,
 } from '@/ai/flows/generate-meal-plan';
-import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem } from '@/lib/types';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeightEntry } from '@/lib/types';
 import { getDb } from '@/lib/firebase-admin';
 import { format } from 'date-fns';
+import admin from 'firebase-admin';
 
 // --- AI Actions ---
 
@@ -253,5 +254,47 @@ export async function saveDailyPlanAction(userId: string, date: Date, plan: Dail
     } catch (error) {
         console.error(`🔥 Error al guardar el plan para ${format(date, 'yyyy-MM-dd')}:`, error);
         throw new Error("No se pudo guardar el plan diario.");
+    }
+}
+
+
+// Weight History
+export async function addWeightEntryAction(userId: string, weightEntry: Omit<WeightEntry, 'id'>): Promise<WeightEntry> {
+    try {
+        const db = getDb();
+        const weightCollection = db.collection('users').doc(userId).collection('weightHistory');
+        
+        const dataToSave = {
+            ...weightEntry,
+            date: admin.firestore.Timestamp.fromDate(new Date(weightEntry.date)),
+        };
+
+        const docRef = await weightCollection.add(dataToSave);
+        return { id: docRef.id, ...weightEntry };
+
+    } catch (error) {
+        console.error("🔥 Error al añadir entrada de peso a Firestore: ", error);
+        throw new Error('No se pudo añadir la entrada de peso.');
+    }
+}
+
+export async function getWeightHistoryAction(userId: string): Promise<WeightEntry[]> {
+    try {
+        const db = getDb();
+        const weightCollection = db.collection('users').doc(userId).collection('weightHistory').orderBy('date', 'asc');
+        const snapshot = await weightCollection.get();
+
+        return snapshot.docs.map(doc => {
+            const data = doc.data();
+            return {
+                id: doc.id,
+                weight: data.weight,
+                date: (data.date as admin.firestore.Timestamp).toDate().toISOString(),
+            } as WeightEntry;
+        });
+
+    } catch (error) {
+        console.error("🔥 Error al obtener el historial de peso de Firestore:", error);
+        throw new Error("No se pudo obtener el historial de peso.");
     }
 }

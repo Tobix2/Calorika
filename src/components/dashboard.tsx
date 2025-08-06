@@ -7,7 +7,7 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut } from 'lucide-react';
+import { Leaf, Bot, Loader2, LogOut, WeightIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
@@ -30,6 +30,7 @@ import {
 import WeekNavigator from './week-navigator';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
+import Link from 'next/link';
 
 const initialDailyPlan: DailyPlan = [
   { name: 'Breakfast', items: [] },
@@ -367,7 +368,12 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
               </div>
               <div className="flex items-center gap-4">
-
+                <Button variant="outline" asChild>
+                  <Link href="/tracker">
+                    <WeightIcon className="mr-2"/>
+                    Mi Progreso
+                  </Link>
+                </Button>
                 <AlertDialog open={isGeneratePlanDialogOpen} onOpenChange={setIsGeneratePlanDialogOpen}>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" disabled={isPending}>

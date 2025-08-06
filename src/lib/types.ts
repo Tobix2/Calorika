@@ -54,3 +54,9 @@ export type GenerateMealPlanInput = {
 };
 
 export type GenerateMealPlanOutput = Meal[];
+
+export type WeightEntry = {
+  id: string;
+  date: string; // ISO 8601 format
+  weight: number; // in kg
+};
