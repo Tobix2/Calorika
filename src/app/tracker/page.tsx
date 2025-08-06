@@ -96,13 +96,21 @@ export default function TrackerPage() {
     });
   };
 
-  const formattedData = weightHistory.map(entry => ({
-    ...entry,
-    formattedDate: format(new Date(entry.date), 'd MMM yyyy', { locale: es }),
-  }));
-
-  const reversedHistory = useMemo(() => {
-      return [...weightHistory].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const formattedData = useMemo(() => 
+    weightHistory.map((entry, index) => ({
+      ...entry,
+      weekNumber: index + 1,
+      formattedDate: format(new Date(entry.date), 'd MMM yyyy', { locale: es }),
+    })), [weightHistory]);
+  
+  const reversedHistoryWithWeek = useMemo(() => {
+    const totalEntries = weightHistory.length;
+    return [...weightHistory]
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .map((entry, index) => ({
+        ...entry,
+        weekNumber: totalEntries - index,
+      }));
   }, [weightHistory]);
 
   return (
@@ -143,10 +151,16 @@ export default function TrackerPage() {
                     <ResponsiveContainer width="100%" height={400}>
                       <LineChart data={formattedData}>
                         <CartesianGrid strokeDasharray="3 3" />
-                        <XAxis dataKey="formattedDate" angle={-45} textAnchor="end" height={80} tickFormatter={(tick) => `Semana del ${tick}`} />
+                        <XAxis 
+                          dataKey="formattedDate" 
+                          angle={-45} 
+                          textAnchor="end" 
+                          height={80} 
+                          tickFormatter={(tick, index) => `Semana ${index + 1}: ${tick}`} 
+                        />
                         <YAxis domain={['dataMin - 2', 'dataMax + 2']} />
                         <Tooltip 
-                            labelFormatter={(label) => `Semana del: ${label}`}
+                            labelFormatter={(label, payload) => `Semana ${payload?.[0]?.payload.weekNumber}: ${label}`}
                             formatter={(value) => [`${value} kg`, 'Peso']}
                         />
                         <Legend formatter={() => "Peso (kg)"}/>
@@ -203,15 +217,20 @@ export default function TrackerPage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                <TableHead>Fecha (Semana del)</TableHead>
+                                <TableHead>Semana</TableHead>
                                 <TableHead className="text-right">Peso (kg)</TableHead>
                                 </TableRow>
                             </TableHeader>
                              <TableBody>
-                                {reversedHistory.length > 0 ? (
-                                    reversedHistory.map(entry => (
+                                {reversedHistoryWithWeek.length > 0 ? (
+                                    reversedHistoryWithWeek.map(entry => (
                                         <TableRow key={entry.id}>
-                                            <TableCell className="font-medium">{format(new Date(entry.date), 'dd MMM yyyy', { locale: es })}</TableCell>
+                                            <TableCell className="font-medium">
+                                                <div className='flex flex-col'>
+                                                  <span>Semana {entry.weekNumber}</span>
+                                                  <span className='text-xs text-muted-foreground'>{format(new Date(entry.date), 'dd MMM yyyy', { locale: es })}</span>
+                                                </div>
+                                            </TableCell>
                                             <TableCell className="text-right">{entry.weight.toFixed(1)}</TableCell>
                                         </TableRow>
                                     ))
@@ -234,3 +253,4 @@ export default function TrackerPage() {
     </AuthGuard>
   );
 }
+
