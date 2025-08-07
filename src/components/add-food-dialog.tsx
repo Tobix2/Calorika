@@ -188,7 +188,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
                           </div>
                            <div className="flex items-center">
                               <Button size="icon" variant="ghost" onClick={() => handleSelect(meal)}>
-                                  <Info className="h-4 w-4" />
+                                  <Plus className="h-4 w-4" />
                               </Button>
                               <Button size="icon" variant="ghost" className="text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => handleDeleteClick(e, meal)}>
                                   <Trash2 className="h-4 w-4" />
