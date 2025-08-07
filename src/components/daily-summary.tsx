@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Target, Beef, Wheat, Droplets, Save, Loader2 } from 'lucide-react';
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
+import type { UserGoals } from "@/lib/types";
 
 interface DailySummaryProps {
   totalCalories: number;
@@ -17,10 +18,7 @@ interface DailySummaryProps {
   carbsGoal: number;
   fats: number;
   fatsGoal: number;
-  setCalorieGoal: (value: number) => void;
-  setProteinGoal: (value: number) => void;
-  setCarbsGoal: (value: number) => void;
-  setFatsGoal: (value: number) => void;
+  onGoalChange: (goals: UserGoals) => void;
   onSaveGoals: () => void;
   isSaving: boolean;
 }
@@ -34,21 +32,26 @@ export default function DailySummary({
   carbsGoal,
   fats,
   fatsGoal,
-  setCalorieGoal,
-  setProteinGoal,
-  setCarbsGoal,
-  setFatsGoal,
+  onGoalChange,
   onSaveGoals,
   isSaving
 }: DailySummaryProps) {
   const progress = calorieGoal > 0 ? (totalCalories / calorieGoal) * 100 : 0;
   
-  const handleGoalChange = useCallback((setter: (value: number) => void) => (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleGoalChange = useCallback((field: keyof UserGoals) => (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value === '' ? 0 : parseFloat(e.target.value);
-    setter(value);
-  }, []);
+    const newGoals = {
+        calorieGoal,
+        proteinGoal,
+        carbsGoal,
+        fatsGoal,
+        [field]: value
+    };
+    onGoalChange(newGoals);
+  }, [calorieGoal, proteinGoal, carbsGoal, fatsGoal, onGoalChange]);
 
-  const MacroStat = ({ icon, title, value, goal, onGoalChange }: { icon: React.ReactNode, title: string, value: number, goal: number, onGoalChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
+
+  const MacroStat = ({ icon, title, value, goal, onGoalChange: handleMacroChange }: { icon: React.ReactNode, title: string, value: number, goal: number, onGoalChange: (e: React.ChangeEvent<HTMLInputElement>) => void }) => (
     <div className="bg-muted/50 p-4 rounded-lg">
         <div className="flex items-center justify-center gap-2 mb-2">
             {icon}
@@ -60,7 +63,7 @@ export default function DailySummary({
                  <Input 
                     type="number"
                     value={goal.toString()}
-                    onChange={onGoalChange}
+                    onChange={handleMacroChange}
                     className="text-center text-sm font-normal text-muted-foreground bg-transparent pr-7"
                 />
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">g</span>
@@ -101,7 +104,7 @@ export default function DailySummary({
                         <Input 
                             type="number" 
                             value={calorieGoal.toString()}
-                            onChange={handleGoalChange(setCalorieGoal)}
+                            onChange={handleGoalChange('calorieGoal')}
                             className="w-32 h-9 text-lg text-right font-bold bg-transparent pr-12"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-normal text-muted-foreground">kcal</span>
@@ -112,13 +115,11 @@ export default function DailySummary({
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
-            <MacroStat icon={<Beef className="h-5 w-5 text-red-500" />} title="Proteína" value={protein} goal={proteinGoal} onGoalChange={handleGoalChange(setProteinGoal)} />
-            <MacroStat icon={<Wheat className="h-5 w-5 text-yellow-500" />} title="Carbs" value={carbs} goal={carbsGoal} onGoalChange={handleGoalChange(setCarbsGoal)} />
-            <MacroStat icon={<Droplets className="h-5 w-5 text-blue-500" />} title="Grasas" value={fats} goal={fatsGoal} onGoalChange={handleGoalChange(setFatsGoal)} />
+            <MacroStat icon={<Beef className="h-5 w-5 text-red-500" />} title="Proteína" value={protein} goal={proteinGoal} onGoalChange={handleGoalChange('proteinGoal')} />
+            <MacroStat icon={<Wheat className="h-5 w-5 text-yellow-500" />} title="Carbs" value={carbs} goal={carbsGoal} onGoalChange={handleGoalChange('carbsGoal')} />
+            <MacroStat icon={<Droplets className="h-5 w-5 text-blue-500" />} title="Grasas" value={fats} goal={fatsGoal} onGoalChange={handleGoalChange('fatsGoal')} />
         </div>
       </CardContent>
     </Card>
   );
 }
-
-    

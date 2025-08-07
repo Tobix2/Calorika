@@ -238,7 +238,7 @@ const initialDailyPlan: DailyPlan = [
   { name: 'Snacks', items: [] },
 ];
 
-export async function getWeeklyPlanAction(userId: string, weekDates: Date[]): Promise<WeeklyPlan> {
+export async function getWeeklyPlanAction(userId: string, weekDates: Date[], profileGoals: UserGoals | null): Promise<WeeklyPlan> {
     try {
         const db = getDb();
         const plansCollection = db.collection('users').doc(userId).collection('dailyPlans');
@@ -249,16 +249,20 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[]): Pr
             const docSnap = await docRef.get();
             if (docSnap.exists) {
                 const data = docSnap.data();
-                // Firestore doesn't store top-level arrays, so data is { meals: DailyPlan }
-                return { date: dateString, plan: (data?.meals || initialDailyPlan) as DailyPlan };
+                return { 
+                    date: dateString, 
+                    plan: (data?.plan || initialDailyPlan) as DailyPlan,
+                    goals: (data?.goals) as UserGoals
+                };
             }
-            return { date: dateString, plan: initialDailyPlan };
+            // For days without a record, use profile goals
+            return { date: dateString, plan: initialDailyPlan, goals: profileGoals || { calorieGoal: 0, proteinGoal: 0, carbsGoal: 0, fatsGoal: 0 }};
         });
 
-        const dailyPlans = await Promise.all(planPromises);
+        const dailyData = await Promise.all(planPromises);
         
-        const weeklyPlan: WeeklyPlan = dailyPlans.reduce((acc, { date, plan }) => {
-            acc[date] = plan;
+        const weeklyPlan: WeeklyPlan = dailyData.reduce((acc, { date, plan, goals }) => {
+            acc[date] = { plan, goals };
             return acc;
         }, {} as WeeklyPlan);
 
@@ -270,15 +274,19 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[]): Pr
     }
 }
 
-export async function saveDailyPlanAction(userId: string, date: Date, plan: DailyPlan): Promise<void> {
+export async function saveDailyPlanAction(userId: string, date: Date, plan: DailyPlan, goals: UserGoals): Promise<void> {
     try {
         const db = getDb();
         const dateString = format(date, 'yyyy-MM-dd');
         const docRef = db.collection('users').doc(userId).collection('dailyPlans').doc(dateString);
         
-        // Firestore cannot save top-level arrays. Wrap it in an object.
         const plainPlanObject = JSON.parse(JSON.stringify(plan));
-        const dataToSave = { meals: plainPlanObject };
+        const plainGoalsObject = JSON.parse(JSON.stringify(goals));
+        
+        const dataToSave = { 
+            plan: plainPlanObject,
+            goals: plainGoalsObject,
+        };
 
         await docRef.set(dataToSave, { merge: true });
     } catch (error) {

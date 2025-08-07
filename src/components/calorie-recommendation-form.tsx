@@ -83,7 +83,7 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
     });
   }
 
-  const handleApplyGoalForFuture = (output: CalorieRecommendationOutput) => {
+  const handleApplyAndSaveGoal = (output: CalorieRecommendationOutput) => {
     if (!user) {
         toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para guardar tus objetivos.' });
         return;
@@ -265,11 +265,11 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
               <Button variant="outline" className="w-full" onClick={() => handleApplyGoal(state.data!)}>Aplicar solo para Hoy</Button>
               <Button 
                 className="w-full" 
-                onClick={() => handleApplyGoalForFuture(state.data!)}
+                onClick={() => handleApplyAndSaveGoal(state.data!)}
                 disabled={isSaving}
               >
                 {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-                Aplicar para el Futuro
+                Guardar y Aplicar para Futuro
               </Button>
             </div>
         </CardContent>

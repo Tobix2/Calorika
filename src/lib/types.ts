@@ -27,8 +27,13 @@ export type Meal = {
 
 export type DailyPlan = Meal[];
 
+export type DayData = {
+  plan: DailyPlan;
+  goals: UserGoals;
+}
+
 export type WeeklyPlan = {
-  [date: string]: DailyPlan; // La clave es YYYY-MM-DD
+  [date: string]: DayData; // La clave es YYYY-MM-DD
 };
 
 export type CustomMeal = {
@@ -39,7 +44,7 @@ export type CustomMeal = {
   totalCalories: number;
   totalProtein: number;
   totalCarbs: number;
-totalFats: number;
+  totalFats: number;
   servingSize: number;
   servingUnit: string;
 };

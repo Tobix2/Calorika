@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
-import type { Meal, MealName, FoodItem, CustomMeal, MealItem, WeeklyPlan, DailyPlan, UserGoals } from '@/lib/types';
+import type { Meal, MealName, FoodItem, CustomMeal, MealItem, WeeklyPlan, DailyPlan, UserGoals, DayData } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
@@ -27,42 +27,49 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import WeekNavigator from './week-navigator';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval, isBefore, startOfToday } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
 
-const initialDailyPlan: DailyPlan = [
-  { name: 'Breakfast', items: [] },
-  { name: 'Lunch', items: [] },
-  { name: 'Dinner', items: [] },
-  { name: 'Snacks', items: [] },
-];
+const initialDayData: DayData = {
+  plan: [
+    { name: 'Breakfast', items: [] },
+    { name: 'Lunch', items: [] },
+    { name: 'Dinner', items: [] },
+    { name: 'Snacks', items: [] },
+  ],
+  goals: {
+    calorieGoal: 0,
+    proteinGoal: 0,
+    carbsGoal: 0,
+    fatsGoal: 0,
+  }
+};
+
 
 export default function Dashboard() {
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>({});
   const [currentDate, setCurrentDate] = useState(new Date());
   
-  // Goals for the currently selected day
-  const [calorieGoal, setCalorieGoal] = useState<number>(2200);
-  const [proteinGoal, setProteinGoal] = useState<number>(140);
-  const [carbsGoal, setCarbsGoal] = useState<number>(250);
-  const [fatsGoal, setFatsGoal] = useState<number>(70);
-  
-  // Persisted goals from user profile
-  const [userProfileGoals, setUserProfileGoals] = useState<UserGoals | null>(null);
+  // Persisted goals from user profile, used for FUTURE days
+  const [profileGoals, setProfileGoals] = useState<UserGoals | null>(null);
 
   const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>([]);
   const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
   
-  const [isPending, startTransition] = useTransition();
+  const [isAiPending, startAiTransition] = useTransition();
   const [isSavingGoals, startSavingGoalsTransition] = useTransition();
 
   const { toast } = useToast();
   const { user, logout } = useAuth();
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
 
   const selectedDateKey = format(currentDate, 'yyyy-MM-dd');
-  const meals = weeklyPlan[selectedDateKey] || initialDailyPlan;
+  const dayData = weeklyPlan[selectedDateKey] || initialDayData;
+  const { plan: meals, goals } = dayData;
+  const { calorieGoal, proteinGoal, carbsGoal, fatsGoal } = goals;
 
   const weekDates = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Lunes
@@ -70,9 +77,10 @@ export default function Dashboard() {
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
 
-  const loadWeeklyPlan = useCallback(async (user: any, dates: Date[]) => {
+  const loadWeeklyPlan = useCallback(async (user: any, dates: Date[], goals: UserGoals | null) => {
+      setIsLoading(true);
       try {
-          const plan = await getWeeklyPlanAction(user.uid, dates);
+          const plan = await getWeeklyPlanAction(user.uid, dates, goals);
           setWeeklyPlan(plan);
       } catch (error) {
           console.error("No se pudo cargar el plan semanal", error);
@@ -81,6 +89,8 @@ export default function Dashboard() {
               title: 'Error',
               description: 'No se pudo cargar tu plan. Por favor, intenta refrescar.'
           });
+      } finally {
+        setIsLoading(false);
       }
   }, [toast]);
 
@@ -88,6 +98,7 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadInitialData() {
         if (user) {
+            setIsLoading(true);
             try {
                 const [foods, mealsData, goals] = await Promise.all([
                     getFoodsAction(user.uid),
@@ -96,11 +107,8 @@ export default function Dashboard() {
                 ]);
                 setFoodDatabase(foods);
                 setCustomMeals(mealsData);
-                if (goals) {
-                    setUserProfileGoals(goals);
-                    handleSetGoal(goals); // Set initial daily goals from profile
-                }
-                loadWeeklyPlan(user, weekDates);
+                setProfileGoals(goals);
+                loadWeeklyPlan(user, weekDates, goals);
             } catch (error) {
                 console.error("No se pudieron cargar los datos iniciales", error);
                 toast({
@@ -108,6 +116,7 @@ export default function Dashboard() {
                     title: 'Error',
                     description: 'No se pudieron cargar tus datos. Por favor, refresca la página.'
                 });
+                setIsLoading(false);
             }
         }
     }
@@ -116,45 +125,45 @@ export default function Dashboard() {
 
   // This effect reloads the weekly plan when the week changes.
   useEffect(() => {
-    if(user) {
-        loadWeeklyPlan(user, weekDates);
+    if(user && !isLoading) { // prevent re-fetching on initial load
+        loadWeeklyPlan(user, weekDates, profileGoals);
     }
-  }, [weekDates, user, loadWeeklyPlan]);
+  }, [weekDates, user, profileGoals]); // Re-fetch if profileGoals change
 
-  // This effect resets the daily goals to the profile goals when the date changes,
-  // but only for today and future dates.
-  useEffect(() => {
-    // Check if the selected date is in the past
-    const isPastDate = isBefore(currentDate, startOfToday());
 
-    if (userProfileGoals && !isPastDate) {
-        handleSetGoal(userProfileGoals);
-    } else if (isPastDate) {
-        // For past dates, we could either clear goals or try to load a day-specific goal if it existed.
-        // For now, let's just not apply the profile goals.
-        // The display will reflect the totals vs whatever goals were active that day (or 0).
-    }
-  }, [currentDate, userProfileGoals]);
-  
-  const saveCurrentDailyPlan = (plan: DailyPlan) => {
-    if (user) {
-      saveDailyPlanAction(user.uid, currentDate, plan).catch(error => {
+  const saveCurrentDailyPlan = useCallback(async (newPlan: DailyPlan, newGoals: UserGoals) => {
+    if (user && !isSaving) {
+      setIsSaving(true);
+      try {
+        await saveDailyPlanAction(user.uid, currentDate, newPlan, newGoals);
+      } catch (error) {
         console.error("No se pudo guardar el plan diario", error);
         toast({
           variant: 'destructive',
           title: 'Error de Guardado',
           description: 'No se pudieron guardar tus últimos cambios.'
         });
-      });
+      } finally {
+        setIsSaving(false);
+      }
     }
-  };
+  }, [user, currentDate, toast, isSaving]);
 
+  const updateDayData = (newDayData: Partial<DayData>) => {
+    const updatedDayData = {
+        ...dayData,
+        ...newDayData,
+    };
+    const newPlanState = {
+        ...weeklyPlan,
+        [selectedDateKey]: updatedDayData
+    };
+    setWeeklyPlan(newPlanState);
+    saveCurrentDailyPlan(updatedDayData.plan, updatedDayData.goals);
+  }
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
-    const newPlanState = { ...weeklyPlan };
-    const dayPlan = newPlanState[selectedDateKey] ? JSON.parse(JSON.stringify(newPlanState[selectedDateKey])) : JSON.parse(JSON.stringify(initialDailyPlan));
-    
-    const updatedDayPlan = dayPlan.map((meal: Meal) => {
+    const updatedDayPlan = meals.map((meal: Meal) => {
         if (meal.name === mealName) {
             const newItem: MealItem = {
                 ...food,
@@ -165,10 +174,7 @@ export default function Dashboard() {
         }
         return meal;
     });
-    
-    newPlanState[selectedDateKey] = updatedDayPlan;
-    setWeeklyPlan(newPlanState);
-    saveCurrentDailyPlan(updatedDayPlan);
+    updateDayData({ plan: updatedDayPlan });
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
@@ -187,43 +193,27 @@ export default function Dashboard() {
         servingUnit: customMeal.servingUnit,
     };
 
-    const newPlanState = { ...weeklyPlan };
-    const dayPlan = newPlanState[selectedDateKey] ? JSON.parse(JSON.stringify(newPlanState[selectedDateKey])) : JSON.parse(JSON.stringify(initialDailyPlan));
-    
-    const updatedDayPlan = dayPlan.map((meal: Meal) => {
+    const updatedDayPlan = meals.map((meal: Meal) => {
         if (meal.name === mealName) {
             return { ...meal, items: [...meal.items, mealItem] };
         }
         return meal;
     });
 
-    newPlanState[selectedDateKey] = updatedDayPlan;
-    setWeeklyPlan(newPlanState);
-    saveCurrentDailyPlan(updatedDayPlan);
+    updateDayData({ plan: updatedDayPlan });
   };
 
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
-    if (!weeklyPlan[selectedDateKey]) return;
-
-    const newPlanState = { ...weeklyPlan };
-    const dayPlan = JSON.parse(JSON.stringify(newPlanState[selectedDateKey]));
-    
-    const updatedDayPlan = dayPlan.map((meal: Meal) =>
+    const updatedDayPlan = meals.map((meal: Meal) =>
         meal.name === mealName
           ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
           : meal
     );
-    
-    newPlanState[selectedDateKey] = updatedDayPlan;
-    setWeeklyPlan(newPlanState);
-    saveCurrentDailyPlan(updatedDayPlan);
+    updateDayData({ plan: updatedDayPlan });
   };
 
-  const handleSetGoal = (goals: UserGoals) => {
-    setCalorieGoal(goals.calorieGoal);
-    setProteinGoal(goals.proteinGoal);
-    setCarbsGoal(goals.carbsGoal);
-    setFatsGoal(goals.fatsGoal);
+  const handleSetGoal = (newGoals: UserGoals) => {
+    updateDayData({ goals: newGoals });
   };
   
   const handleSaveGoals = () => {
@@ -241,7 +231,7 @@ export default function Dashboard() {
     startSavingGoalsTransition(async () => {
         try {
             await saveUserGoalsAction(user.uid, goalsToSave);
-            setUserProfileGoals(goalsToSave); // Update the global profile goals state
+            setProfileGoals(goalsToSave); // Update the global profile goals state
             toast({
                 title: '¡Objetivos Guardados!',
                 description: 'Tus metas personalizadas se han guardado y se aplicarán a los días futuros.',
@@ -308,7 +298,7 @@ export default function Dashboard() {
 
   const handleGeneratePlan = (mode: 'ingredients' | 'meals' | 'both') => {
     setIsGeneratePlanDialogOpen(false);
-    startTransition(async () => {
+    startAiTransition(async () => {
         let payload: any = {
             calorieGoal,
             proteinGoal,
@@ -335,11 +325,7 @@ export default function Dashboard() {
             });
         } else {
             const newPlan = result.data as DailyPlan;
-            setWeeklyPlan(prevPlan => ({
-                ...prevPlan,
-                [selectedDateKey]: newPlan
-            }));
-            saveCurrentDailyPlan(newPlan);
+            updateDayData({ plan: newPlan });
             toast({
                 title: '¡Plan de Comidas Generado!',
                 description: `Tu plan de comidas para el ${format(currentDate, 'PPP', { locale: es })} ha sido poblado por la IA.`
@@ -408,6 +394,13 @@ export default function Dashboard() {
     }));
   }, [meals]);
 
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <AuthGuard>
@@ -428,8 +421,8 @@ export default function Dashboard() {
                 </Button>
                 <AlertDialog open={isGeneratePlanDialogOpen} onOpenChange={setIsGeneratePlanDialogOpen}>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" disabled={isPending}>
-                      {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
+                    <Button variant="ghost" disabled={isAiPending}>
+                      {isAiPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
                       Generar Plan
                     </Button>
                   </AlertDialogTrigger>
@@ -480,10 +473,7 @@ export default function Dashboard() {
                     carbsGoal={carbsGoal}
                     fats={totalFats}
                     fatsGoal={fatsGoal}
-                    setCalorieGoal={setCalorieGoal}
-                    setProteinGoal={setProteinGoal}
-                    setCarbsGoal={setCarbsGoal}
-                    setFatsGoal={setFatsGoal}
+                    onGoalChange={handleSetGoal}
                     onSaveGoals={handleSaveGoals}
                     isSaving={isSavingGoals}
                 />
@@ -498,7 +488,10 @@ export default function Dashboard() {
                 />
                 </div>
                 <div className="space-y-6">
-                <CalorieRecommendationForm onGoalSet={handleSetGoal} />
+                <CalorieRecommendationForm onGoalSet={(newGoals) => {
+                    handleSetGoal(newGoals);
+                    setProfileGoals(newGoals); // Also update profile goals to be saved
+                }} />
                 <Card>
                     <CardHeader>
                         <CardTitle>Desglose de Calorías por Comida</CardTitle>
@@ -527,5 +520,3 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
-
-    
