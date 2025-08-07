@@ -23,9 +23,9 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
-import type { FoodItem, CustomMeal } from '@/lib/types';
+import type { FoodItem, CustomMeal, MealItem } from '@/lib/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Info } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Label } from '@/components/ui/label';
 
@@ -38,10 +38,12 @@ interface AddFoodDialogProps {
   children: React.ReactNode;
 }
 
+type DialogStep = 'search' | 'quantity' | 'details';
+
 export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals, foodDatabase, children, onDeleteItem }: AddFoodDialogProps) {
   const [open, setOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<DialogStep>('search');
   const [selectedItem, setSelectedItem] = useState<FoodItem | CustomMeal | null>(null);
   const [quantity, setQuantity] = useState<number | string>(1);
 
@@ -60,15 +62,19 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
   const resetAndClose = () => {
     setOpen(false);
     setSearchTerm('');
-    setStep(1);
+    setStep('search');
     setSelectedItem(null);
     setQuantity(1);
   };
 
   const handleSelect = (item: FoodItem | CustomMeal) => {
     setSelectedItem(item);
-    setQuantity(item.servingSize);
-    setStep(2);
+    if ('items' in item && item.items.length > 0) { // It's a CustomMeal with ingredients
+      setStep('details');
+    } else { // It's a regular FoodItem or a CustomMeal without detailed items
+      setQuantity(item.servingSize);
+      setStep('quantity');
+    }
   };
   
   const handleConfirmAdd = () => {
@@ -110,21 +116,35 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
     : `${(selectedItem as FoodItem)?.servingSize} ${unitLabel} = ${(selectedItem as FoodItem)?.calories} kcal`;
 
 
+  const renderTitle = () => {
+    switch (step) {
+      case 'search': return 'Añadir a Comida';
+      case 'quantity': return `Añadir ${selectedItem?.name}`;
+      case 'details': return `Detalles de ${selectedItem?.name}`;
+      default: return 'Añadir';
+    }
+  };
+  
+  const renderDescription = () => {
+     switch (step) {
+      case 'search': return 'Busca un alimento o comida para añadir a tu plan.';
+      case 'quantity': return servingInfo;
+      case 'details': return `Ingredientes para 1 ${selectedItem?.servingUnit || 'ración'}. Total: ${isCustomMeal ? (selectedItem as CustomMeal).totalCalories.toFixed(0) : ''} kcal`;
+      default: return '';
+    }
+  }
+
   return (
     <>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogTrigger asChild>{children}</DialogTrigger>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{step === 1 ? 'Añadir a Comida' : `Añadir ${selectedItem?.name}`}</DialogTitle>
-            <DialogDescription>
-              {step === 1
-                ? "Busca un alimento o comida para añadir a tu plan."
-                : servingInfo}
-            </DialogDescription>
+            <DialogTitle>{renderTitle()}</DialogTitle>
+            <DialogDescription>{renderDescription()}</DialogDescription>
           </DialogHeader>
           
-          {step === 1 && (
+          {step === 'search' && (
               <div className="py-4">
               <Input
                   placeholder="Buscar un alimento o comida..."
@@ -168,7 +188,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
                           </div>
                            <div className="flex items-center">
                               <Button size="icon" variant="ghost" onClick={() => handleSelect(meal)}>
-                                  <Plus className="h-4 w-4" />
+                                  <Info className="h-4 w-4" />
                               </Button>
                               <Button size="icon" variant="ghost" className="text-destructive opacity-0 group-hover:opacity-100" onClick={(e) => handleDeleteClick(e, meal)}>
                                   <Trash2 className="h-4 w-4" />
@@ -185,7 +205,7 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
               </div>
           )}
 
-          {step === 2 && selectedItem && (
+          {step === 'quantity' && selectedItem && (
                <div className="space-y-4 py-4">
                   <div className="space-y-2">
                       <Label htmlFor="quantity">Cantidad</Label>
@@ -203,12 +223,30 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
               </div>
           )}
 
+          {step === 'details' && selectedItem && 'items' in selectedItem && (
+            <div className="py-4">
+              <ScrollArea className="h-60 rounded-md border p-2">
+                <div className="space-y-2">
+                  {selectedItem.items.map((item, index) => (
+                    <div key={index} className="flex justify-between text-sm">
+                      <span>{item.name}</span>
+                      <span className="text-muted-foreground">{item.quantity} {item.servingUnit}</span>
+                    </div>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+          )}
+
+
           <DialogFooter>
-              {step === 1 && <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>}
-              {step === 2 && (
+              {step === 'search' && <Button variant="outline" onClick={resetAndClose}>Cancelar</Button>}
+              {(step === 'quantity' || step === 'details') && (
                   <>
-                      <Button variant="outline" onClick={() => setStep(1)}>Atrás</Button>
-                      <Button onClick={handleConfirmAdd} disabled={!quantity || Number(quantity) <= 0}>Añadir a Comida</Button>
+                      <Button variant="outline" onClick={() => setStep('search')}>Atrás</Button>
+                      <Button onClick={step === 'details' ? () => setStep('quantity') : handleConfirmAdd} disabled={step === 'quantity' && (!quantity || Number(quantity) <= 0)}>
+                          {step === 'details' ? 'Añadir a Comida' : 'Confirmar'}
+                      </Button>
                   </>
               )}
           </DialogFooter>
@@ -232,3 +270,5 @@ export default function AddFoodDialog({ onAddFood, onAddCustomMeal, customMeals,
     </>
   );
 }
+
+    
