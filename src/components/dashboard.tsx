@@ -27,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import WeekNavigator from './week-navigator';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isBefore, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
 
@@ -121,10 +121,18 @@ export default function Dashboard() {
     }
   }, [weekDates, user, loadWeeklyPlan]);
 
-  // This effect resets the daily goals to the profile goals when the date changes.
+  // This effect resets the daily goals to the profile goals when the date changes,
+  // but only for today and future dates.
   useEffect(() => {
-    if (userProfileGoals) {
+    // Check if the selected date is in the past
+    const isPastDate = isBefore(currentDate, startOfToday());
+
+    if (userProfileGoals && !isPastDate) {
         handleSetGoal(userProfileGoals);
+    } else if (isPastDate) {
+        // For past dates, we could either clear goals or try to load a day-specific goal if it existed.
+        // For now, let's just not apply the profile goals.
+        // The display will reflect the totals vs whatever goals were active that day (or 0).
     }
   }, [currentDate, userProfileGoals]);
   
