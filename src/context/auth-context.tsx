@@ -10,6 +10,7 @@ import {
   type User,
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
@@ -20,7 +21,7 @@ interface AuthContextType {
   loading: boolean;
   getIdToken: () => Promise<string | null>;
   signInWithGoogle: () => Promise<void>;
-  signUpWithEmail: (email: string, pass: string) => Promise<User | null>;
+  signUpWithEmail: (email: string, pass: string, name: string) => Promise<User | null>;
   signInWithEmail: (email: string, pass: string) => Promise<User | null>;
   logout: () => Promise<void>;
 }
@@ -78,11 +79,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signUpWithEmail = async (email: string, pass: string) => {
+  const signUpWithEmail = async (email: string, pass: string, name: string) => {
     setLoading(true);
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-        // onAuthStateChanged will handle the redirect
+        // Update user profile with name
+        await updateProfile(userCredential.user, { displayName: name });
+        // Manually update local user state to reflect the new display name immediately
+        setUser({ ...userCredential.user, displayName: name });
+
+        // onAuthStateChanged will handle the redirect, but the above ensures state is fresh
         return userCredential.user;
     } catch (error: any) {
         console.error("Error signing up:", error);

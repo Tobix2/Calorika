@@ -44,17 +44,22 @@ function LoginForm() {
 
 function RegisterForm() {
     const { signUpWithEmail, loading } = useAuth();
+    const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        signUpWithEmail(email, password);
+        signUpWithEmail(email, password, name);
     };
 
     return (
         <form onSubmit={handleSubmit}>
             <CardContent className="space-y-4">
+                <div className="space-y-2">
+                    <Label htmlFor="reg-name">Nombre</Label>
+                    <Input id="reg-name" type="text" placeholder="Tu nombre" required value={name} onChange={e => setName(e.target.value)} />
+                </div>
                 <div className="space-y-2">
                     <Label htmlFor="reg-email">Correo Electrónico</Label>
                     <Input id="reg-email" type="email" placeholder="tu@email.com" required value={email} onChange={e => setEmail(e.target.value)} />

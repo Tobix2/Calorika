@@ -7,7 +7,7 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut, WeightIcon } from 'lucide-react';
+import { Leaf, Bot, Loader2, LogOut, WeightIcon, User } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
@@ -414,6 +414,12 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
               </div>
               <div className="flex items-center gap-4">
+                {user?.displayName && (
+                    <div className="hidden sm:flex items-center gap-2">
+                        <User className="h-5 w-5 text-muted-foreground" />
+                        <span className="font-medium">{user.displayName}</span>
+                    </div>
+                )}
                 <Button variant="outline" asChild>
                   <Link href="/tracker">
                     <WeightIcon className="mr-2"/>
