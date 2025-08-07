@@ -116,47 +116,39 @@ export default function Dashboard() {
     }
   }, [weekDates, user, loadWeeklyPlan]);
   
-  // Guardado automático del plan diario
-  useEffect(() => {
-      if (!user || !weeklyPlan[selectedDateKey]) {
-          return;
-      }
-      
-      const handler = setTimeout(() => {
-          saveDailyPlanAction(user.uid, currentDate, weeklyPlan[selectedDateKey]).catch(error => {
-              console.error("No se pudo guardar el plan diario", error);
-              toast({
-                  variant: 'destructive',
-                  title: 'Error de Guardado',
-                  description: 'No se pudieron guardar tus últimos cambios.'
-              });
-          });
-      }, 1000); 
-
-      return () => {
-          clearTimeout(handler);
-      };
-  }, [weeklyPlan, selectedDateKey, currentDate, user, toast]);
+  const saveCurrentDailyPlan = (plan: DailyPlan) => {
+    if (user) {
+      saveDailyPlanAction(user.uid, currentDate, plan).catch(error => {
+        console.error("No se pudo guardar el plan diario", error);
+        toast({
+          variant: 'destructive',
+          title: 'Error de Guardado',
+          description: 'No se pudieron guardar tus últimos cambios.'
+        });
+      });
+    }
+  };
 
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
-    setWeeklyPlan(prevPlan => {
-        const newPlan = JSON.parse(JSON.stringify(prevPlan)); 
-        const dayPlan = newPlan[selectedDateKey] || JSON.parse(JSON.stringify(initialDailyPlan));
-        const updatedDayPlan = dayPlan.map((meal: Meal) => {
-            if (meal.name === mealName) {
-                const newItem: MealItem = {
-                    ...food,
-                    mealItemId: crypto.randomUUID(),
-                    quantity: quantity
-                };
-                return { ...meal, items: [...meal.items, newItem] };
-            }
-            return meal;
-        });
-        newPlan[selectedDateKey] = updatedDayPlan;
-        return newPlan; 
+    const newPlanState = { ...weeklyPlan };
+    const dayPlan = newPlanState[selectedDateKey] ? JSON.parse(JSON.stringify(newPlanState[selectedDateKey])) : JSON.parse(JSON.stringify(initialDailyPlan));
+    
+    const updatedDayPlan = dayPlan.map((meal: Meal) => {
+        if (meal.name === mealName) {
+            const newItem: MealItem = {
+                ...food,
+                mealItemId: crypto.randomUUID(),
+                quantity: quantity
+            };
+            return { ...meal, items: [...meal.items, newItem] };
+        }
+        return meal;
     });
+    
+    newPlanState[selectedDateKey] = updatedDayPlan;
+    setWeeklyPlan(newPlanState);
+    saveCurrentDailyPlan(updatedDayPlan);
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
@@ -175,34 +167,36 @@ export default function Dashboard() {
         servingUnit: customMeal.servingUnit,
     };
 
-    setWeeklyPlan(prevPlan => {
-        const newPlan = JSON.parse(JSON.stringify(prevPlan));
-        const dayPlan = newPlan[selectedDateKey] || JSON.parse(JSON.stringify(initialDailyPlan));
-        const updatedDayPlan = dayPlan.map((meal: Meal) => {
-            if (meal.name === mealName) {
-                return { ...meal, items: [...meal.items, mealItem] };
-            }
-            return meal;
-        });
-        newPlan[selectedDateKey] = updatedDayPlan;
-        return newPlan; 
+    const newPlanState = { ...weeklyPlan };
+    const dayPlan = newPlanState[selectedDateKey] ? JSON.parse(JSON.stringify(newPlanState[selectedDateKey])) : JSON.parse(JSON.stringify(initialDailyPlan));
+    
+    const updatedDayPlan = dayPlan.map((meal: Meal) => {
+        if (meal.name === mealName) {
+            return { ...meal, items: [...meal.items, mealItem] };
+        }
+        return meal;
     });
+
+    newPlanState[selectedDateKey] = updatedDayPlan;
+    setWeeklyPlan(newPlanState);
+    saveCurrentDailyPlan(updatedDayPlan);
   };
 
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
-    setWeeklyPlan(prevPlan => {
-        const newPlan = JSON.parse(JSON.stringify(prevPlan));
-        if (!newPlan[selectedDateKey]) return newPlan;
+    if (!weeklyPlan[selectedDateKey]) return;
 
-        const dayPlan = newPlan[selectedDateKey];
-        const updatedDayPlan = dayPlan.map((meal: Meal) =>
-            meal.name === mealName
-              ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
-              : meal
-        );
-        newPlan[selectedDateKey] = updatedDayPlan;
-        return newPlan; 
-    });
+    const newPlanState = { ...weeklyPlan };
+    const dayPlan = JSON.parse(JSON.stringify(newPlanState[selectedDateKey]));
+    
+    const updatedDayPlan = dayPlan.map((meal: Meal) =>
+        meal.name === mealName
+          ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
+          : meal
+    );
+    
+    newPlanState[selectedDateKey] = updatedDayPlan;
+    setWeeklyPlan(newPlanState);
+    saveCurrentDailyPlan(updatedDayPlan);
   };
 
   const handleSetGoal = (goals: UserGoals) => {
@@ -319,10 +313,12 @@ export default function Dashboard() {
                 description: result.error || 'La IA no pudo generar un plan de comidas.'
             });
         } else {
+            const newPlan = result.data as DailyPlan;
             setWeeklyPlan(prevPlan => ({
                 ...prevPlan,
-                [selectedDateKey]: result.data as DailyPlan
+                [selectedDateKey]: newPlan
             }));
+            saveCurrentDailyPlan(newPlan);
             toast({
                 title: '¡Plan de Comidas Generado!',
                 description: `Tu plan de comidas para el ${format(currentDate, 'PPP', { locale: es })} ha sido poblado por la IA.`
@@ -510,5 +506,3 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
-
-    
