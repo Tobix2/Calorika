@@ -9,7 +9,7 @@ import {
 import {
   generateMealPlan,
 } from '@/ai/flows/generate-meal-plan';
-import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeeklyWeightEntry } from '@/lib/types';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeeklyWeightEntry, UserGoals } from '@/lib/types';
 import { getDb } from '@/lib/firebase-admin';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
@@ -54,6 +54,36 @@ export async function generateMealPlanAction(
 }
 
 // --- Firestore Actions ---
+
+// User Profile
+export async function getUserGoalsAction(userId: string): Promise<UserGoals | null> {
+    try {
+        const db = getDb();
+        const userDocRef = db.collection('users').doc(userId);
+        const userDocSnap = await userDocRef.get();
+
+        if (userDocSnap.exists) {
+            const data = userDocSnap.data();
+            return (data?.goals as UserGoals) || null;
+        }
+        return null;
+    } catch (error) {
+        console.error("🔥 Error al obtener objetivos del usuario de Firestore:", error);
+        throw new Error("No se pudieron obtener los objetivos del usuario.");
+    }
+}
+
+export async function saveUserGoalsAction(userId: string, goals: UserGoals): Promise<void> {
+    try {
+        const db = getDb();
+        const userDocRef = db.collection('users').doc(userId);
+        await userDocRef.set({ goals }, { merge: true });
+    } catch (error) {
+        console.error("🔥 Error al guardar objetivos del usuario en Firestore:", error);
+        throw new Error("No se pudieron guardar los objetivos del usuario.");
+    }
+}
+
 
 // Foods
 async function populateInitialFoods(userId: string): Promise<FoodItem[]> {
@@ -331,5 +361,3 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
         throw new Error("No se pudo obtener el historial de peso.");
     }
 }
-
-    

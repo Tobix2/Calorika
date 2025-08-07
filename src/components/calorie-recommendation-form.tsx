@@ -1,9 +1,9 @@
 
 "use client";
 
-import { useEffect, useState, useActionState } from 'react';
+import { useEffect, useState, useActionState, useTransition } from 'react';
 import { useFormStatus } from 'react-dom';
-import { getRecommendationAction } from '@/app/actions';
+import { getRecommendationAction, saveUserGoalsAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -12,10 +12,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useToast } from '@/hooks/use-toast';
 import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Sparkles, Loader2, Target, CheckCircle2, Beef, Wheat, Droplets, Dumbbell, Weight, BrainCircuit } from 'lucide-react';
+import { Sparkles, Loader2, Target, CheckCircle2, Beef, Wheat, Droplets, Dumbbell, Weight, BrainCircuit, Save } from 'lucide-react';
+import { useAuth } from '@/context/auth-context';
+import type { UserGoals } from '@/lib/types';
+
 
 interface CalorieRecommendationFormProps {
-  onGoalSet: (output: CalorieRecommendationOutput) => void;
+  onGoalSet: (goals: UserGoals) => void;
 }
 
 function SubmitButton() {
@@ -43,8 +46,11 @@ const initialState = {
 };
 
 export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommendationFormProps) {
+  const { user } = useAuth();
   const [state, formAction] = useActionState(getRecommendationAction, initialState);
   const { toast } = useToast();
+  const [isSaving, startSavingTransition] = useTransition();
+
 
   const [age, setAge] = useState<number | string>(40);
   const [gender, setGender] = useState('female');
@@ -62,16 +68,52 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
       });
     }
   }, [state.error, toast]);
-
-  const handleApplyGoal = () => {
-    if (state.data) {
-        onGoalSet(state.data);
-        toast({
-            title: "¡Objetivo Actualizado!",
-            description: `Tus objetivos diarios han sido actualizados.`,
-        });
-    }
+  
+  const handleApplyGoal = (output: CalorieRecommendationOutput) => {
+    const goals: UserGoals = {
+      calorieGoal: output.recommendedCalories,
+      proteinGoal: output.recommendedProtein,
+      carbsGoal: output.recommendedCarbs,
+      fatsGoal: output.recommendedFats,
+    };
+    onGoalSet(goals);
+    toast({
+        title: "¡Objetivo Aplicado!",
+        description: `Tus objetivos para hoy han sido actualizados.`,
+    });
   }
+
+  const handleApplyGoalForFuture = (output: CalorieRecommendationOutput) => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para guardar tus objetivos.' });
+        return;
+    }
+    const goals: UserGoals = {
+      calorieGoal: output.recommendedCalories,
+      proteinGoal: output.recommendedProtein,
+      carbsGoal: output.recommendedCarbs,
+      fatsGoal: output.recommendedFats,
+    };
+
+    startSavingTransition(async () => {
+        try {
+            await saveUserGoalsAction(user.uid, goals);
+            onGoalSet(goals); // Update local state as well
+            toast({
+                title: '¡Objetivos Guardados!',
+                description: 'Tus metas personalizadas se han guardado y se aplicarán a los días futuros.',
+            });
+        } catch (error) {
+             const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
+             toast({
+                variant: 'destructive',
+                title: 'Error al Guardar',
+                description: errorMessage,
+            });
+        }
+    });
+  }
+
 
   return (
     <Card className="shadow-md">
@@ -219,7 +261,17 @@ export default function CalorieRecommendationForm({ onGoalSet }: CalorieRecommen
               </AccordionItem>
             </Accordion>
             
-            <Button variant="outline" className="w-full" onClick={handleApplyGoal}>Aplicar como Objetivo</Button>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button variant="outline" className="w-full" onClick={() => handleApplyGoal(state.data!)}>Aplicar solo para Hoy</Button>
+              <Button 
+                className="w-full" 
+                onClick={() => handleApplyGoalForFuture(state.data!)}
+                disabled={isSaving}
+              >
+                {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                Aplicar para el Futuro
+              </Button>
+            </div>
         </CardContent>
       )}
     </Card>

@@ -39,7 +39,7 @@ export type CustomMeal = {
   totalCalories: number;
   totalProtein: number;
   totalCarbs: number;
-  totalFats: number;
+totalFats: number;
   servingSize: number;
   servingUnit: string;
 };
@@ -61,4 +61,9 @@ export type WeeklyWeightEntry = {
   weight: number; // in kg
 };
 
-    
+export type UserGoals = {
+    calorieGoal: number;
+    proteinGoal: number;
+    carbsGoal: number;
+    fatsGoal: number;
+};

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
-import type { Meal, MealName, FoodItem, CustomMeal, MealItem, WeeklyPlan, DailyPlan } from '@/lib/types';
+import type { Meal, MealName, FoodItem, CustomMeal, MealItem, WeeklyPlan, DailyPlan, UserGoals } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
@@ -10,9 +10,8 @@ import CreateMealDialog from './create-meal-dialog';
 import { Leaf, Bot, Loader2, LogOut, WeightIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
-import type { CalorieRecommendationOutput } from '@/ai/flows/calorie-recommendation';
 import { Button } from '@/components/ui/button';
-import { generateMealPlanAction, saveDailyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction } from '@/app/actions';
+import { generateMealPlanAction, saveDailyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction, getUserGoalsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
@@ -84,12 +83,16 @@ export default function Dashboard() {
     async function loadInitialData() {
         if (user) {
             try {
-                const [foods, mealsData] = await Promise.all([
+                const [foods, mealsData, userGoals] = await Promise.all([
                     getFoodsAction(user.uid),
                     getCustomMealsAction(user.uid),
+                    getUserGoalsAction(user.uid),
                 ]);
                 setFoodDatabase(foods);
                 setCustomMeals(mealsData);
+                if (userGoals) {
+                    handleSetGoal(userGoals);
+                }
                 loadWeeklyPlan(user, weekDates);
             } catch (error) {
                 console.error("No se pudieron cargar los datos iniciales", error);
@@ -200,11 +203,11 @@ export default function Dashboard() {
     });
   };
 
-  const handleSetGoal = (output: CalorieRecommendationOutput) => {
-    setCalorieGoal(output.recommendedCalories);
-    setProteinGoal(output.recommendedProtein);
-    setCarbsGoal(output.recommendedCarbs);
-    setFatsGoal(output.recommendedFats);
+  const handleSetGoal = (goals: UserGoals) => {
+    setCalorieGoal(goals.calorieGoal);
+    setProteinGoal(goals.proteinGoal);
+    setCarbsGoal(goals.carbsGoal);
+    setFatsGoal(goals.fatsGoal);
   };
 
   const handleCreateMeal = async (newMealData: Omit<CustomMeal, 'id'>) => {
