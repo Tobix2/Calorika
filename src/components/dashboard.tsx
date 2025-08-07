@@ -27,7 +27,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import WeekNavigator from './week-navigator';
-import { format, startOfWeek, endOfWeek, eachDayOfInterval } from 'date-fns';
+import { format, startOfWeek, endOfWeek, eachDayOfInterval, isBefore, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
 
@@ -51,7 +51,6 @@ export default function Dashboard() {
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>({});
   const [currentDate, setCurrentDate] = useState(new Date());
   
-  // Persisted goals from user profile, used for FUTURE days
   const [profileGoals, setProfileGoals] = useState<UserGoals | null>(null);
 
   const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>([]);
@@ -69,7 +68,6 @@ export default function Dashboard() {
 
 
   const selectedDateKey = format(currentDate, 'yyyy-MM-dd');
-  // Safely access dayData and its goals property
   const dayData = weeklyPlan[selectedDateKey] || initialDayData;
   const { plan: meals, goals } = dayData || initialDayData;
   const { calorieGoal, proteinGoal, carbsGoal, fatsGoal } = goals || initialDayData.goals;
@@ -82,7 +80,6 @@ export default function Dashboard() {
   }, [currentDate]);
 
   const loadWeeklyPlan = useCallback(async (user: any, dates: Date[], goals: UserGoals | null) => {
-      isInitialLoadRef.current = true; // Set flag before loading
       try {
           const plan = await getWeeklyPlanAction(user.uid, dates, goals);
           setWeeklyPlan(plan);
@@ -93,11 +90,6 @@ export default function Dashboard() {
               title: 'Error',
               description: 'No se pudo cargar tu plan. Por favor, intenta refrescar.'
           });
-      } finally {
-        // Use a timeout to ensure the state update has propagated before allowing saves
-        setTimeout(() => {
-          isInitialLoadRef.current = false;
-        }, 100);
       }
   }, [toast]);
 
@@ -105,6 +97,8 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadInitialData() {
         if (user) {
+            setIsLoading(true);
+            isInitialLoadRef.current = true;
             try {
                 const [foods, mealsData, goals] = await Promise.all([
                     getFoodsAction(user.uid),
@@ -124,18 +118,19 @@ export default function Dashboard() {
                 });
             } finally {
                 setIsLoading(false);
+                setTimeout(() => { isInitialLoadRef.current = false; }, 100);
             }
         }
     }
     loadInitialData();
-  }, [user, toast]); // weekDates is removed to prevent re-triggering just on date change
+  }, [user, toast]);
 
   // This effect reloads the weekly plan ONLY when the week itself changes.
   useEffect(() => {
-    if(user && !isInitialLoadRef.current) { // prevent re-fetching on initial load
+    if(user && !isInitialLoadRef.current) {
         loadWeeklyPlan(user, weekDates, profileGoals);
     }
-  }, [weekDates, user]); // Note: profileGoals is removed, it's passed into loadWeeklyPlan directly
+  }, [weekDates, user, loadWeeklyPlan, profileGoals]);
 
   
   // Effect to save the plan whenever it changes, but not on initial load
@@ -143,7 +138,22 @@ export default function Dashboard() {
     if (!isInitialLoadRef.current && dayData && user) {
         saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
     }
-  }, [weeklyPlan, user, currentDate]); // Rerunning on weeklyPlan change handles all updates
+  }, [weeklyPlan, user, currentDate, dayData]);
+
+  // Effect to update current day's goals if they don't exist yet
+   useEffect(() => {
+    const today = startOfToday();
+    if (isBefore(currentDate, today)) {
+        // For past dates, we just display what was saved. No changes.
+        return;
+    }
+    
+    // For today or future dates
+    const currentDayData = weeklyPlan[selectedDateKey];
+    if (profileGoals && (!currentDayData || !currentDayData.goals.calorieGoal)) {
+        updateDayData({ goals: profileGoals });
+    }
+  }, [currentDate, profileGoals, weeklyPlan, selectedDateKey]);
 
 
   const updateDayData = (newDayData: Partial<DayData>) => {
@@ -160,7 +170,6 @@ export default function Dashboard() {
         ...prev,
         [selectedDateKey]: updatedDayData
     }));
-    // The useEffect listening to weeklyPlan will handle saving.
   }
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
@@ -232,7 +241,7 @@ export default function Dashboard() {
     startSavingGoalsTransition(async () => {
         try {
             await saveUserGoalsAction(user.uid, goalsToSave);
-            setProfileGoals(goalsToSave); // Update the global profile goals state
+            setProfileGoals(goalsToSave);
             toast({
                 title: '¡Objetivos Guardados!',
                 description: 'Tus metas personalizadas se han guardado y se aplicarán a los días futuros.',
@@ -415,9 +424,12 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-4">
                 {user?.displayName && (
-                    <div className="hidden sm:flex items-center gap-2">
+                    <div className="flex items-center gap-2">
                         <User className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium">{user.displayName}</span>
+                        <span className="font-medium text-sm">
+                          {user.displayName}
+                          <span className="text-muted-foreground ml-1">({user.email})</span>
+                        </span>
                     </div>
                 )}
                 <Button variant="outline" asChild>
@@ -497,10 +509,6 @@ export default function Dashboard() {
                 <div className="space-y-6">
                 <CalorieRecommendationForm onGoalSet={(newGoals) => {
                     handleSetGoal(newGoals);
-                    // This call might be redundant if the user is expected to save manually,
-                    // but it applies the goal to the current day immediately.
-                    // To make saving explicit, you could have this just update the profileGoals state
-                    // and let the user click save. For now, it also saves.
                     if (user) {
                       startSavingGoalsTransition(async () => {
                         await saveUserGoalsAction(user.uid, newGoals);
@@ -537,3 +545,5 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
+
+    
