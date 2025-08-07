@@ -4,8 +4,7 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import {
   onAuthStateChanged,
-  getRedirectResult,
-  signInWithRedirect,
+  signInWithPopup,
   GoogleAuthProvider,
   signOut,
   type User,
@@ -43,19 +42,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   useEffect(() => {
-    getRedirectResult(auth)
-      .then((result) => {
-        if (result?.user) {
-          router.push("/");
-        }
-      })
-      .catch((error) => {
-        console.error("Auth Error: Failed to get redirect result.", error);
-      });
-
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
+      if (currentUser) {
+        router.push("/");
+      }
     });
 
     return () => unsubscribe();
@@ -72,10 +64,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const provider = new GoogleAuthProvider();
     setLoading(true);
     try {
-      await signInWithRedirect(auth, provider);
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will handle the redirect
     } catch (error) {
-      console.error("Error initiating sign in with Google redirect", error);
-      setLoading(false);
+      console.error("Error signing in with Google", error);
+       toast({
+        variant: "destructive",
+        title: "Error de Autenticación",
+        description: "No se pudo iniciar sesión con Google.",
+      });
+    } finally {
+        setLoading(false);
     }
   };
 
@@ -83,14 +82,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
-        router.push("/");
+        // onAuthStateChanged will handle the redirect
         return userCredential.user;
     } catch (error: any) {
         console.error("Error signing up:", error);
         toast({
             variant: "destructive",
             title: "Error al Registrarse",
-            description: error.message || "Ocurrió un error desconocido.",
+            description: error.code === 'auth/email-already-in-use' 
+                ? 'Este correo electrónico ya está en uso.' 
+                : 'Ocurrió un error. Inténtalo de nuevo.',
         });
         return null;
     } finally {
@@ -102,14 +103,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       try {
           const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-          router.push("/");
+          // onAuthStateChanged will handle the redirect
           return userCredential.user;
       } catch (error: any) {
           console.error("Error signing in:", error);
           toast({
               variant: "destructive",
               title: "Error al Iniciar Sesión",
-              description: error.message || "Ocurrió un error desconocido.",
+              description: "Las credenciales son incorrectas. Por favor, verifica tu correo y contraseña.",
           });
           return null;
       } finally {
