@@ -73,6 +73,7 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isWeekLoading, startWeekTransition] = useTransition();
   
   const isInitialLoadRef = useRef(true);
 
@@ -118,6 +119,7 @@ export default function Dashboard() {
                 setFoodDatabase(foods);
                 setCustomMeals(mealsData);
                 setProfileGoals(goals);
+                // Carga la primera semana con las metas obtenidas
                 await loadWeeklyPlan(user, weekDates, goals);
             } catch (error) {
                 console.error("No se pudieron cargar los datos iniciales", error);
@@ -133,14 +135,19 @@ export default function Dashboard() {
         }
     }
     loadInitialData();
-  }, [user, loadWeeklyPlan, toast, weekDates]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, toast]);
+  
 
   // This effect reloads the weekly plan ONLY when the week itself changes.
-  useEffect(() => {
+   useEffect(() => {
     if(user && !isInitialLoadRef.current) {
-        loadWeeklyPlan(user, weekDates, profileGoals);
+        startWeekTransition(() => {
+           loadWeeklyPlan(user, weekDates, profileGoals);
+        });
     }
-  }, [weekDates, user, loadWeeklyPlan, profileGoals]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [weekDates, user, profileGoals]);
 
   
   const savePlan = useCallback((planToSave: DailyPlan, goalsToSave: UserGoals) => {
