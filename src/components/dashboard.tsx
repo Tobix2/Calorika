@@ -11,7 +11,7 @@ import { Leaf, Bot, Loader2, LogOut, WeightIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { generateMealPlanAction, saveDailyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction, getUserGoalsAction } from '@/app/actions';
+import { generateMealPlanAction, saveDailyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction, getUserGoalsAction, saveUserGoalsAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
@@ -51,6 +51,8 @@ export default function Dashboard() {
   const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
   
   const [isPending, startTransition] = useTransition();
+  const [isSavingGoals, startSavingGoalsTransition] = useTransition();
+
   const { toast } = useToast();
   const { user, logout } = useAuth();
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
@@ -209,6 +211,36 @@ export default function Dashboard() {
     setCarbsGoal(goals.carbsGoal);
     setFatsGoal(goals.fatsGoal);
   };
+  
+  const handleSaveGoals = () => {
+    if (!user) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para guardar tus objetivos.' });
+        return;
+    }
+    const goals: UserGoals = {
+      calorieGoal,
+      proteinGoal,
+      carbsGoal,
+      fatsGoal,
+    };
+
+    startSavingGoalsTransition(async () => {
+        try {
+            await saveUserGoalsAction(user.uid, goals);
+            toast({
+                title: '¡Objetivos Guardados!',
+                description: 'Tus metas personalizadas se han guardado y se aplicarán a los días futuros.',
+            });
+        } catch (error) {
+             const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
+             toast({
+                variant: 'destructive',
+                title: 'Error al Guardar',
+                description: errorMessage,
+            });
+        }
+    });
+  }
 
   const handleCreateMeal = async (newMealData: Omit<CustomMeal, 'id'>) => {
     if (!user) {
@@ -435,6 +467,8 @@ export default function Dashboard() {
                     setProteinGoal={setProteinGoal}
                     setCarbsGoal={setCarbsGoal}
                     setFatsGoal={setFatsGoal}
+                    onSaveGoals={handleSaveGoals}
+                    isSaving={isSavingGoals}
                 />
                 <MealList
                     meals={meals}
@@ -476,3 +510,5 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
+
+    

@@ -4,8 +4,9 @@
 import { useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Flame, Target, Beef, Wheat, Droplets } from 'lucide-react';
+import { Target, Beef, Wheat, Droplets, Save, Loader2 } from 'lucide-react';
 import { Input } from "./ui/input";
+import { Button } from "./ui/button";
 
 interface DailySummaryProps {
   totalCalories: number;
@@ -20,6 +21,8 @@ interface DailySummaryProps {
   setProteinGoal: (value: number) => void;
   setCarbsGoal: (value: number) => void;
   setFatsGoal: (value: number) => void;
+  onSaveGoals: () => void;
+  isSaving: boolean;
 }
 
 export default function DailySummary({
@@ -34,7 +37,9 @@ export default function DailySummary({
   setCalorieGoal,
   setProteinGoal,
   setCarbsGoal,
-  setFatsGoal
+  setFatsGoal,
+  onSaveGoals,
+  isSaving
 }: DailySummaryProps) {
   const progress = calorieGoal > 0 ? (totalCalories / calorieGoal) * 100 : 0;
   
@@ -67,8 +72,20 @@ export default function DailySummary({
   return (
     <Card className="shadow-md">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">Resumen Diario</CardTitle>
-        <CardDescription>Tu ingesta y objetivos nutricionales para hoy. Puedes editar tus objetivos directamente.</CardDescription>
+        <div className="flex justify-between items-start">
+            <div>
+                <CardTitle className="font-headline text-2xl">Resumen Diario</CardTitle>
+                <CardDescription>Tu ingesta y objetivos nutricionales para hoy. Puedes editar y guardar tus objetivos.</CardDescription>
+            </div>
+             <Button onClick={onSaveGoals} disabled={isSaving}>
+                {isSaving ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <Save className="mr-2 h-4 w-4" />
+                )}
+                Guardar Objetivos
+            </Button>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6">
         <div className="space-y-2">
@@ -103,3 +120,5 @@ export default function DailySummary({
     </Card>
   );
 }
+
+    
