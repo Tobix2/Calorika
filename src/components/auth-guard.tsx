@@ -16,13 +16,12 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
     }
   }, [user, loading, router]);
 
+  // Si está cargando o no hay usuario, no renderiza nada,
+  // ya que la página que lo usa (HomePage) mostrará el spinner principal.
   if (loading || !user) {
-    return (
-      <div className="flex min-h-screen w-full items-center justify-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
-    );
+    return null;
   }
 
+  // Si el usuario está autenticado, renderiza los componentes hijos.
   return <>{children}</>;
 }
