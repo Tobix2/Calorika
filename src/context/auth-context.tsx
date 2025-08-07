@@ -9,15 +9,20 @@ import {
   GoogleAuthProvider,
   signOut,
   type User,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
 } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { useToast } from "@/hooks/use-toast";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   getIdToken: () => Promise<string | null>;
   signInWithGoogle: () => Promise<void>;
+  signUpWithEmail: (email: string, pass: string) => Promise<User | null>;
+  signInWithEmail: (email: string, pass: string) => Promise<User | null>;
   logout: () => Promise<void>;
 }
 
@@ -26,6 +31,8 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   getIdToken: async () => null,
   signInWithGoogle: async () => {},
+  signUpWithEmail: async () => null,
+  signInWithEmail: async () => null,
   logout: async () => {},
 });
 
@@ -33,15 +40,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
-    // This effect runs once on mount to handle auth state.
-    
-    // First, check if a redirect result is pending.
     getRedirectResult(auth)
       .then((result) => {
-        // If we get a result, it means the user just signed in via redirect.
-        // onAuthStateChanged will handle setting the user, so we don't need to do it here.
         if (result?.user) {
           router.push("/");
         }
@@ -50,14 +53,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error("Auth Error: Failed to get redirect result.", error);
       });
 
-    // Then, set up the onAuthStateChanged listener.
-    // This is the primary source of truth for the user's auth state.
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
     });
 
-    // Cleanup the listener when the component unmounts.
     return () => unsubscribe();
   }, [router]);
 
@@ -70,20 +70,56 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signInWithGoogle = async () => {
     const provider = new GoogleAuthProvider();
-    setLoading(true); // Set loading to true before redirecting
+    setLoading(true);
     try {
       await signInWithRedirect(auth, provider);
-      // The page will redirect, and the useEffect will handle the result on return.
     } catch (error) {
       console.error("Error initiating sign in with Google redirect", error);
-      setLoading(false); // Reset loading state on error
+      setLoading(false);
     }
+  };
+
+  const signUpWithEmail = async (email: string, pass: string) => {
+    setLoading(true);
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+        router.push("/");
+        return userCredential.user;
+    } catch (error: any) {
+        console.error("Error signing up:", error);
+        toast({
+            variant: "destructive",
+            title: "Error al Registrarse",
+            description: error.message || "Ocurrió un error desconocido.",
+        });
+        return null;
+    } finally {
+        setLoading(false);
+    }
+  };
+    
+  const signInWithEmail = async (email: string, pass: string) => {
+      setLoading(true);
+      try {
+          const userCredential = await signInWithEmailAndPassword(auth, email, pass);
+          router.push("/");
+          return userCredential.user;
+      } catch (error: any) {
+          console.error("Error signing in:", error);
+          toast({
+              variant: "destructive",
+              title: "Error al Iniciar Sesión",
+              description: error.message || "Ocurrió un error desconocido.",
+          });
+          return null;
+      } finally {
+          setLoading(false);
+      }
   };
 
   const logout = async () => {
     try {
       await signOut(auth);
-      // onAuthStateChanged will set user to null, triggering redirect in AuthGuard
       router.push("/login");
     } catch (error) {
       console.error("Error signing out", error);
@@ -92,7 +128,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, getIdToken, signInWithGoogle, logout }}
+      value={{ user, loading, getIdToken, signInWithGoogle, signUpWithEmail, signInWithEmail, logout }}
     >
       {children}
     </AuthContext.Provider>
