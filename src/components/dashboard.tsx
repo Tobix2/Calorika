@@ -42,11 +42,15 @@ export default function Dashboard() {
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>({});
   const [currentDate, setCurrentDate] = useState(new Date());
   
+  // Goals for the currently selected day
   const [calorieGoal, setCalorieGoal] = useState<number>(2200);
   const [proteinGoal, setProteinGoal] = useState<number>(140);
   const [carbsGoal, setCarbsGoal] = useState<number>(250);
   const [fatsGoal, setFatsGoal] = useState<number>(70);
   
+  // Persisted goals from user profile
+  const [userProfileGoals, setUserProfileGoals] = useState<UserGoals | null>(null);
+
   const [foodDatabase, setFoodDatabase] = useState<FoodItem[]>([]);
   const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
   
@@ -80,20 +84,21 @@ export default function Dashboard() {
       }
   }, [toast]);
 
-  // Carga inicial de datos de usuario y primer plan semanal
+  // Initial data load for user profile and first week
   useEffect(() => {
     async function loadInitialData() {
         if (user) {
             try {
-                const [foods, mealsData, userGoals] = await Promise.all([
+                const [foods, mealsData, goals] = await Promise.all([
                     getFoodsAction(user.uid),
                     getCustomMealsAction(user.uid),
                     getUserGoalsAction(user.uid),
                 ]);
                 setFoodDatabase(foods);
                 setCustomMeals(mealsData);
-                if (userGoals) {
-                    handleSetGoal(userGoals);
+                if (goals) {
+                    setUserProfileGoals(goals);
+                    handleSetGoal(goals); // Set initial daily goals from profile
                 }
                 loadWeeklyPlan(user, weekDates);
             } catch (error) {
@@ -107,14 +112,21 @@ export default function Dashboard() {
         }
     }
     loadInitialData();
-  }, [user, toast]); // Solo se ejecuta cuando el usuario cambia
+  }, [user, toast]);
 
-  // Recarga el plan semanal cuando cambia la semana
+  // This effect reloads the weekly plan when the week changes.
   useEffect(() => {
     if(user) {
         loadWeeklyPlan(user, weekDates);
     }
   }, [weekDates, user, loadWeeklyPlan]);
+
+  // This effect resets the daily goals to the profile goals when the date changes.
+  useEffect(() => {
+    if (userProfileGoals) {
+        handleSetGoal(userProfileGoals);
+    }
+  }, [currentDate, userProfileGoals]);
   
   const saveCurrentDailyPlan = (plan: DailyPlan) => {
     if (user) {
@@ -211,7 +223,7 @@ export default function Dashboard() {
         toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para guardar tus objetivos.' });
         return;
     }
-    const goals: UserGoals = {
+    const goalsToSave: UserGoals = {
       calorieGoal,
       proteinGoal,
       carbsGoal,
@@ -220,7 +232,8 @@ export default function Dashboard() {
 
     startSavingGoalsTransition(async () => {
         try {
-            await saveUserGoalsAction(user.uid, goals);
+            await saveUserGoalsAction(user.uid, goalsToSave);
+            setUserProfileGoals(goalsToSave); // Update the global profile goals state
             toast({
                 title: '¡Objetivos Guardados!',
                 description: 'Tus metas personalizadas se han guardado y se aplicarán a los días futuros.',
@@ -506,3 +519,5 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
+
+    
