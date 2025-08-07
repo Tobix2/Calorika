@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useMemo, useTransition, useEffect, useCallback } from 'react';
+import { useState, useMemo, useTransition, useEffect, useCallback, useRef } from 'react';
 import type { Meal, MealName, FoodItem, CustomMeal, MealItem, WeeklyPlan, DailyPlan, UserGoals, DayData } from '@/lib/types';
 import DailySummary from './daily-summary';
 import MealList from './meal-list';
@@ -64,12 +64,16 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
+  
+  const isInitialLoadRef = useRef(true);
+
 
   const selectedDateKey = format(currentDate, 'yyyy-MM-dd');
+  // Safely access dayData and its goals property
   const dayData = weeklyPlan[selectedDateKey] || initialDayData;
-  const { plan: meals, goals } = dayData;
-  const { calorieGoal, proteinGoal, carbsGoal, fatsGoal } = goals;
+  const { plan: meals, goals } = dayData || initialDayData;
+  const { calorieGoal, proteinGoal, carbsGoal, fatsGoal } = goals || initialDayData.goals;
+
 
   const weekDates = useMemo(() => {
     const start = startOfWeek(currentDate, { weekStartsOn: 1 }); // Lunes
@@ -78,7 +82,7 @@ export default function Dashboard() {
   }, [currentDate]);
 
   const loadWeeklyPlan = useCallback(async (user: any, dates: Date[], goals: UserGoals | null) => {
-      setIsLoading(true);
+      isInitialLoadRef.current = true; // Set flag before loading
       try {
           const plan = await getWeeklyPlanAction(user.uid, dates, goals);
           setWeeklyPlan(plan);
@@ -90,7 +94,10 @@ export default function Dashboard() {
               description: 'No se pudo cargar tu plan. Por favor, intenta refrescar.'
           });
       } finally {
-        setIsLoading(false);
+        // Use a timeout to ensure the state update has propagated before allowing saves
+        setTimeout(() => {
+          isInitialLoadRef.current = false;
+        }, 100);
       }
   }, [toast]);
 
@@ -98,7 +105,6 @@ export default function Dashboard() {
   useEffect(() => {
     async function loadInitialData() {
         if (user) {
-            setIsLoading(true);
             try {
                 const [foods, mealsData, goals] = await Promise.all([
                     getFoodsAction(user.uid),
@@ -108,7 +114,7 @@ export default function Dashboard() {
                 setFoodDatabase(foods);
                 setCustomMeals(mealsData);
                 setProfileGoals(goals);
-                loadWeeklyPlan(user, weekDates, goals);
+                await loadWeeklyPlan(user, weekDates, goals);
             } catch (error) {
                 console.error("No se pudieron cargar los datos iniciales", error);
                 toast({
@@ -116,54 +122,49 @@ export default function Dashboard() {
                     title: 'Error',
                     description: 'No se pudieron cargar tus datos. Por favor, refresca la página.'
                 });
+            } finally {
                 setIsLoading(false);
             }
         }
     }
     loadInitialData();
-  }, [user, toast]);
+  }, [user, toast]); // weekDates is removed to prevent re-triggering just on date change
 
-  // This effect reloads the weekly plan when the week changes.
+  // This effect reloads the weekly plan ONLY when the week itself changes.
   useEffect(() => {
-    if(user && !isLoading) { // prevent re-fetching on initial load
+    if(user && !isInitialLoadRef.current) { // prevent re-fetching on initial load
         loadWeeklyPlan(user, weekDates, profileGoals);
     }
-  }, [weekDates, user, profileGoals]); // Re-fetch if profileGoals change
+  }, [weekDates, user]); // Note: profileGoals is removed, it's passed into loadWeeklyPlan directly
 
-
-  const saveCurrentDailyPlan = useCallback(async (newPlan: DailyPlan, newGoals: UserGoals) => {
-    if (user && !isSaving) {
-      setIsSaving(true);
-      try {
-        await saveDailyPlanAction(user.uid, currentDate, newPlan, newGoals);
-      } catch (error) {
-        console.error("No se pudo guardar el plan diario", error);
-        toast({
-          variant: 'destructive',
-          title: 'Error de Guardado',
-          description: 'No se pudieron guardar tus últimos cambios.'
-        });
-      } finally {
-        setIsSaving(false);
-      }
+  
+  // Effect to save the plan whenever it changes, but not on initial load
+  useEffect(() => {
+    if (!isInitialLoadRef.current && dayData && user) {
+        saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
     }
-  }, [user, currentDate, toast, isSaving]);
+  }, [weeklyPlan, user, currentDate]); // Rerunning on weeklyPlan change handles all updates
+
 
   const updateDayData = (newDayData: Partial<DayData>) => {
     const updatedDayData = {
-        ...dayData,
+        ...(weeklyPlan[selectedDateKey] || initialDayData),
         ...newDayData,
+        goals: {
+            ...(weeklyPlan[selectedDateKey]?.goals || initialDayData.goals),
+            ...newDayData.goals,
+        }
     };
-    const newPlanState = {
-        ...weeklyPlan,
+    
+    setWeeklyPlan(prev => ({
+        ...prev,
         [selectedDateKey]: updatedDayData
-    };
-    setWeeklyPlan(newPlanState);
-    saveCurrentDailyPlan(updatedDayData.plan, updatedDayData.goals);
+    }));
+    // The useEffect listening to weeklyPlan will handle saving.
   }
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
-    const updatedDayPlan = meals.map((meal: Meal) => {
+    const newMeals = meals.map((meal: Meal) => {
         if (meal.name === mealName) {
             const newItem: MealItem = {
                 ...food,
@@ -174,7 +175,7 @@ export default function Dashboard() {
         }
         return meal;
     });
-    updateDayData({ plan: updatedDayPlan });
+    updateDayData({ plan: newMeals });
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
@@ -193,23 +194,23 @@ export default function Dashboard() {
         servingUnit: customMeal.servingUnit,
     };
 
-    const updatedDayPlan = meals.map((meal: Meal) => {
+    const newMeals = meals.map((meal: Meal) => {
         if (meal.name === mealName) {
             return { ...meal, items: [...meal.items, mealItem] };
         }
         return meal;
     });
 
-    updateDayData({ plan: updatedDayPlan });
+    updateDayData({ plan: newMeals });
   };
 
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
-    const updatedDayPlan = meals.map((meal: Meal) =>
+    const newMeals = meals.map((meal: Meal) =>
         meal.name === mealName
           ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
           : meal
     );
-    updateDayData({ plan: updatedDayPlan });
+    updateDayData({ plan: newMeals });
   };
 
   const handleSetGoal = (newGoals: UserGoals) => {
@@ -490,8 +491,18 @@ export default function Dashboard() {
                 <div className="space-y-6">
                 <CalorieRecommendationForm onGoalSet={(newGoals) => {
                     handleSetGoal(newGoals);
-                    setProfileGoals(newGoals); // Also update profile goals to be saved
+                    // This call might be redundant if the user is expected to save manually,
+                    // but it applies the goal to the current day immediately.
+                    // To make saving explicit, you could have this just update the profileGoals state
+                    // and let the user click save. For now, it also saves.
+                    if (user) {
+                      startSavingGoalsTransition(async () => {
+                        await saveUserGoalsAction(user.uid, newGoals);
+                        setProfileGoals(newGoals);
+                      });
+                    }
                 }} />
+
                 <Card>
                     <CardHeader>
                         <CardTitle>Desglose de Calorías por Comida</CardTitle>

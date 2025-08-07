@@ -238,6 +238,13 @@ const initialDailyPlan: DailyPlan = [
   { name: 'Snacks', items: [] },
 ];
 
+const emptyGoals: UserGoals = {
+    calorieGoal: 0,
+    proteinGoal: 0,
+    carbsGoal: 0,
+    fatsGoal: 0,
+};
+
 export async function getWeeklyPlanAction(userId: string, weekDates: Date[], profileGoals: UserGoals | null): Promise<WeeklyPlan> {
     try {
         const db = getDb();
@@ -249,14 +256,20 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[], pro
             const docSnap = await docRef.get();
             if (docSnap.exists) {
                 const data = docSnap.data();
+                // Ensure goals exist, if not, use the profile goals or empty goals
+                const goals = data?.goals || profileGoals || emptyGoals;
                 return { 
                     date: dateString, 
                     plan: (data?.plan || initialDailyPlan) as DailyPlan,
-                    goals: (data?.goals) as UserGoals
+                    goals: goals as UserGoals,
                 };
             }
             // For days without a record, use profile goals
-            return { date: dateString, plan: initialDailyPlan, goals: profileGoals || { calorieGoal: 0, proteinGoal: 0, carbsGoal: 0, fatsGoal: 0 }};
+            return { 
+                date: dateString, 
+                plan: initialDailyPlan, 
+                goals: profileGoals || emptyGoals
+            };
         });
 
         const dailyData = await Promise.all(planPromises);
@@ -274,12 +287,14 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[], pro
     }
 }
 
+
 export async function saveDailyPlanAction(userId: string, date: Date, plan: DailyPlan, goals: UserGoals): Promise<void> {
     try {
         const db = getDb();
         const dateString = format(date, 'yyyy-MM-dd');
         const docRef = db.collection('users').doc(userId).collection('dailyPlans').doc(dateString);
         
+        // Ensure plan and goals are plain objects before saving
         const plainPlanObject = JSON.parse(JSON.stringify(plan));
         const plainGoalsObject = JSON.parse(JSON.stringify(goals));
         
@@ -369,3 +384,4 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
         throw new Error("No se pudo obtener el historial de peso.");
     }
 }
+
