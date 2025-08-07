@@ -30,6 +30,16 @@ import WeekNavigator from './week-navigator';
 import { format, startOfWeek, endOfWeek, eachDayOfInterval, isBefore, startOfToday } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+
 
 const initialDayData: DayData = {
   plan: [
@@ -57,7 +67,7 @@ export default function Dashboard() {
   const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
   
   const [isAiPending, startAiTransition] = useTransition();
-  const [isSavingGoals, startSavingGoalsTransition] = useTransition();
+  const [isSaving, startSavingTransition] = useTransition();
 
   const { toast } = useToast();
   const { user, logout } = useAuth();
@@ -69,7 +79,7 @@ export default function Dashboard() {
 
   const selectedDateKey = format(currentDate, 'yyyy-MM-dd');
   const dayData = weeklyPlan[selectedDateKey] || initialDayData;
-  const { plan: meals, goals } = dayData || initialDayData;
+  const { plan: meals, goals } = dayData;
   const { calorieGoal, proteinGoal, carbsGoal, fatsGoal } = goals || initialDayData.goals;
 
 
@@ -123,7 +133,7 @@ export default function Dashboard() {
         }
     }
     loadInitialData();
-  }, [user, toast]);
+  }, [user, loadWeeklyPlan, toast, weekDates]);
 
   // This effect reloads the weekly plan ONLY when the week itself changes.
   useEffect(() => {
@@ -133,20 +143,17 @@ export default function Dashboard() {
   }, [weekDates, user, loadWeeklyPlan, profileGoals]);
 
   
-  // Effect to save the plan whenever it changes, but not on initial load
-  useEffect(() => {
-    if (!isInitialLoadRef.current && dayData && user) {
-        saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
+  const savePlan = useCallback((planToSave: DailyPlan, goalsToSave: UserGoals) => {
+    if (user && !isInitialLoadRef.current) {
+      saveDailyPlanAction(user.uid, currentDate, planToSave, goalsToSave);
     }
-  }, [weeklyPlan, user, currentDate, dayData]);
+  }, [user, currentDate]);
 
   // Effect to update current day's goals if they don't exist yet
    useEffect(() => {
     const today = startOfToday();
-    if (isBefore(currentDate, today)) {
-        // For past dates, we just display what was saved. No changes.
-        return;
-    }
+    // Do not modify past dates
+    if (isBefore(currentDate, today)) return;
     
     // For today or future dates
     const currentDayData = weeklyPlan[selectedDateKey];
@@ -157,11 +164,14 @@ export default function Dashboard() {
 
 
   const updateDayData = (newDayData: Partial<DayData>) => {
+    const currentDay = weeklyPlan[selectedDateKey] || initialDayData;
+
     const updatedDayData = {
-        ...(weeklyPlan[selectedDateKey] || initialDayData),
+        ...currentDay,
         ...newDayData,
+        plan: newDayData.plan || currentDay.plan,
         goals: {
-            ...(weeklyPlan[selectedDateKey]?.goals || initialDayData.goals),
+            ...currentDay.goals,
             ...newDayData.goals,
         }
     };
@@ -170,6 +180,8 @@ export default function Dashboard() {
         ...prev,
         [selectedDateKey]: updatedDayData
     }));
+
+    savePlan(updatedDayData.plan, updatedDayData.goals);
   }
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
@@ -238,7 +250,7 @@ export default function Dashboard() {
       fatsGoal,
     };
 
-    startSavingGoalsTransition(async () => {
+    startSavingTransition(async () => {
         try {
             await saveUserGoalsAction(user.uid, goalsToSave);
             setProfileGoals(goalsToSave);
@@ -423,21 +435,7 @@ export default function Dashboard() {
                 <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
               </div>
               <div className="flex items-center gap-4">
-                {user?.displayName && (
-                    <div className="flex items-center gap-2">
-                        <User className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium text-sm">
-                          {user.displayName}
-                          <span className="text-muted-foreground ml-1">({user.email})</span>
-                        </span>
-                    </div>
-                )}
-                <Button variant="outline" asChild>
-                  <Link href="/tracker">
-                    <WeightIcon className="mr-2"/>
-                    Mi Progreso
-                  </Link>
-                </Button>
+                
                 <AlertDialog open={isGeneratePlanDialogOpen} onOpenChange={setIsGeneratePlanDialogOpen}>
                   <AlertDialogTrigger asChild>
                     <Button variant="ghost" disabled={isAiPending}>
@@ -467,10 +465,44 @@ export default function Dashboard() {
                   setFoodDatabase={setFoodDatabase}
                   onAddIngredient={handleAddIngredient}
                 />
-                <Button variant="outline" onClick={logout}>
-                    <LogOut className="mr-2"/>
-                    Cerrar Sesión
-                </Button>
+                 <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'Avatar'} />
+                          <AvatarFallback>{user?.displayName?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                      <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">{user?.displayName}</p>
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {user?.email}
+                          </p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                       <DropdownMenuItem asChild>
+                         <Link href="/profile">
+                          <User className="mr-2 h-4 w-4" />
+                          <span>Perfil</span>
+                         </Link>
+                      </DropdownMenuItem>
+                       <DropdownMenuItem asChild>
+                         <Link href="/tracker">
+                          <WeightIcon className="mr-2 h-4 w-4" />
+                          <span>Mi Progreso</span>
+                         </Link>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={logout}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Cerrar Sesión</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
               </div>
             </div>
           </div>
@@ -494,7 +526,7 @@ export default function Dashboard() {
                     fatsGoal={fatsGoal}
                     onGoalChange={handleSetGoal}
                     onSaveGoals={handleSaveGoals}
-                    isSaving={isSavingGoals}
+                    isSaving={isSaving}
                 />
                 <MealList
                     meals={meals}
@@ -510,7 +542,7 @@ export default function Dashboard() {
                 <CalorieRecommendationForm onGoalSet={(newGoals) => {
                     handleSetGoal(newGoals);
                     if (user) {
-                      startSavingGoalsTransition(async () => {
+                      startSavingTransition(async () => {
                         await saveUserGoalsAction(user.uid, newGoals);
                         setProfileGoals(newGoals);
                       });
@@ -545,5 +577,3 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
-
-    

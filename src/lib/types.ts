@@ -72,3 +72,8 @@ export type UserGoals = {
     carbsGoal: number;
     fatsGoal: number;
 };
+
+export type UserProfile = {
+  displayName: string;
+  age?: number;
+};

@@ -24,6 +24,7 @@ interface AuthContextType {
   signUpWithEmail: (email: string, pass: string, name: string) => Promise<User | null>;
   signInWithEmail: (email: string, pass: string) => Promise<User | null>;
   logout: () => Promise<void>;
+  updateUserProfile: (profile: { displayName?: string; photoURL?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -34,6 +35,7 @@ const AuthContext = createContext<AuthContextType>({
   signUpWithEmail: async () => null,
   signInWithEmail: async () => null,
   logout: async () => {},
+  updateUserProfile: async () => {},
 });
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
@@ -133,9 +135,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  const updateUserProfile = async (profile: { displayName?: string; photoURL?: string }) => {
+    if (auth.currentUser) {
+      try {
+        await updateProfile(auth.currentUser, profile);
+        // Manually trigger a state update to reflect the change immediately
+        setUser({ ...auth.currentUser }); 
+      } catch (error) {
+        console.error("Error updating user profile:", error);
+        throw error;
+      }
+    } else {
+      throw new Error("No user is currently signed in.");
+    }
+  };
+
+
   return (
     <AuthContext.Provider
-      value={{ user, loading, getIdToken, signInWithGoogle, signUpWithEmail, signInWithEmail, logout }}
+      value={{ user, loading, getIdToken, signInWithGoogle, signUpWithEmail, signInWithEmail, logout, updateUserProfile }}
     >
       {children}
     </AuthContext.Provider>
