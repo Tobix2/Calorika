@@ -149,12 +149,26 @@ export default function Dashboard() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekDates, user, profileGoals]);
 
-  
-  const savePlan = useCallback((planToSave: DailyPlan, goalsToSave: UserGoals) => {
-    if (user && !isInitialLoadRef.current) {
-      saveDailyPlanAction(user.uid, currentDate, planToSave, goalsToSave);
+  // Debounced save effect
+  useEffect(() => {
+    // Don't save on initial load or for past dates
+    if (isInitialLoadRef.current || isBefore(currentDate, startOfToday())) {
+      return;
     }
-  }, [user, currentDate]);
+    
+    // Set up the timer
+    const handler = setTimeout(() => {
+      if (user && dayData.plan.length > 0) { // Only save if there's data
+        saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
+      }
+    }, 1500); // Wait 1.5 seconds after the last change
+
+    // Cleanup function to cancel the timer if a new change comes in
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [dayData, currentDate, user]);
+
 
   // Effect to update current day's goals if they don't exist yet
    useEffect(() => {
@@ -187,8 +201,6 @@ export default function Dashboard() {
         ...prev,
         [selectedDateKey]: updatedDayData
     }));
-
-    savePlan(updatedDayData.plan, updatedDayData.goals);
   }
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
@@ -584,3 +596,5 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
+
+    
