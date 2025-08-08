@@ -69,13 +69,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await signInWithPopup(auth, provider);
       // onAuthStateChanged will handle the redirect
-    } catch (error) {
-      console.error("Error signing in with Google", error);
-       toast({
-        variant: "destructive",
-        title: "Error de Autenticación",
-        description: "No se pudo iniciar sesión con Google.",
-      });
+    } catch (error: any) {
+        // If the user closes the popup, do not show an error toast.
+        if (error.code === 'auth/popup-closed-by-user') {
+            console.log("Sign-in popup closed by user.");
+            return;
+        }
+        console.error("Error signing in with Google", error);
+        toast({
+            variant: "destructive",
+            title: "Error de Autenticación",
+            description: "No se pudo iniciar sesión con Google.",
+        });
     } finally {
         setLoading(false);
     }
