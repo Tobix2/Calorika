@@ -4,7 +4,7 @@
 import type { Meal, MealName, FoodItem, CustomMeal, MealItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AddFoodDialog from './add-food-dialog';
-import { Apple, Salad, Drumstick, Cookie, Flame, Trash2, PlusCircle } from 'lucide-react';
+import { Apple, Salad, Drumstick, Cookie, Flame, Trash2, PlusCircle, Beef, Wheat, Droplets } from 'lucide-react';
 
 interface MealListProps {
   meals: Meal[];
@@ -30,26 +30,32 @@ const mealNames: Record<MealName, string> = {
     Snacks: "Snacks"
 }
 
-export default function MealList({ meals, customMeals, foodDatabase, onAddFood, onRemoveFood, onAddCustomMeal, onDeleteItem }: MealListProps) {
-  
-  const calculateItemCalories = (item: MealItem) => {
+const calculateNutrients = (item: MealItem) => {
     const quantity = Number(item.quantity) || 0;
     const servingSize = Number(item.servingSize) || 1;
-    const itemCalories = Number(item.calories) || 0;
+    let ratio = servingSize > 0 ? quantity / servingSize : 0;
     
+    // For custom meals measured in servings, the ratio is just the quantity
     if (item.isCustom && (item.servingUnit?.toLowerCase().includes('ración') || item.servingUnit?.toLowerCase().includes('serving') || item.servingUnit?.toLowerCase().includes('comida'))) {
-        return itemCalories * quantity;
+        ratio = quantity;
     }
     
-    const ratio = servingSize > 0 ? quantity / servingSize : 0;
-    return itemCalories * ratio;
-  }
+    return {
+        calories: (item.calories || 0) * ratio,
+        protein: (item.protein || 0) * ratio,
+        carbs: (item.carbs || 0) * ratio,
+        fats: (item.fats || 0) * ratio,
+    };
+}
+
+
+export default function MealList({ meals, customMeals, foodDatabase, onAddFood, onRemoveFood, onAddCustomMeal, onDeleteItem }: MealListProps) {
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {meals.map(meal => {
         const mealCalories = meal.items.reduce((sum, item) => {
-            return sum + calculateItemCalories(item);
+            return sum + calculateNutrients(item).calories;
         }, 0);
 
         return (
@@ -68,22 +74,38 @@ export default function MealList({ meals, customMeals, foodDatabase, onAddFood, 
               <div className="space-y-3 mb-4 flex-grow">
                 {meal.items.length > 0 ? (
                   meal.items.map((item: MealItem) => {
-                     const itemCalories = calculateItemCalories(item);
+                     const nutrients = calculateNutrients(item);
                      const quantity = Number(item.quantity) || 0;
                      const unit = item.servingUnit || 'unidad';
-                     const servingUnitLabel = quantity !== 1 && unit.length > 2 ? `${unit}s` : unit;
+                     const servingUnitLabel = quantity !== 1 && unit.length > 2 && !unit.endsWith('s') ? `${unit}s` : unit;
 
-                     const description = `${quantity} ${servingUnitLabel} • ${itemCalories.toFixed(0)} kcal`;
+                     const description = `${quantity} ${servingUnitLabel} • ${nutrients.calories.toFixed(0)} kcal`;
 
                     return (
-                        <div key={item.mealItemId} className="flex justify-between items-center bg-muted/50 p-2 rounded-md">
-                        <div>
-                            <p className="font-semibold">{item.name}</p>
-                            <p className="text-sm text-muted-foreground">{description}</p>
-                        </div>
-                        <button onClick={() => onRemoveFood(meal.name, item.mealItemId)} className="text-muted-foreground hover:text-destructive p-1 rounded-full hover:bg-destructive/10">
-                            <Trash2 className="h-4 w-4" />
-                        </button>
+                        <div key={item.mealItemId} className="flex flex-col bg-muted/50 p-3 rounded-md gap-2">
+                            <div className="flex justify-between items-start">
+                                <div>
+                                    <p className="font-semibold">{item.name}</p>
+                                    <p className="text-sm text-muted-foreground">{description}</p>
+                                </div>
+                                <button onClick={() => onRemoveFood(meal.name, item.mealItemId)} className="text-muted-foreground hover:text-destructive p-1 rounded-full hover:bg-destructive/10 -mt-1 -mr-1">
+                                    <Trash2 className="h-4 w-4" />
+                                </button>
+                            </div>
+                            <div className="flex items-center justify-end gap-4 text-xs text-muted-foreground border-t border-muted-foreground/20 pt-2">
+                                <div className="flex items-center gap-1">
+                                    <Beef className="h-3 w-3 text-red-500"/>
+                                    <span>P: {nutrients.protein.toFixed(1)}g</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Wheat className="h-3 w-3 text-yellow-500"/>
+                                    <span>C: {nutrients.carbs.toFixed(1)}g</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                    <Droplets className="h-3 w-3 text-blue-500"/>
+                                    <span>G: {nutrients.fats.toFixed(1)}g</span>
+                                </div>
+                            </div>
                         </div>
                     )
                   })
