@@ -155,7 +155,8 @@ export default function Dashboard() {
     
     const handler = setTimeout(() => {
       const dayToSave = weeklyPlan[selectedDateKey];
-      if (dayToSave && (dayToSave.plan.some(meal => meal.items.length > 0) || dayToSave.goals.calorieGoal > 0)) {
+      // Eliminar la condición de fecha para permitir guardar cualquier día
+      if (dayToSave) {
         console.log(`Autosaving plan for ${selectedDateKey}`);
         saveDailyPlanAction(user.uid, currentDate, dayToSave.plan, dayToSave.goals);
       }
