@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
 import { Button } from "@/components/ui/button";
 import { Loader2, Leaf } from "lucide-react";
@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useRouter } from "next/navigation";
 
 function LoginForm() {
     const { signInWithEmail, loading } = useAuth();
@@ -81,7 +82,15 @@ function RegisterForm() {
 
 
 export default function LoginPage() {
-  const { signInWithGoogle, loading } = useAuth();
+  const { user, loading, signInWithGoogle } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.push('/dashboard');
+    }
+  }, [user, loading, router]);
+
 
   const handleSignIn = () => {
     signInWithGoogle().catch(err => {
@@ -91,6 +100,14 @@ export default function LoginPage() {
         }
     });
   };
+
+  if (loading || user) {
+    return (
+        <div className="flex min-h-screen w-full items-center justify-center bg-background">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-background to-muted/50 p-4">

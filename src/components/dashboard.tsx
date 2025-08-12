@@ -148,20 +148,17 @@ export default function Dashboard() {
 
   // Debounced save effect
   useEffect(() => {
-    // Don't save on initial load or if data is not ready
     if (isInitialLoadRef.current || !user) {
       return;
     }
     
     const handler = setTimeout(() => {
-        // Only save if there's actually a plan or goals set for the day
-        if (dayData.plan.some(meal => meal.items.length > 0) || dayData.goals.calorieGoal > 0) {
-            console.log(`Saving plan for ${selectedDateKey}`);
-            saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
-        }
-    }, 1500); // Wait 1.5 seconds after the last change
+      if (dayData.plan.some(meal => meal.items.length > 0) || dayData.goals.calorieGoal > 0) {
+        console.log(`Saving plan for ${selectedDateKey}`);
+        saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
+      }
+    }, 1500);
 
-    // Cleanup function to cancel the timer if a new change comes in
     return () => {
       clearTimeout(handler);
     };
@@ -171,10 +168,8 @@ export default function Dashboard() {
   // Effect to update current day's goals if they don't exist yet
    useEffect(() => {
     const today = startOfToday();
-    // Do not modify past dates
     if (isBefore(currentDate, today)) return;
     
-    // For today or future dates
     const currentDayData = weeklyPlan[selectedDateKey];
     if (profileGoals && (!currentDayData || !currentDayData.goals.calorieGoal)) {
         updateDayData({ goals: profileGoals });
@@ -268,7 +263,6 @@ export default function Dashboard() {
 
     startSavingTransition(async () => {
         try {
-            // Save the entire day's data (plan and goals)
             await saveDailyPlanAction(user.uid, currentDate, dayToSave.plan, dayToSave.goals);
 
             toast({
@@ -542,7 +536,7 @@ export default function Dashboard() {
                     fats={totalFats}
                     fatsGoal={fatsGoal}
                     onGoalChange={handleSetGoal}
-                    onSaveDay={handleSaveDay}
+                    onSaveGoals={handleSaveDay}
                     isSaving={isSaving}
                 />
                 <MealList
