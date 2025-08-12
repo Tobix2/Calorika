@@ -20,21 +20,19 @@ import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 export async function createSubscriptionAction(userId: string, payerEmail: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
     console.log(`Creando suscripción para el usuario: ${userId} con email: ${payerEmail}`);
     
-    if (!userId || !payerEmail) {
-        return { checkoutUrl: null, error: "Usuario o email no válido." };
-    }
-    
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) {
         console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
         return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
     }
 
+    if (!userId || !payerEmail) {
+        return { checkoutUrl: null, error: "Usuario o email no válido." };
+    }
+
     try {
-        console.log("Inicializando cliente de Mercado Pago...");
         const client = new MercadoPagoConfig({ accessToken });
         const preapproval = new PreApproval(client);
-        console.log("Cliente de Mercado Pago inicializado. Creando cuerpo de la solicitud...");
 
         const body = {
             reason: 'Suscripción Pro a Calorika',
@@ -48,13 +46,14 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
             payer_email: payerEmail, 
             external_reference: userId,
             site_id: "MLA",
+            marketplace: "NONE",
         };
         
-        console.log("Cuerpo de la solicitud:", JSON.stringify(body, null, 2));
+        console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(body, null, 2));
 
-        console.log("Enviando solicitud a Mercado Pago...");
         const result = await preapproval.create({ body });
-        console.log("Respuesta de Mercado Pago recibida.");
+        
+        console.log("Respuesta de Mercado Pago recibida con éxito.");
 
         const checkoutUrl = result.init_point;
         if (!checkoutUrl) {
@@ -483,4 +482,3 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
 }
 
     
-
