@@ -150,7 +150,7 @@ export default function LandingPage() {
                     </div>
                     <div className="border-2 border-primary rounded-lg p-8 text-center flex flex-col ring-2 ring-primary shadow-2xl">
                         <h3 className="text-2xl font-bold text-primary">Pro Mensual</h3>
-                        <p className="mt-4 text-4xl font-bold">$9.99<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
+                        <p className="mt-4 text-4xl font-bold">$10.000<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
                         <ul className="mt-6 space-y-4 text-left flex-grow">
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Gratis</li>
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Planes de comidas IA</li>
@@ -161,10 +161,10 @@ export default function LandingPage() {
                     </div>
                      <div className="border-2 border-primary rounded-lg p-8 text-center flex flex-col">
                         <h3 className="text-2xl font-bold">Pro Anual</h3>
-                        <p className="mt-4 text-4xl font-bold">$99<span className="text-lg font-medium text-muted-foreground">/año</span></p>
+                        <p className="mt-4 text-4xl font-bold">$100.000<span className="text-lg font-medium text-muted-foreground">/año</span></p>
                         <ul className="mt-6 space-y-4 text-left flex-grow">
                            <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Pro</li>
-                           <li className="flex items-center font-bold text-primary"><CheckCircle className="h-5 w-5 mr-2"/>¡2 meses gratis!</li>
+                           <li className="flex items-center font-bold text-primary"><CheckCircle className="h-5 w-5 mr-2"/>¡Ahorra 2 meses!</li>
                         </ul>
                         <Button variant="outline" className="mt-8 w-full">Ahorra con el Anual</Button>
                     </div>
