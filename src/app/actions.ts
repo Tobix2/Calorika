@@ -13,21 +13,14 @@ import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMea
 import { getDb } from '@/lib/firebase-admin';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
-import mercadopago from 'mercadopago';
-
-// Configure Mercado Pago SDK
-const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-if (accessToken) {
-    mercadopago.configure({
-        access_token: accessToken,
-    });
-}
+import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 
 
 // --- Mercado Pago Action ---
 export async function createSubscriptionAction(userId: string, payerEmail: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
     console.log(`Creando suscripción para el usuario: ${userId} con email: ${payerEmail}`);
     
+    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) {
         console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
         return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
@@ -37,6 +30,9 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
         return { checkoutUrl: null, error: "Usuario o email no válido." };
     }
     
+    const client = new MercadoPagoConfig({ accessToken });
+    const preapproval = new PreApproval(client);
+
     const preapprovalData = {
         reason: 'Suscripción Pro a Calorika',
         auto_recurring: {
@@ -54,11 +50,11 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
     try {
         console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
 
-        const response = await mercadopago.preapproval.create(preapprovalData);
+        const response = await preapproval.create({ body: preapprovalData });
         
         console.log("Respuesta de Mercado Pago recibida con éxito.");
         
-        const checkoutUrl = response.body.init_point;
+        const checkoutUrl = response.init_point;
         if (!checkoutUrl) {
            console.error("La respuesta de Mercado Pago no contiene un init_point (URL de checkout).");
            return { checkoutUrl: null, error: "No se pudo generar el enlace de pago." };
@@ -484,7 +480,5 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
         throw new Error("No se pudo obtener el historial de peso.");
     }
 }
-
-    
 
     
