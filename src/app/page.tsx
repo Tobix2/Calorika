@@ -137,7 +137,7 @@ export default function LandingPage() {
         <section id="pricing" className="py-16 sm:py-24 bg-background">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 className="text-3xl sm:text-4xl font-bold font-headline text-foreground">Elige el plan perfecto para ti</h2>
-                <div className="mt-12 grid lg:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
                     <div className="border-2 border-primary rounded-lg p-8 text-center flex flex-col">
                         <h3 className="text-2xl font-bold">Gratis</h3>
                         <p className="mt-4 text-4xl font-bold">$0<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
@@ -197,4 +197,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
