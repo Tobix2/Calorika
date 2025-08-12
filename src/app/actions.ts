@@ -467,3 +467,5 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
         throw new Error("No se pudo obtener el historial de peso.");
     }
 }
+
+    
