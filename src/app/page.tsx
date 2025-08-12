@@ -157,7 +157,9 @@ export default function LandingPage() {
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Base de datos de recetas</li>
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Soporte prioritario</li>
                         </ul>
-                         <Button className="mt-8 w-full">Elegir Plan Pro</Button>
+                         <Button asChild className="mt-8 w-full">
+                           <Link href="/login?plan=pro">Elegir Plan Pro</Link>
+                         </Button>
                     </div>
                      <div className="border-2 border-primary rounded-lg p-8 text-center flex flex-col">
                         <h3 className="text-2xl font-bold">Pro Anual</h3>
@@ -166,7 +168,9 @@ export default function LandingPage() {
                            <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Pro</li>
                            <li className="flex items-center font-bold text-primary"><CheckCircle className="h-5 w-5 mr-2"/>¡Ahorra 2 meses!</li>
                         </ul>
-                        <Button variant="outline" className="mt-8 w-full">Ahorra con el Anual</Button>
+                        <Button variant="outline" className="mt-8 w-full" asChild>
+                           <Link href="/login?plan=pro">Ahorra con el Anual</Link>
+                        </Button>
                     </div>
                 </div>
             </div>

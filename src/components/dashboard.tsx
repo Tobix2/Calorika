@@ -7,11 +7,11 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut, WeightIcon, User } from 'lucide-react';
+import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
-import { generateMealPlanAction, saveDailyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction, getUserGoalsAction, saveUserGoalsAction } from '@/app/actions';
+import { generateMealPlanAction, saveDailyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction, getUserGoalsAction, saveUserGoalsAction, createSubscriptionAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/auth-context';
 import AuthGuard from './auth-guard';
@@ -68,6 +68,7 @@ export default function Dashboard() {
   
   const [isAiPending, startAiTransition] = useTransition();
   const [isSaving, startSavingTransition] = useTransition();
+  const [isSubscribing, startSubscribingTransition] = useTransition();
 
   const { toast } = useToast();
   const { user, logout } = useAuth();
@@ -153,22 +154,23 @@ export default function Dashboard() {
     }
     
     const handler = setTimeout(() => {
-      if (dayData.plan.some(meal => meal.items.length > 0) || dayData.goals.calorieGoal > 0) {
-        console.log(`Saving plan for ${selectedDateKey}`);
-        saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
+      const dayToSave = weeklyPlan[selectedDateKey];
+      if (dayToSave && (dayToSave.plan.some(meal => meal.items.length > 0) || dayToSave.goals.calorieGoal > 0)) {
+        console.log(`Autosaving plan for ${selectedDateKey}`);
+        saveDailyPlanAction(user.uid, currentDate, dayToSave.plan, dayToSave.goals);
       }
     }, 1500);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [dayData, currentDate, user, selectedDateKey]);
+  }, [weeklyPlan, currentDate, user, selectedDateKey]);
 
 
   // Effect to update current day's goals if they don't exist yet
    useEffect(() => {
-    const today = startOfToday();
-    if (isBefore(currentDate, today)) return;
+    // No modificar días pasados
+    if (isBefore(currentDate, startOfToday())) return;
     
     const currentDayData = weeklyPlan[selectedDateKey];
     if (profileGoals && (!currentDayData || !currentDayData.goals.calorieGoal)) {
@@ -394,6 +396,22 @@ export default function Dashboard() {
       return null;
     }
   };
+  
+  const handleSubscribe = () => {
+        if (!user) return;
+        startSubscribingTransition(async () => {
+            const { checkoutUrl, error } = await createSubscriptionAction(user.uid);
+            if (error || !checkoutUrl) {
+                toast({
+                    variant: 'destructive',
+                    title: 'Error al suscribirse',
+                    description: error || 'No se pudo generar el enlace de pago.'
+                });
+            } else {
+                window.location.href = checkoutUrl;
+            }
+        });
+    };
 
 
   const { totalCalories, totalProtein, totalCarbs, totalFats } = useMemo(() => {
@@ -507,6 +525,11 @@ export default function Dashboard() {
                           <span>Mi Progreso</span>
                          </Link>
                       </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleSubscribe} disabled={isSubscribing}>
+                            {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
+                            <span>Suscribirse al Plan Pro</span>
+                        </DropdownMenuItem>
                       <DropdownMenuSeparator />
                       <DropdownMenuItem onClick={logout}>
                         <LogOut className="mr-2 h-4 w-4" />

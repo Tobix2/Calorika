@@ -13,6 +13,63 @@ import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMea
 import { getDb } from '@/lib/firebase-admin';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
+import { MercadoPagoConfig, Preference } from 'mercadopago';
+
+
+// --- Mercado Pago Action ---
+export async function createSubscriptionAction(userId: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
+    if (!userId) {
+        return { checkoutUrl: null, error: "Usuario no autenticado." };
+    }
+    
+    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    if (!accessToken) {
+        console.error("MERCADOPAGO_ACCESS_TOKEN no está configurado.");
+        return { checkoutUrl: null, error: "Error de configuración del servidor." };
+    }
+
+    const client = new MercadoPagoConfig({ accessToken });
+    const preference = new Preference(client);
+
+    try {
+        const result = await preference.create({
+            body: {
+                items: [
+                    {
+                        id: 'pro_plan_monthly',
+                        title: 'Calorika Plan Pro (Mensual)',
+                        quantity: 1,
+                        unit_price: 10000,
+                        currency_id: 'ARS',
+                        description: 'Acceso a todas las funcionalidades Pro de Calorika por un mes.'
+                    },
+                ],
+                payer: {
+                    external_reference: userId,
+                },
+                back_urls: {
+                    success: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+                    failure: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=failure`,
+                    pending: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=pending`,
+                },
+                auto_return: 'approved',
+            },
+        });
+        
+        const checkoutUrl = result.init_point;
+        if (!checkoutUrl) {
+           return { checkoutUrl: null, error: "No se pudo generar el enlace de pago." };
+        }
+
+        return { checkoutUrl, error: null };
+
+    } catch (error) {
+        console.error("Error al crear preferencia de Mercado Pago:", error);
+        const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
+        return { checkoutUrl: null, error: `Error al conectar con Mercado Pago: ${errorMessage}` };
+    }
+}
+
 
 // --- AI Actions ---
 
