@@ -13,14 +13,21 @@ import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMea
 import { getDb } from '@/lib/firebase-admin';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
-import { MercadoPagoConfig, PreApproval } from 'mercadopago';
+import mercadopago from 'mercadopago';
+
+// Configure Mercado Pago SDK
+const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+if (accessToken) {
+    mercadopago.configure({
+        access_token: accessToken,
+    });
+}
 
 
 // --- Mercado Pago Action ---
 export async function createSubscriptionAction(userId: string, payerEmail: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
     console.log(`Creando suscripción para el usuario: ${userId} con email: ${payerEmail}`);
     
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) {
         console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
         return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
@@ -29,33 +36,29 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
     if (!userId || !payerEmail) {
         return { checkoutUrl: null, error: "Usuario o email no válido." };
     }
+    
+    const preapprovalData = {
+        reason: 'Suscripción Pro a Calorika',
+        auto_recurring: {
+            frequency: 1,
+            frequency_type: 'months',
+            transaction_amount: 10000,
+            currency_id: 'ARS',
+        },
+        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+        payer_email: payerEmail,
+        external_reference: userId,
+        site_id: "MLA",
+    };
 
     try {
-        const client = new MercadoPagoConfig({ accessToken });
-        const preapproval = new PreApproval(client);
+        console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
 
-        const body = {
-            reason: 'Suscripción Pro a Calorika',
-            auto_recurring: {
-                frequency: 1,
-                frequency_type: 'months',
-                transaction_amount: 10000,
-                currency_id: 'ARS',
-            },
-            back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-            payer_email: payerEmail, 
-            external_reference: userId,
-            site_id: "MLA",
-            marketplace: "NONE",
-        };
-        
-        console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(body, null, 2));
-
-        const result = await preapproval.create({ body });
+        const response = await mercadopago.preapproval.create(preapprovalData);
         
         console.log("Respuesta de Mercado Pago recibida con éxito.");
-
-        const checkoutUrl = result.init_point;
+        
+        const checkoutUrl = response.body.init_point;
         if (!checkoutUrl) {
            console.error("La respuesta de Mercado Pago no contiene un init_point (URL de checkout).");
            return { checkoutUrl: null, error: "No se pudo generar el enlace de pago." };
@@ -69,12 +72,13 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
         
         let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
         
+        // The error structure for this SDK version might be different
         if (error.cause && Array.isArray(error.cause) && error.cause.length > 0) {
              const errorDetail = error.cause[0];
              console.error("Detalles del error de la API de Mercado Pago:", JSON.stringify(errorDetail, null, 2));
              errorMessage = `Error de Mercado Pago: ${errorDetail.description || 'Error desconocido.'}`;
         } else if (error.message) {
-            errorMessage = error.message;
+            errorMessage = `Error de Mercado Pago: ${error.message}`;
         }
        
         return { checkoutUrl: null, error: errorMessage };
@@ -480,5 +484,7 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
         throw new Error("No se pudo obtener el historial de peso.");
     }
 }
+
+    
 
     
