@@ -56,10 +56,15 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
 
     } catch (error: any) {
         console.error("Error al crear la suscripción de Mercado Pago:", error);
-        if (error.cause) {
-            console.error("Detalles del error de Mercado Pago:", JSON.stringify(error.cause, null, 2));
+        let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
+        if (error.cause && Array.isArray(error.cause) && error.cause.length > 0) {
+             console.error("Detalles del error de Mercado Pago:", JSON.stringify(error.cause, null, 2));
+             errorMessage = `Error de Mercado Pago: ${error.cause[0].description || error.message}`;
+        } else if (error.message) {
+            errorMessage = error.message;
         }
-        return { checkoutUrl: null, error: "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo." };
+       
+        return { checkoutUrl: null, error: errorMessage };
     }
 }
 
