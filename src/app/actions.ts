@@ -56,8 +56,7 @@ export async function createSubscriptionAction(userId: string): Promise<{ checko
 
     } catch (error) {
         console.error("Error al crear la suscripción de Mercado Pago:", error);
-        const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
-        return { checkoutUrl: null, error: `Error al conectar con Mercado Pago: ${errorMessage}` };
+        return { checkoutUrl: null, error: "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo." };
     }
 }
 
