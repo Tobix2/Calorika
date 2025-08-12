@@ -398,9 +398,12 @@ export default function Dashboard() {
   };
   
   const handleSubscribe = () => {
-        if (!user) return;
+        if (!user || !user.email) {
+            toast({ variant: 'destructive', title: 'Error', description: 'No se pudo obtener la información del usuario.'});
+            return;
+        };
         startSubscribingTransition(async () => {
-            const { checkoutUrl, error } = await createSubscriptionAction(user.uid);
+            const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email);
             if (error || !checkoutUrl) {
                 toast({
                     variant: 'destructive',

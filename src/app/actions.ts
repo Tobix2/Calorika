@@ -17,9 +17,9 @@ import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 
 
 // --- Mercado Pago Action ---
-export async function createSubscriptionAction(userId: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
-    if (!userId) {
-        return { checkoutUrl: null, error: "Usuario no autenticado." };
+export async function createSubscriptionAction(userId: string, payerEmail: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
+    if (!userId || !payerEmail) {
+        return { checkoutUrl: null, error: "Usuario o email no válido." };
     }
     
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -42,7 +42,7 @@ export async function createSubscriptionAction(userId: string): Promise<{ checko
                     currency_id: 'ARS',
                 },
                 back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-                payer_email: '', // MercadoPago lo llena si el usuario está logueado en su cuenta
+                payer_email: payerEmail, 
                 external_reference: userId,
             },
         });
@@ -56,7 +56,6 @@ export async function createSubscriptionAction(userId: string): Promise<{ checko
 
     } catch (error: any) {
         console.error("Error al crear la suscripción de Mercado Pago:", error);
-        // Depuración detallada: Imprime el cuerpo del error si está disponible
         if (error.cause) {
             console.error("Detalles del error de Mercado Pago:", JSON.stringify(error.cause, null, 2));
         }

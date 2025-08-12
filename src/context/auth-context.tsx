@@ -62,9 +62,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   const handleSuccessfulAuth = async (user: User, paymentIntent: string | null) => {
-        if (paymentIntent === 'pro') {
+        if (paymentIntent === 'pro' && user.email) {
             startSubscribingTransition(async () => {
-                const { checkoutUrl, error } = await createSubscriptionAction(user.uid);
+                const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email);
                 if (error || !checkoutUrl) {
                     toast({ variant: 'destructive', title: 'Error de Suscripción', description: error || 'No se pudo crear el enlace de pago.' });
                     router.push('/dashboard');
