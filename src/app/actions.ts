@@ -44,6 +44,7 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
                 back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
                 payer_email: payerEmail, 
                 external_reference: userId,
+                site_id: "MLA",
             },
         });
         
@@ -469,3 +470,4 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
 }
 
     
+
