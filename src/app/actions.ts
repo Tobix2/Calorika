@@ -13,7 +13,7 @@ import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMea
 import { getDb } from '@/lib/firebase-admin';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
-import { MercadoPagoConfig, Preference } from 'mercadopago';
+import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 
 
 // --- Mercado Pago Action ---
@@ -29,30 +29,21 @@ export async function createSubscriptionAction(userId: string): Promise<{ checko
     }
 
     const client = new MercadoPagoConfig({ accessToken });
-    const preference = new Preference(client);
+    const preapproval = new PreApproval(client);
 
     try {
-        const result = await preference.create({
+        const result = await preapproval.create({
             body: {
-                items: [
-                    {
-                        id: 'pro_plan_monthly',
-                        title: 'Calorika Plan Pro (Mensual)',
-                        quantity: 1,
-                        unit_price: 10000,
-                        currency_id: 'ARS',
-                        description: 'Acceso a todas las funcionalidades Pro de Calorika por un mes.'
-                    },
-                ],
-                payer: {
-                    external_reference: userId,
+                reason: 'Suscripción Pro a Calorika',
+                auto_recurring: {
+                    frequency: 1,
+                    frequency_type: 'months',
+                    transaction_amount: 10000,
+                    currency_id: 'ARS',
                 },
-                back_urls: {
-                    success: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-                    failure: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=failure`,
-                    pending: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=pending`,
-                },
-                auto_return: 'approved',
+                back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+                payer_email: '', // MercadoPago lo llena si el usuario está logueado en su cuenta
+                external_reference: userId,
             },
         });
         
@@ -64,7 +55,7 @@ export async function createSubscriptionAction(userId: string): Promise<{ checko
         return { checkoutUrl, error: null };
 
     } catch (error) {
-        console.error("Error al crear preferencia de Mercado Pago:", error);
+        console.error("Error al crear la suscripción de Mercado Pago:", error);
         const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
         return { checkoutUrl: null, error: `Error al conectar con Mercado Pago: ${errorMessage}` };
     }
@@ -469,3 +460,5 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
         throw new Error("No se pudo obtener el historial de peso.");
     }
 }
+
+    
