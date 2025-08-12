@@ -148,16 +148,17 @@ export default function Dashboard() {
 
   // Debounced save effect
   useEffect(() => {
-    // Don't save on initial load
-    if (isInitialLoadRef.current) {
+    // Don't save on initial load or if data is not ready
+    if (isInitialLoadRef.current || !user) {
       return;
     }
     
     const handler = setTimeout(() => {
-      if (user && (dayData.plan.some(meal => meal.items.length > 0) || dayData.goals.calorieGoal > 0)) {
-        console.log(`Saving plan for ${selectedDateKey}`);
-        saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
-      }
+        // Only save if there's actually a plan or goals set for the day
+        if (dayData.plan.some(meal => meal.items.length > 0) || dayData.goals.calorieGoal > 0) {
+            console.log(`Saving plan for ${selectedDateKey}`);
+            saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
+        }
     }, 1500); // Wait 1.5 seconds after the last change
 
     // Cleanup function to cancel the timer if a new change comes in
@@ -254,28 +255,25 @@ export default function Dashboard() {
     updateDayData({ goals: newGoals });
   };
   
-  const handleSaveGoals = () => {
+  const handleSaveDay = () => {
     if (!user) {
         toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para guardar tus objetivos.' });
         return;
     }
-    const goalsToSave: UserGoals = {
-      calorieGoal,
-      proteinGoal,
-      carbsGoal,
-      fatsGoal,
-    };
+    const dayToSave = weeklyPlan[selectedDateKey];
+    if (!dayToSave) {
+        toast({ variant: 'destructive', title: 'Error', description: 'No hay datos para guardar.' });
+        return;
+    }
 
     startSavingTransition(async () => {
         try {
-            await saveUserGoalsAction(user.uid, goalsToSave);
-            setProfileGoals(goalsToSave); // Update the profile goals that will be applied to future days
-            // Also save the current day's plan and goals together
-            await saveDailyPlanAction(user.uid, currentDate, meals, goalsToSave);
+            // Save the entire day's data (plan and goals)
+            await saveDailyPlanAction(user.uid, currentDate, dayToSave.plan, dayToSave.goals);
 
             toast({
-                title: '¡Objetivos Guardados!',
-                description: 'Tus metas personalizadas se han guardado y se aplicarán a los días futuros.',
+                title: '¡Día Guardado!',
+                description: `Tus cambios para el ${format(currentDate, 'PPP', { locale: es })} se han guardado.`,
             });
         } catch (error) {
              const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
@@ -451,7 +449,7 @@ export default function Dashboard() {
             <div className="flex items-center justify-between h-16">
               <div className="flex items-center gap-2">
                 <Leaf className="h-8 w-8 text-primary" />
-                <h1 className="text-2xl font-bold font-headline text-foreground">NutriTrack</h1>
+                <h1 className="text-2xl font-bold font-headline text-foreground">Calorika</h1>
               </div>
               <div className="flex items-center gap-4">
                 
@@ -544,7 +542,7 @@ export default function Dashboard() {
                     fats={totalFats}
                     fatsGoal={fatsGoal}
                     onGoalChange={handleSetGoal}
-                    onSaveGoals={handleSaveGoals}
+                    onSaveDay={handleSaveDay}
                     isSaving={isSaving}
                 />
                 <MealList

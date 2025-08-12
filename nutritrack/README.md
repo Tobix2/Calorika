@@ -1,6 +1,6 @@
-#  NutriTrack: AI-Powered Nutrition Tracker
+#  Calorika: AI-Powered Nutrition Tracker
 
-NutriTrack es una aplicación web moderna construida con Next.js y Firebase, diseñada para ayudarte a registrar tu ingesta de alimentos, hacer un seguimiento de tus calorías y alcanzar tus objetivos de fitness con la ayuda de recomendaciones personalizadas de una IA.
+Calorika es una aplicación web moderna construida con Next.js y Firebase, diseñada para ayudarte a registrar tu ingesta de alimentos, hacer un seguimiento de tus calorías y alcanzar tus objetivos de fitness con la ayuda de recomendaciones personalizadas de una IA.
 
 ## Tecnologías Principales
 
@@ -27,7 +27,7 @@ Sigue estos pasos para poner en marcha el proyecto en tu entorno de desarrollo l
 Primero, clona este repositorio en tu máquina local.
 ```bash
 git clone <URL_DEL_REPOSITORIO>
-cd nutritrack
+cd calorika
 ```
 
 ### 2. Instala las Dependencias
@@ -98,4 +98,4 @@ Abre [http://localhost:3000](http://localhost:3000) en tu navegador para ver la 
 
 ---
 
-¡Y eso es todo! Ahora tienes una copia de NutriTrack funcionando localmente. ¡Feliz codificación!
+¡Y eso es todo! Ahora tienes una copia de Calorika funcionando localmente. ¡Feliz codificación!

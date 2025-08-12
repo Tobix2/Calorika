@@ -85,7 +85,10 @@ export default function LoginPage() {
 
   const handleSignIn = () => {
     signInWithGoogle().catch(err => {
-        console.error("❌ Sign in failed:", err);
+        // Error is handled in auth-context, but we catch here to prevent unhandled promise rejection
+        if (err.code !== 'auth/popup-closed-by-user') {
+            console.error("❌ Sign in failed:", err);
+        }
     });
   };
 
@@ -97,7 +100,7 @@ export default function LoginPage() {
                 <Leaf className="h-10 w-10" />
             </div>
             <h1 className="text-4xl font-bold font-headline text-foreground">
-                Bienvenido a NutriTrack
+                Bienvenido a Calorika
             </h1>
             <p className="mt-2 text-lg text-muted-foreground">
                 Tu asistente de nutrición con IA.
