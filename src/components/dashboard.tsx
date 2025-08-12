@@ -156,9 +156,9 @@ export default function Dashboard() {
       return;
     }
     
-    // Set up the timer
     const handler = setTimeout(() => {
-      if (user && dayData.plan.length > 0) { // Only save if there's data
+      if (user && dayData.plan.some(meal => meal.items.length > 0)) {
+        console.log(`Saving plan for ${selectedDateKey}`);
         saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
       }
     }, 1500); // Wait 1.5 seconds after the last change
@@ -167,7 +167,7 @@ export default function Dashboard() {
     return () => {
       clearTimeout(handler);
     };
-  }, [dayData, currentDate, user]);
+  }, [dayData, currentDate, user, selectedDateKey]);
 
 
   // Effect to update current day's goals if they don't exist yet
