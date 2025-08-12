@@ -18,49 +18,62 @@ import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 
 // --- Mercado Pago Action ---
 export async function createSubscriptionAction(userId: string, payerEmail: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
+    console.log(`Creando suscripción para el usuario: ${userId} con email: ${payerEmail}`);
+    
     if (!userId || !payerEmail) {
         return { checkoutUrl: null, error: "Usuario o email no válido." };
     }
     
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) {
-        console.error("MERCADOPAGO_ACCESS_TOKEN no está configurado.");
-        return { checkoutUrl: null, error: "Error de configuración del servidor." };
+        console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
+        return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
     }
 
-    const client = new MercadoPagoConfig({ accessToken });
-    const preapproval = new PreApproval(client);
-
     try {
-        const result = await preapproval.create({
-            body: {
-                reason: 'Suscripción Pro a Calorika',
-                auto_recurring: {
-                    frequency: 1,
-                    frequency_type: 'months',
-                    transaction_amount: 10000,
-                    currency_id: 'ARS',
-                },
-                back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-                payer_email: payerEmail, 
-                external_reference: userId,
-                site_id: "MLA",
+        console.log("Inicializando cliente de Mercado Pago...");
+        const client = new MercadoPagoConfig({ accessToken });
+        const preapproval = new PreApproval(client);
+        console.log("Cliente de Mercado Pago inicializado. Creando cuerpo de la solicitud...");
+
+        const body = {
+            reason: 'Suscripción Pro a Calorika',
+            auto_recurring: {
+                frequency: 1,
+                frequency_type: 'months',
+                transaction_amount: 10000,
+                currency_id: 'ARS',
             },
-        });
+            back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+            payer_email: payerEmail, 
+            external_reference: userId,
+            site_id: "MLA",
+        };
         
+        console.log("Cuerpo de la solicitud:", JSON.stringify(body, null, 2));
+
+        console.log("Enviando solicitud a Mercado Pago...");
+        const result = await preapproval.create({ body });
+        console.log("Respuesta de Mercado Pago recibida.");
+
         const checkoutUrl = result.init_point;
         if (!checkoutUrl) {
+           console.error("La respuesta de Mercado Pago no contiene un init_point (URL de checkout).");
            return { checkoutUrl: null, error: "No se pudo generar el enlace de pago." };
         }
 
+        console.log("URL de checkout de Mercado Pago generada exitosamente.");
         return { checkoutUrl, error: null };
 
     } catch (error: any) {
-        console.error("Error al crear la suscripción de Mercado Pago:", error);
+        console.error("❌ Error al crear la suscripción de Mercado Pago:", error);
+        
         let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
+        
         if (error.cause && Array.isArray(error.cause) && error.cause.length > 0) {
-             console.error("Detalles del error de Mercado Pago:", JSON.stringify(error.cause, null, 2));
-             errorMessage = `Error de Mercado Pago: ${error.cause[0].description || error.message}`;
+             const errorDetail = error.cause[0];
+             console.error("Detalles del error de la API de Mercado Pago:", JSON.stringify(errorDetail, null, 2));
+             errorMessage = `Error de Mercado Pago: ${errorDetail.description || 'Error desconocido.'}`;
         } else if (error.message) {
             errorMessage = error.message;
         }
@@ -470,3 +483,4 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
 }
 
     
+
