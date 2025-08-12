@@ -73,7 +73,6 @@ export default function Dashboard() {
   const { user, logout } = useAuth();
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isWeekLoading, startWeekTransition] = useTransition();
   
   const isInitialLoadRef = useRef(true);
 
@@ -142,17 +141,15 @@ export default function Dashboard() {
   // This effect reloads the weekly plan ONLY when the week itself changes.
    useEffect(() => {
     if(user && !isInitialLoadRef.current) {
-        startWeekTransition(() => {
-           loadWeeklyPlan(user, weekDates, profileGoals);
-        });
+        loadWeeklyPlan(user, weekDates, profileGoals);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekDates, user, profileGoals]);
 
   // Debounced save effect
   useEffect(() => {
-    // Don't save on initial load or for past dates
-    if (isInitialLoadRef.current || isBefore(currentDate, startOfToday())) {
+    // Don't save on initial load
+    if (isInitialLoadRef.current) {
       return;
     }
     
