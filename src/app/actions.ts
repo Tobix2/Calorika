@@ -54,8 +54,12 @@ export async function createSubscriptionAction(userId: string): Promise<{ checko
 
         return { checkoutUrl, error: null };
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Error al crear la suscripción de Mercado Pago:", error);
+        // Depuración detallada: Imprime el cuerpo del error si está disponible
+        if (error.cause) {
+            console.error("Detalles del error de Mercado Pago:", JSON.stringify(error.cause, null, 2));
+        }
         return { checkoutUrl: null, error: "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo." };
     }
 }
@@ -459,5 +463,3 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
         throw new Error("No se pudo obtener el historial de peso.");
     }
 }
-
-    
