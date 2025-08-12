@@ -157,7 +157,7 @@ export default function Dashboard() {
     }
     
     const handler = setTimeout(() => {
-      if (user && dayData.plan.some(meal => meal.items.length > 0)) {
+      if (user && (dayData.plan.some(meal => meal.items.length > 0) || dayData.goals.calorieGoal > 0)) {
         console.log(`Saving plan for ${selectedDateKey}`);
         saveDailyPlanAction(user.uid, currentDate, dayData.plan, dayData.goals);
       }
@@ -272,7 +272,10 @@ export default function Dashboard() {
     startSavingTransition(async () => {
         try {
             await saveUserGoalsAction(user.uid, goalsToSave);
-            setProfileGoals(goalsToSave);
+            setProfileGoals(goalsToSave); // Update the profile goals that will be applied to future days
+            // Also save the current day's plan and goals together
+            await saveDailyPlanAction(user.uid, currentDate, meals, goalsToSave);
+
             toast({
                 title: '¡Objetivos Guardados!',
                 description: 'Tus metas personalizadas se han guardado y se aplicarán a los días futuros.',
@@ -596,5 +599,3 @@ export default function Dashboard() {
     </AuthGuard>
   );
 }
-
-    

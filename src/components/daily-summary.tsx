@@ -62,8 +62,9 @@ export default function DailySummary({
             <div className="relative mt-1">
                  <Input 
                     type="number"
-                    value={goal.toString()}
+                    value={goal > 0 ? goal.toString() : ''}
                     onChange={handleMacroChange}
+                    placeholder="0"
                     className="text-center text-sm font-normal text-muted-foreground bg-transparent pr-7"
                 />
                 <span className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">g</span>
@@ -78,7 +79,7 @@ export default function DailySummary({
         <div className="flex justify-between items-start">
             <div>
                 <CardTitle className="font-headline text-2xl">Resumen Diario</CardTitle>
-                <CardDescription>Tu ingesta y objetivos nutricionales para hoy. Puedes editar y guardar tus objetivos.</CardDescription>
+                <CardDescription>Tu ingesta y objetivos nutricionales para hoy. Haz clic en Guardar para persistir los cambios.</CardDescription>
             </div>
              <Button onClick={onSaveGoals} disabled={isSaving}>
                 {isSaving ? (
@@ -86,8 +87,8 @@ export default function DailySummary({
                 ) : (
                     <Save className="mr-2 h-4 w-4" />
                 )}
-                Guardar Objetivos
-            </Button>
+                Guardar Día
+             </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -103,8 +104,9 @@ export default function DailySummary({
                     <div className="relative">
                         <Input 
                             type="number" 
-                            value={calorieGoal.toString()}
+                            value={calorieGoal > 0 ? calorieGoal.toString() : ''}
                             onChange={handleGoalChange('calorieGoal')}
+                            placeholder="0"
                             className="w-32 h-9 text-lg text-right font-bold bg-transparent pr-12"
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-normal text-muted-foreground">kcal</span>
