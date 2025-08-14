@@ -7,7 +7,7 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star, BrainCircuit, BarChart2, LayoutDashboard, MessageSquare } from 'lucide-react';
+import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star, BrainCircuit, BarChart2, LayoutDashboard, MessageSquare, Plus, UtensilsCrossed } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
@@ -41,6 +41,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import WelcomeTutorial from './welcome-tutorial';
+import AddIngredientDialog from './add-ingredient-dialog';
 
 
 const initialDayData: DayData = {
@@ -445,11 +446,11 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                         <Leaf className="h-8 w-8 text-primary" />
                         <h1 className="text-2xl font-bold font-headline text-foreground">Calorika</h1>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                         
                         <AlertDialog open={isGeneratePlanDialogOpen} onOpenChange={setIsGeneratePlanDialogOpen}>
                         <AlertDialogTrigger asChild>
-                            <Button variant="ghost" disabled={isAiPending}>
+                            <Button variant="outline" disabled={isAiPending}>
                             {isAiPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
                             Generar Plan
                             </Button>
@@ -469,13 +470,22 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                             </AlertDialogFooter>
                         </AlertDialogContent>
                         </AlertDialog>
+                        
+                        <div className="flex items-center gap-2">
+                             <AddIngredientDialog onAddIngredient={handleAddIngredient}>
+                                <Button variant="outline">
+                                    <Plus className="mr-2 h-4 w-4"/>
+                                    Añadir Ingrediente
+                                </Button>
+                            </AddIngredientDialog>
+                            <CreateMealDialog 
+                                onCreateMeal={handleCreateMeal} 
+                                foodDatabase={foodDatabase} 
+                                setFoodDatabase={setFoodDatabase}
+                                onAddIngredient={handleAddIngredient}
+                            />
+                        </div>
 
-                        <CreateMealDialog 
-                        onCreateMeal={handleCreateMeal} 
-                        foodDatabase={foodDatabase} 
-                        setFoodDatabase={setFoodDatabase}
-                        onAddIngredient={handleAddIngredient}
-                        />
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                             <Button variant="ghost" className="relative h-8 w-8 rounded-full">
