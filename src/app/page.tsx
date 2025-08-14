@@ -2,8 +2,9 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Users, BarChart } from 'lucide-react';
+import { CheckCircle, Users, BarChart, Briefcase } from 'lucide-react';
 import Header from '@/components/header';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function LandingPage() {
   return (
@@ -22,10 +23,10 @@ export default function LandingPage() {
               </p>
               <div className="mt-8 flex justify-center md:justify-start gap-4">
                 <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                  <Link href="/login">Empieza Gratis</Link>
+                  <Link href="/login?view=register">Empieza Gratis</Link>
                 </Button>
-                <Button size="lg" variant="outline">
-                  Ver Planes
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="#pricing">Ver Planes</Link>
                 </Button>
               </div>
             </div>
@@ -137,8 +138,9 @@ export default function LandingPage() {
         <section id="pricing" className="py-16 sm:py-24 bg-background">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 className="text-3xl sm:text-4xl font-bold font-headline text-foreground">Elige el plan perfecto para ti</h2>
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
-                    <div className="border-2 border-primary rounded-lg p-8 text-center flex flex-col">
+                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
+                    {/* Plan Gratis */}
+                    <div className="border rounded-lg p-6 text-center flex flex-col">
                         <h3 className="text-2xl font-bold">Gratis</h3>
                         <p className="mt-4 text-4xl font-bold">$0<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
                         <ul className="mt-6 space-y-4 text-left flex-grow">
@@ -146,10 +148,14 @@ export default function LandingPage() {
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Registro de comidas</li>
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Seguimiento de peso</li>
                         </ul>
-                        <Button variant="outline" className="mt-8 w-full">Empieza Gratis</Button>
+                        <Button asChild variant="outline" className="mt-8 w-full">
+                           <Link href="/login?view=register">Empieza Gratis</Link>
+                        </Button>
                     </div>
-                    <div className="border-2 border-primary rounded-lg p-8 text-center flex flex-col ring-2 ring-primary shadow-2xl">
-                        <h3 className="text-2xl font-bold text-primary">Pro Mensual</h3>
+
+                    {/* Plan Pro Mensual */}
+                    <div className="border-2 border-primary rounded-lg p-6 text-center flex flex-col">
+                        <h3 className="text-2xl font-bold text-primary">Pro</h3>
                         <p className="mt-4 text-4xl font-bold">$10.000<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
                         <ul className="mt-6 space-y-4 text-left flex-grow">
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Gratis</li>
@@ -161,7 +167,9 @@ export default function LandingPage() {
                            <Link href="/login?plan=pro">Elegir Plan Pro</Link>
                          </Button>
                     </div>
-                     <div className="border-2 border-primary rounded-lg p-8 text-center flex flex-col">
+
+                     {/* Plan Pro Anual */}
+                     <div className="border rounded-lg p-6 text-center flex flex-col">
                         <h3 className="text-2xl font-bold">Pro Anual</h3>
                         <p className="mt-4 text-4xl font-bold">$100.000<span className="text-lg font-medium text-muted-foreground">/año</span></p>
                         <ul className="mt-6 space-y-4 text-left flex-grow">
@@ -169,7 +177,38 @@ export default function LandingPage() {
                            <li className="flex items-center font-bold text-primary"><CheckCircle className="h-5 w-5 mr-2"/>¡Ahorra 2 meses!</li>
                         </ul>
                         <Button variant="outline" className="mt-8 w-full" asChild>
-                           <Link href="/login?plan=pro">Ahorra con el Anual</Link>
+                           <Link href="/login?plan=pro_annual">Ahorra con el Anual</Link>
+                        </Button>
+                    </div>
+                    
+                    {/* Plan Profesional */}
+                    <div className="border-2 border-primary rounded-lg p-6 text-center flex flex-col ring-2 ring-primary shadow-2xl">
+                         <h3 className="text-2xl font-bold text-primary flex items-center justify-center gap-2">
+                           <Briefcase />
+                           Profesional
+                         </h3>
+                        <Tabs defaultValue="monthly" className="w-full mt-4">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="monthly">Mensual</TabsTrigger>
+                                <TabsTrigger value="annual">Anual</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="monthly">
+                                <p className="mt-4 text-4xl font-bold">$30.000<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
+                            </TabsContent>
+                            <TabsContent value="annual">
+                               <p className="mt-4 text-4xl font-bold">$300.000<span className="text-lg font-medium text-muted-foreground">/año</span></p>
+                               <p className="text-sm font-bold text-primary">¡Ahorra 2 meses!</p>
+                            </TabsContent>
+                        </Tabs>
+
+                        <ul className="mt-6 space-y-4 text-left flex-grow">
+                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Pro</li>
+                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Panel para gestionar clientes</li>
+                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Branding personalizable (Próximamente)</li>
+                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Clientes ilimitados</li>
+                        </ul>
+                        <Button asChild className="mt-8 w-full">
+                           <Link href="/login?plan=professional&view=register">Elegir Plan Profesional</Link>
                         </Button>
                     </div>
                 </div>
@@ -186,7 +225,7 @@ export default function LandingPage() {
             </p>
             <div className="mt-8">
               <Button size="lg" asChild className="bg-primary hover:bg-primary/90 text-primary-foreground">
-                <Link href="/login">Únete a Calorika Ahora</Link>
+                <Link href="/login?view=register">Únete a Calorika Ahora</Link>
               </Button>
             </div>
           </div>

@@ -14,12 +14,17 @@ export default function Header() {
             <Leaf className="h-8 w-8 text-primary" />
             <span className="text-2xl font-bold font-headline text-foreground">Calorika</span>
           </Link>
+          <nav className="hidden md:flex items-center gap-6">
+             <Link href="/#benefits" className="text-sm font-medium text-muted-foreground hover:text-primary">Beneficios</Link>
+             <Link href="/#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-primary">¿Cómo funciona?</Link>
+             <Link href="/#pricing" className="text-sm font-medium text-muted-foreground hover:text-primary">Planes</Link>
+          </nav>
           <div className="flex items-center gap-2">
             <Button variant="ghost" asChild>
               <Link href="/login">Iniciar Sesión</Link>
             </Button>
             <Button asChild>
-              <Link href="/login">Registrarse</Link>
+              <Link href="/login?view=register">Registrarse</Link>
             </Button>
           </div>
         </div>

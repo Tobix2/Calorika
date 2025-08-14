@@ -32,7 +32,7 @@ function LoginContent() {
 
     const handleGoogleSignIn = () => {
         // When signing in with Google via invite link, role is always 'cliente'
-        const role: UserRole = proId ? 'cliente' : 'cliente';
+        const role: UserRole = proId ? 'cliente' : (plan === 'professional' ? 'profesional' : 'cliente');
         signInWithGoogle(plan, role, proId).catch(err => {
             if (err.code !== 'auth/popup-closed-by-user') {
                 console.error("❌ Sign in failed:", err);
@@ -140,8 +140,10 @@ function RegisterForm({ isInvitation = false }: { isInvitation?: boolean }) {
     useEffect(() => {
         if (proId) {
             setRole('cliente');
+        } else if (plan === 'professional') {
+            setRole('profesional');
         }
-    }, [proId]);
+    }, [proId, plan]);
 
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -174,16 +176,16 @@ function RegisterForm({ isInvitation = false }: { isInvitation?: boolean }) {
                      {!isInvitation && (
                         <div className="space-y-2">
                             <Label htmlFor="role">¿Cómo usarás Calorika?</Label>
-                            <Select name="role" value={role} onValueChange={(value) => setRole(value as UserRole)} disabled={!!proId}>
+                            <Select name="role" value={role} onValueChange={(value) => setRole(value as UserRole)} disabled={!!proId || plan === 'professional'}>
                                 <SelectTrigger id="role">
                                     <SelectValue placeholder="Selecciona tu rol" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="cliente">Cliente (Uso personal)</SelectItem>
                                     <SelectItem value="profesional">Profesional (Entrenador/Nutricionista)</SelectItem>
-                                    <SelectItem value="vendedor">Vendedor</SelectItem>
                                 </SelectContent>
                             </Select>
+                             {plan === 'professional' && <p className="text-xs text-muted-foreground mt-1">Estás a punto de registrarte con el Plan Profesional.</p>}
                             {proId && <p className="text-xs text-muted-foreground mt-1">Te estás registrando como cliente de un profesional.</p>}
                         </div>
                     )}
