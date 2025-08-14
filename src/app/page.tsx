@@ -154,7 +154,7 @@ export default function LandingPage() {
                     </div>
 
                     {/* Plan Premium */}
-                    <div className="border-2 border-primary rounded-lg p-6 text-center flex flex-col shadow-2xl ring-2 ring-primary">
+                    <div className="border rounded-lg p-6 text-center flex flex-col">
                         <h3 className="text-2xl font-bold text-primary">Premium</h3>
                         <Tabs defaultValue="monthly" className="w-full mt-4">
                             <TabsList className="grid w-full grid-cols-2">
@@ -239,5 +239,3 @@ export default function LandingPage() {
     </div>
   );
 }
-
-    
