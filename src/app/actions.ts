@@ -369,7 +369,7 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[], pro
             const docSnap = await docRef.get();
             if (docSnap.exists) {
                 const data = docSnap.data();
-                // Prioritize goals from the daily plan document. Fallback to profile goals.
+                // Prioritize goals from the daily plan document if they exist and are valid. Fallback to profile goals.
                 const goals = data?.goals && data.goals.calorieGoal > 0 ? data.goals : profileGoals || emptyGoals;
                 return { 
                     date: dateString, 
@@ -377,7 +377,7 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[], pro
                     goals: goals as UserGoals,
                 };
             }
-            // For days without a record, use profile goals
+            // For days without a record, use the profile goals passed into the function
             return { 
                 date: dateString, 
                 plan: initialDailyPlan, 
@@ -407,7 +407,7 @@ export async function saveDailyPlanAction(userId: string, date: Date, plan: Dail
         const dateString = format(date, 'yyyy-MM-dd');
         const docRef = db.collection('users').doc(userId).collection('dailyPlans').doc(dateString);
         
-        // Ensure plan and goals are plain objects before saving
+        // Ensure plan and goals are plain objects before saving to avoid any serialization issues.
         const plainPlanObject = JSON.parse(JSON.stringify(plan));
         const plainGoalsObject = JSON.parse(JSON.stringify(goals));
         
@@ -534,10 +534,8 @@ export async function acceptInvitationAction(
     professionalId: string,
     clientUser: { uid: string; email: string | null; displayName: string | null; photoURL: string | null }
 ): Promise<{ success: boolean; error?: string }> {
-    console.log('[DEBUG] acceptInvitationAction: Iniciando...', { professionalId, clientUser });
     try {
         if (!clientUser.email) {
-            console.warn('[DEBUG] El usuario cliente no tiene email. No se puede aceptar la invitación.');
             return { success: false, error: 'La cuenta de usuario no tiene un email asociado.' };
         }
 
@@ -559,11 +557,8 @@ export async function acceptInvitationAction(
         // Create or overwrite the client document
         await clientRef.set(newClientData);
         
-        console.log(`[DEBUG] Documento del cliente ${clientUser.email} creado/actualizado a estado 'active'.`);
-
         // Revalidate the professional's dashboard path to show the updated status
         revalidatePath('/pro-dashboard');
-        console.log('[DEBUG] Ruta /pro-dashboard revalidada.');
 
         return { success: true };
 
@@ -572,3 +567,5 @@ export async function acceptInvitationAction(
         return { success: false, error: "No se pudo procesar la invitación en el servidor." };
     }
 }
+
+    
