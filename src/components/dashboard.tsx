@@ -507,7 +507,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                             <DropdownMenuSeparator />
                                 <DropdownMenuItem onClick={handleSubscribe} disabled={isSubscribing}>
                                     {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
-                                    <span>Suscribirse al Plan Pro</span>
+                                    <span>Suscribirse al Plan Premium</span>
                                 </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={auth.logout}>

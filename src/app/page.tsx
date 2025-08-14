@@ -138,7 +138,7 @@ export default function LandingPage() {
         <section id="pricing" className="py-16 sm:py-24 bg-background">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <h2 className="text-3xl sm:text-4xl font-bold font-headline text-foreground">Elige el plan perfecto para ti</h2>
-                <div className="mt-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 items-stretch">
+                <div className="mt-12 grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
                     {/* Plan Gratis */}
                     <div className="border rounded-lg p-6 text-center flex flex-col">
                         <h3 className="text-2xl font-bold">Gratis</h3>
@@ -153,10 +153,22 @@ export default function LandingPage() {
                         </Button>
                     </div>
 
-                    {/* Plan Pro Mensual */}
-                    <div className="border-2 border-primary rounded-lg p-6 text-center flex flex-col">
-                        <h3 className="text-2xl font-bold text-primary">Pro</h3>
-                        <p className="mt-4 text-4xl font-bold">$10.000<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
+                    {/* Plan Premium */}
+                    <div className="border-2 border-primary rounded-lg p-6 text-center flex flex-col shadow-2xl ring-2 ring-primary">
+                        <h3 className="text-2xl font-bold text-primary">Premium</h3>
+                        <Tabs defaultValue="monthly" className="w-full mt-4">
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="monthly">Mensual</TabsTrigger>
+                                <TabsTrigger value="annual">Anual</TabsTrigger>
+                            </TabsList>
+                            <TabsContent value="monthly">
+                                <p className="mt-4 text-4xl font-bold">$10.000<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
+                            </TabsContent>
+                            <TabsContent value="annual">
+                               <p className="mt-4 text-4xl font-bold">$100.000<span className="text-lg font-medium text-muted-foreground">/año</span></p>
+                               <p className="text-sm font-bold text-primary">¡Ahorra 2 meses!</p>
+                            </TabsContent>
+                        </Tabs>
                         <ul className="mt-6 space-y-4 text-left flex-grow">
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Gratis</li>
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Planes de comidas IA</li>
@@ -164,26 +176,13 @@ export default function LandingPage() {
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Soporte prioritario</li>
                         </ul>
                          <Button asChild className="mt-8 w-full">
-                           <Link href="/login?plan=pro">Elegir Plan Pro</Link>
+                           <Link href="/login?plan=pro">Elegir Plan Premium</Link>
                          </Button>
                     </div>
 
-                     {/* Plan Pro Anual */}
-                     <div className="border rounded-lg p-6 text-center flex flex-col">
-                        <h3 className="text-2xl font-bold">Pro Anual</h3>
-                        <p className="mt-4 text-4xl font-bold">$100.000<span className="text-lg font-medium text-muted-foreground">/año</span></p>
-                        <ul className="mt-6 space-y-4 text-left flex-grow">
-                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Pro</li>
-                           <li className="flex items-center font-bold text-primary"><CheckCircle className="h-5 w-5 mr-2"/>¡Ahorra 2 meses!</li>
-                        </ul>
-                        <Button variant="outline" className="mt-8 w-full" asChild>
-                           <Link href="/login?plan=pro_annual">Ahorra con el Anual</Link>
-                        </Button>
-                    </div>
-                    
                     {/* Plan Profesional */}
-                    <div className="border-2 border-primary rounded-lg p-6 text-center flex flex-col ring-2 ring-primary shadow-2xl">
-                         <h3 className="text-2xl font-bold text-primary flex items-center justify-center gap-2">
+                    <div className="border rounded-lg p-6 text-center flex flex-col">
+                         <h3 className="text-2xl font-bold flex items-center justify-center gap-2">
                            <Briefcase />
                            Profesional
                          </h3>
@@ -202,12 +201,12 @@ export default function LandingPage() {
                         </Tabs>
 
                         <ul className="mt-6 space-y-4 text-left flex-grow">
-                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Pro</li>
+                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Premium</li>
                            <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Panel para gestionar clientes</li>
                            <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Branding personalizable (Próximamente)</li>
                            <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Clientes ilimitados</li>
                         </ul>
-                        <Button asChild className="mt-8 w-full">
+                        <Button asChild variant="outline" className="mt-8 w-full">
                            <Link href="/login?plan=professional&view=register">Elegir Plan Profesional</Link>
                         </Button>
                     </div>
@@ -240,3 +239,5 @@ export default function LandingPage() {
     </div>
   );
 }
+
+    
