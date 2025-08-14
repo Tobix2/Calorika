@@ -15,7 +15,7 @@ import {
 import { auth } from "@/lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { createSubscriptionAction, saveUserRoleAction, acceptInvitationAction } from "@/app/actions";
+import { createSubscriptionAction, saveUserRoleAction, acceptInvitationAction, getUserProfileAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import type { UserRole } from "@/lib/types";
 
@@ -63,18 +63,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   const handleSuccessfulAuth = async (user: User, role: UserRole, paymentIntent: string | null, proId: string | null) => {
-        // Save user role to Firestore
+        // Save user role to Firestore for new sign-ups
         try {
             await saveUserRoleAction(user.uid, role);
         } catch (error) {
             console.error("Failed to save user role", error);
-            // Non-critical error, so we don't need to block the user
         }
 
-        // DEBUG: Check if proId is received and if the action is called
         console.log(`[DEBUG] handleSuccessfulAuth: proId = ${proId}`);
 
-        // If the user was invited by a professional, accept the invitation
         if (proId) {
             console.log('[DEBUG] proId detectado. Llamando a acceptInvitationAction...');
             try {
@@ -93,7 +90,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                  toast({ variant: "destructive", title: "Error Crítico de Invitación", description: "No se pudo procesar tu invitación." });
             }
         }
-
 
         const destination = role === 'profesional' ? '/pro-dashboard' : '/dashboard';
 
@@ -133,7 +129,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     setLoading(true);
     try {
       const result = await signInWithPopup(auth, provider);
-      await handleSuccessfulAuth(result.user, role, paymentIntent, proId);
+      
+      const profile = await getUserProfileAction(result.user.uid);
+      const finalRole = profile?.role || role;
+
+      await handleSuccessfulAuth(result.user, finalRole, paymentIntent, proId);
     } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') return;
         console.error("Error signing in with Google", error);
@@ -164,9 +164,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       try {
           const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-          // For sign-in, we don't know the role, so we just redirect to dashboard
-          // A more complex implementation could fetch the role first. We pass null for proId.
-          await handleSuccessfulAuth(userCredential.user, 'cliente', paymentIntent, null);
+          const profile = await getUserProfileAction(userCredential.user.uid);
+          const finalRole = profile?.role || 'cliente'; // Default to 'cliente' if no role found
+          await handleSuccessfulAuth(userCredential.user, finalRole, paymentIntent, null);
           return userCredential.user;
       } catch (error: any) {
           console.error("Error signing in:", error);

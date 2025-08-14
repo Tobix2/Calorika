@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/auth-context';
 import Dashboard from '@/components/dashboard';
 import { Loader2 } from 'lucide-react';
+import { getUserProfileAction } from '@/app/actions';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -15,7 +16,19 @@ export default function DashboardPage() {
     // Si la carga ha terminado y no hay usuario, redirige a login.
     if (!loading && !user) {
       router.push('/login');
+      return;
     }
+    
+    // Si hay usuario, verificamos su rol
+    if (!loading && user) {
+        getUserProfileAction(user.uid).then(profile => {
+            // Si el usuario es un profesional, redirigir a su dashboard
+            if (profile?.role === 'profesional') {
+                router.push('/pro-dashboard');
+            }
+        });
+    }
+
   }, [user, loading, router]);
 
   // Muestra el spinner mientras se carga el estado de autenticación
