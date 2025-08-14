@@ -42,42 +42,41 @@ export async function createSubscriptionAction(
     const preapproval = new PreApproval(client);
   
     let preapprovalData: any;
-
+  
     if (plan.startsWith('premium')) {
-        const isAnnual = plan === 'premium_annual';
-        preapprovalData = {
-          reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
-          auto_recurring: {
-            frequency: isAnnual ? 1 : 1,
-            frequency_type: isAnnual ? 'years' : 'months',
-            transaction_amount: isAnnual ? 100000 : 10000,
-            currency_id: 'ARS',
-          },
-          back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-          payer_email: payerEmail,
-          external_reference: userId,
-        };
+      const isAnnual = plan === 'premium_annual';
+      preapprovalData = {
+        reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
+        auto_recurring: {
+          frequency: isAnnual ? 12 : 1,   // 12 meses para anual, 1 para mensual
+          frequency_type: 'months',       // siempre 'months'
+          transaction_amount: isAnnual ? 100000 : 10000,
+          currency_id: 'ARS',
+        },
+        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+        payer_email: payerEmail,
+        external_reference: userId,
+      };
     } else if (plan === 'professional_client') {
-        preapprovalData = {
-          reason: `Suscripción para cliente adicional - ${metadata?.client_email || ''}`,
-          auto_recurring: {
-            frequency: 1,
-            frequency_type: 'months',
-            transaction_amount: 5000,
-            currency_id: 'ARS',
-          },
-          back_url: `${process.env.NEXT_PUBLIC_APP_URL}/pro-dashboard?payment=success`,
-          payer_email: payerEmail,
-          external_reference: userId, // Professional's ID
-          metadata: {
-            ...metadata,
-            plan_type: 'professional_client' // For webhook identification
-          }
-        };
+      preapprovalData = {
+        reason: `Suscripción para cliente adicional${metadata?.client_email ? ' - ' + metadata.client_email : ''}`,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: 'months',
+          transaction_amount: 500,
+          currency_id: 'ARS',
+        },
+        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/pro-dashboard?payment=success`,
+        payer_email: payerEmail,
+        external_reference: userId, // Professional's ID
+        metadata: {
+          ...metadata,
+          plan_type: 'professional_client' // For webhook identification
+        }
+      };
     } else {
-        return { checkoutUrl: null, error: "Plan no válido." };
+      return { checkoutUrl: null, error: "Plan no válido." };
     }
-    
   
     console.log("[LOG]: Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
   
@@ -106,6 +105,7 @@ export async function createSubscriptionAction(
       return { checkoutUrl: null, error: errorMessage };
     }
   }
+  
   
 
 // --- AI Actions ---

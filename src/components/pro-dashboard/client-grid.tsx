@@ -50,9 +50,11 @@ export default function ClientGrid({ clients }: ClientGridProps) {
                          <span className="sr-only">Ver Dashboard</span>
                        </Link>
                      </Button>
-                     <Button variant="outline" size="icon" disabled>
-                       <LineChart className="h-4 w-4" />
-                       <span className="sr-only">Ver Peso</span>
+                     <Button variant="outline" size="icon" asChild>
+                       <Link href={`/pro-dashboard/client/${client.id}/tracker`}>
+                         <LineChart className="h-4 w-4" />
+                         <span className="sr-only">Ver Peso</span>
+                        </Link>
                      </Button>
                      <Button variant="outline" size="icon" disabled>
                        <MessageSquare className="h-4 w-4" />
