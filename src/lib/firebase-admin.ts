@@ -5,52 +5,52 @@ import admin from 'firebase-admin';
 let db: admin.firestore.Firestore;
 
 function initializeAdminApp() {
-  try {
-    const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
-    
-    if (!serviceAccountRaw) {
-      throw new Error('FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
-    }
-
-    let parsedAccount;
-    try {
-      parsedAccount = JSON.parse(serviceAccountRaw);
-    } catch (parseError) {
-      console.error('❌ Error parsing FIREBASE_SERVICE_ACCOUNT:', parseError);
-      throw parseError;
-    }
-
-    if (parsedAccount.private_key) {
-      parsedAccount.private_key = parsedAccount.private_key.replace(/\\n/g, '\n');
-    }
-
-    if (admin.apps.length === 0) {
-      admin.initializeApp({
-        credential: admin.credential.cert(parsedAccount),
-      });
-      console.log('🔥 Firebase Admin SDK inicializado correctamente.');
-    }
-
+  // Check if the app is already initialized
+  if (admin.apps.length > 0) {
     return admin.app();
+  }
 
-  } catch (error: any) {
-    console.error('❌ Error general en initializeAdminApp:', error);
-    // No relanzar el error para evitar crasheos, solo registrarlo.
-    // La app puede funcionar sin admin en algunos casos.
-    return null;
+  const serviceAccountRaw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!serviceAccountRaw) {
+    console.error('❌ FATAL: FIREBASE_SERVICE_ACCOUNT environment variable is not set.');
+    throw new Error('Server configuration error: Firebase service account not found.');
+  }
+
+  let parsedAccount;
+  try {
+    parsedAccount = JSON.parse(serviceAccountRaw);
+  } catch (parseError) {
+    console.error('❌ FATAL: Error parsing FIREBASE_SERVICE_ACCOUNT JSON.', parseError);
+    throw new Error('Server configuration error: Could not parse Firebase service account.');
+  }
+  
+  // The private key needs newlines to be correctly parsed.
+  if (parsedAccount.private_key) {
+    parsedAccount.private_key = parsedAccount.private_key.replace(/\\n/g, '\n');
+  }
+
+  try {
+    const app = admin.initializeApp({
+      credential: admin.credential.cert(parsedAccount),
+    });
+    console.log('🔥 Firebase Admin SDK inicializado correctamente.');
+    return app;
+  } catch (initError) {
+    console.error('❌ FATAL: Error initializing Firebase Admin SDK:', initError);
+    throw new Error('Server configuration error: Could not initialize Firebase Admin SDK.');
   }
 }
 
 export function getDb(): admin.firestore.Firestore {
   if (!db) {
-    const app = initializeAdminApp();
-    if (app) {
+    try {
+      const app = initializeAdminApp();
       db = app.firestore();
-    } else {
-        // Esto previene que la app crashee si el admin SDK no se pudo inicializar.
-        // Las funciones que dependan de la DB fallarán de forma controlada.
-        console.error("Firestore no pudo ser inicializado porque la app de Admin falló.")
-        throw new Error("El servidor no pudo conectar con la base de datos.");
+    } catch (error) {
+      // If initialization fails, we re-throw the error to ensure server-side functions
+      // that depend on the DB do not run in a broken state.
+      console.error("🔥 Firestore no pudo ser inicializado. Las acciones del servidor fallarán.", error);
+      throw new Error("El servidor no pudo conectar con la base de datos. Verifica la configuración del servidor.");
     }
   }
   return db;
