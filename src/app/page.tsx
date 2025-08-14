@@ -188,7 +188,7 @@ export default function LandingPage() {
                          </h3>
                         <div className="mt-4">
                            <p className="text-4xl font-bold">$5.000</p>
-                           <p className="text-lg font-medium text-muted-foreground -mt-2">/por cliente/mes</p>
+                           <p className="text-lg font-medium text-muted-foreground -mt-2">/por cliente al mes</p>
                         </div>
 
                         <ul className="mt-6 space-y-4 text-left flex-grow">
