@@ -46,6 +46,7 @@ const initialDayData: DayData = {
   plan: [
     { name: 'Breakfast', items: [] },
     { name: 'Lunch', items: [] },
+    { name: 'Merienda', items: [] },
     { name: 'Dinner', items: [] },
     { name: 'Snacks', items: [] },
   ],
