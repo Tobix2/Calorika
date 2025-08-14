@@ -160,10 +160,15 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
 
   // Debounced save effect
   useEffect(() => {
-    if (isInitialLoadRef.current || !effectiveUserId || isProfessionalView) {
+    if (isInitialLoadRef.current || !effectiveUserId) {
       return;
     }
     
+    // Disable autosave for professional view
+    if (isProfessionalView) {
+      return;
+    }
+
     const handler = setTimeout(() => {
       const dayToSave = weeklyPlan[selectedDateKey];
       if (dayToSave) {
@@ -413,7 +418,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
             return;
         };
         startSubscribingTransition(async () => {
-            const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email);
+            const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email!);
             if (error || !checkoutUrl) {
                 toast({
                     variant: 'destructive',
