@@ -186,25 +186,16 @@ export default function LandingPage() {
                            <Briefcase />
                            Profesional
                          </h3>
-                        <Tabs defaultValue="monthly" className="w-full mt-4">
-                            <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="monthly">Mensual</TabsTrigger>
-                                <TabsTrigger value="annual">Anual</TabsTrigger>
-                            </TabsList>
-                            <TabsContent value="monthly">
-                                <p className="mt-4 text-4xl font-bold">$30.000<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
-                            </TabsContent>
-                            <TabsContent value="annual">
-                               <p className="mt-4 text-4xl font-bold">$300.000<span className="text-lg font-medium text-muted-foreground">/año</span></p>
-                               <p className="text-sm font-bold text-primary">¡Ahorra 2 meses!</p>
-                            </TabsContent>
-                        </Tabs>
+                        <div className="mt-4">
+                           <p className="text-4xl font-bold">$5.000</p>
+                           <p className="text-lg font-medium text-muted-foreground -mt-2">/por cliente/mes</p>
+                        </div>
 
                         <ul className="mt-6 space-y-4 text-left flex-grow">
                            <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Todo lo del plan Premium</li>
                            <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Panel para gestionar clientes</li>
                            <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Branding personalizable (Próximamente)</li>
-                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Clientes ilimitados</li>
+                           <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Gestiona todos tus clientes</li>
                         </ul>
                         <Button asChild variant="outline" className="mt-8 w-full">
                            <Link href="/login?plan=professional&view=register">Elegir Plan Profesional</Link>
