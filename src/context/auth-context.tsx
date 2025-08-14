@@ -15,16 +15,17 @@ import {
 import { auth } from "@/lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { createSubscriptionAction } from "@/app/actions";
+import { createSubscriptionAction, saveUserRoleAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
+import type { UserRole } from "@/lib/types";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   isSubscribing: boolean;
   getIdToken: () => Promise<string | null>;
-  signInWithGoogle: (paymentIntent?: string | null) => Promise<void>;
-  signUpWithEmail: (email: string, pass: string, name: string, paymentIntent?: string | null) => Promise<User | null>;
+  signInWithGoogle: (paymentIntent: string | null, role: UserRole) => Promise<void>;
+  signUpWithEmail: (email: string, pass: string, name: string, role: UserRole, paymentIntent?: string | null) => Promise<User | null>;
   signInWithEmail: (email: string, pass: string, paymentIntent?: string | null) => Promise<User | null>;
   logout: () => Promise<void>;
   updateUserProfile: (profile: { displayName?: string; photoURL?: string }) => Promise<void>;
@@ -61,19 +62,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const searchParams = useSearchParams();
   const { toast } = useToast();
 
-  const handleSuccessfulAuth = async (user: User, paymentIntent: string | null) => {
+  const handleSuccessfulAuth = async (user: User, role: UserRole, paymentIntent: string | null) => {
+        // Save user role to Firestore
+        try {
+            await saveUserRoleAction(user.uid, role);
+        } catch (error) {
+            console.error("Failed to save user role", error);
+            // Non-critical error, so we don't need to block the user
+        }
+
+        const destination = role === 'profesional' ? '/pro-dashboard' : '/dashboard';
+
         if (paymentIntent === 'pro' && user.email) {
             startSubscribingTransition(async () => {
                 const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email!);
                 if (error || !checkoutUrl) {
                     toast({ variant: 'destructive', title: 'Error de Suscripción', description: error || 'No se pudo crear el enlace de pago.' });
-                    router.push('/dashboard');
+                    router.push(destination);
                 } else {
                     window.location.href = checkoutUrl;
                 }
             });
         } else {
-            router.push("/dashboard");
+            router.push(destination);
         }
     };
 
@@ -93,12 +104,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     return null;
   };
 
-  const signInWithGoogle = async (paymentIntent: string | null = null) => {
+  const signInWithGoogle = async (paymentIntent: string | null = null, role: UserRole = 'cliente') => {
     const provider = new GoogleAuthProvider();
     setLoading(true);
     try {
       const result = await signInWithPopup(auth, provider);
-      await handleSuccessfulAuth(result.user, paymentIntent);
+      await handleSuccessfulAuth(result.user, role, paymentIntent);
     } catch (error: any) {
         if (error.code === 'auth/popup-closed-by-user') return;
         console.error("Error signing in with Google", error);
@@ -108,13 +119,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
-  const signUpWithEmail = async (email: string, pass: string, name: string, paymentIntent: string | null = null) => {
+  const signUpWithEmail = async (email: string, pass: string, name: string, role: UserRole, paymentIntent: string | null = null) => {
     setLoading(true);
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(userCredential.user, { displayName: name });
         setUser({ ...userCredential.user, displayName: name });
-        await handleSuccessfulAuth(userCredential.user, paymentIntent);
+        await handleSuccessfulAuth(userCredential.user, role, paymentIntent);
         return userCredential.user;
     } catch (error: any) {
         console.error("Error signing up:", error);
@@ -129,7 +140,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setLoading(true);
       try {
           const userCredential = await signInWithEmailAndPassword(auth, email, pass);
-          await handleSuccessfulAuth(userCredential.user, paymentIntent);
+          // For sign-in, we don't know the role, so we just redirect to dashboard
+          // A more complex implementation could fetch the role first.
+          await handleSuccessfulAuth(userCredential.user, 'cliente', paymentIntent);
           return userCredential.user;
       } catch (error: any) {
           console.error("Error signing in:", error);

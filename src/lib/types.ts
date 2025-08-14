@@ -1,5 +1,7 @@
 
 
+export type UserRole = 'cliente' | 'profesional' | 'vendedor';
+
 export type FoodItem = {
   id: string;
   name: string;
@@ -76,6 +78,7 @@ export type UserGoals = {
 export type UserProfile = {
   displayName: string;
   age?: number;
+  role?: UserRole;
 };
 
 // Types for Professional Dashboard

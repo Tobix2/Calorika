@@ -10,6 +10,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { UserRole } from "@/lib/types";
+
 
 function LoginContent() {
     const { signInWithEmail, loading, signInWithGoogle, isSubscribing } = useAuth();
@@ -25,7 +28,9 @@ function LoginContent() {
     };
 
     const handleGoogleSignIn = () => {
-        signInWithGoogle(plan).catch(err => {
+        // For simplicity, we can ask for role after Google Sign-in or default it
+        // Here we'll default to 'cliente' for Google Sign-in for now.
+        signInWithGoogle(plan, 'cliente').catch(err => {
             if (err.code !== 'auth/popup-closed-by-user') {
                 console.error("❌ Sign in failed:", err);
             }
@@ -98,12 +103,13 @@ function RegisterForm() {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [role, setRole] = useState<UserRole>('cliente');
     const searchParams = useSearchParams();
     const plan = searchParams.get('plan');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        signUpWithEmail(email, password, name, plan);
+        signUpWithEmail(email, password, name, role, plan);
     };
     
     const isLoading = loading || isSubscribing;
@@ -127,6 +133,19 @@ function RegisterForm() {
                     <div className="space-y-2">
                         <Label htmlFor="reg-password">Contraseña</Label>
                         <Input id="reg-password" type="password" placeholder="Mínimo 6 caracteres" required value={password} onChange={e => setPassword(e.target.value)} />
+                    </div>
+                    <div className="space-y-2">
+                        <Label htmlFor="role">¿Cómo usarás Calorika?</Label>
+                        <Select name="role" value={role} onValueChange={(value) => setRole(value as UserRole)}>
+                            <SelectTrigger id="role">
+                                <SelectValue placeholder="Selecciona tu rol" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="cliente">Cliente (Uso personal)</SelectItem>
+                                <SelectItem value="profesional">Profesional (Entrenador/Nutricionista)</SelectItem>
+                                <SelectItem value="vendedor">Vendedor</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </CardContent>
                 <CardFooter>

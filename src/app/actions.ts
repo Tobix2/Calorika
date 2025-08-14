@@ -9,7 +9,7 @@ import {
 import {
   generateMealPlan,
 } from '@/ai/flows/generate-meal-plan';
-import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeeklyWeightEntry, UserGoals, UserProfile, Client } from '@/lib/types';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeeklyWeightEntry, UserGoals, UserProfile, Client, UserRole } from '@/lib/types';
 import { getDb } from '@/lib/firebase-admin';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
@@ -152,6 +152,18 @@ export async function saveUserProfileAction(userId: string, profile: UserProfile
         throw new Error("No se pudo guardar el perfil del usuario.");
     }
 }
+
+export async function saveUserRoleAction(userId: string, role: UserRole): Promise<void> {
+    try {
+        const db = getDb();
+        const userDocRef = db.collection('users').doc(userId);
+        await userDocRef.set({ profile: { role } }, { merge: true });
+    } catch (error) {
+        console.error("🔥 Error al guardar rol en Firestore:", error);
+        throw new Error("No se pudo guardar el rol del usuario.");
+    }
+}
+
 
 export async function getUserGoalsAction(userId: string): Promise<UserGoals | null> {
     try {
