@@ -71,18 +71,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             // Non-critical error, so we don't need to block the user
         }
 
+        // DEBUG: Check if proId is received and if the action is called
+        console.log(`[DEBUG] handleSuccessfulAuth: proId = ${proId}`);
+
         // If the user was invited by a professional, accept the invitation
         if (proId) {
+            console.log('[DEBUG] proId detectado. Llamando a acceptInvitationAction...');
             try {
-                await acceptInvitationAction(proId, {
+                const result = await acceptInvitationAction(proId, {
                     uid: user.uid,
                     email: user.email!,
                     displayName: user.displayName,
                     photoURL: user.photoURL
                 });
+                console.log('[DEBUG] Resultado de acceptInvitationAction:', result);
+                 if (!result.success) {
+                     toast({ variant: "destructive", title: "Error de Invitación", description: result.error || "No se pudo completar la asociación con tu profesional." });
+                 }
             } catch (error) {
-                 console.error("Failed to accept invitation", error);
-                 toast({ variant: "destructive", title: "Error de Invitación", description: "No se pudo completar la asociación con tu profesional." });
+                 console.error("🔥 Falló al llamar a acceptInvitationAction:", error);
+                 toast({ variant: "destructive", title: "Error Crítico de Invitación", description: "No se pudo procesar tu invitación." });
             }
         }
 

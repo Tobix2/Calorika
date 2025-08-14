@@ -570,6 +570,7 @@ export async function acceptInvitationAction(
     professionalId: string,
     clientUser: { uid: string; email: string; displayName: string | null; photoURL: string | null }
 ): Promise<{ success: boolean; error?: string }> {
+    console.log('[DEBUG] acceptInvitationAction: Iniciando...', { professionalId, clientUser });
     try {
         const db = getDb();
         
@@ -578,15 +579,18 @@ export async function acceptInvitationAction(
         const invitationDocSnap = await invitationDocRef.get();
 
         if (!invitationDocSnap.exists) {
-            console.warn(`No pending invitation found for email ${clientUser.email}. This might happen if they were not pre-invited.`);
+            console.warn(`[DEBUG] No se encontró una invitación pendiente para el email ${clientUser.email}.`);
+            // This isn't necessarily an error, could be a direct signup.
+            // Silently succeed. If it was a real invite, the professional will see it as "invited".
             return { success: true }; 
         }
 
+        console.log('[DEBUG] Se encontró un documento de invitación.');
         const invitationData = invitationDocSnap.data();
 
         if (invitationData?.professionalId !== professionalId) {
-             console.warn(`Invitation for ${clientUser.email} is for another professional.`);
-             return { success: false, error: 'La invitación no es válida.' };
+             console.warn(`[DEBUG] La invitación para ${clientUser.email} es para otro profesional.`);
+             return { success: false, error: 'La invitación no es válida para este profesional.' };
         }
 
         // Update the existing invitation document
@@ -597,15 +601,16 @@ export async function acceptInvitationAction(
             photoURL: clientUser.photoURL,
         });
         
+        console.log(`[DEBUG] Documento del cliente ${clientUser.email} actualizado a estado 'active'.`);
+
         // Revalidate the professional's dashboard path to show the updated status
         revalidatePath('/pro-dashboard');
+        console.log('[DEBUG] Ruta /pro-dashboard revalidada.');
 
         return { success: true };
 
     } catch (error) {
-        console.error("🔥 Error accepting invitation:", error);
-        return { success: false, error: "No se pudo aceptar la invitación." };
+        console.error("🔥 Error al aceptar la invitación:", error);
+        return { success: false, error: "No se pudo procesar la invitación en el servidor." };
     }
 }
-
-    
