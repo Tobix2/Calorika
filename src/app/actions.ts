@@ -14,6 +14,7 @@ import { getDb } from '@/lib/firebase-admin';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
+import { revalidatePath } from 'next/cache';
 
 
 // --- Mercado Pago Action ---
@@ -48,9 +49,6 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
             site_id: 'MLA',
         };
         
-        console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
-
-
         const response = await preapproval.create({ body: preapprovalData });
         
         const checkoutUrl = response.init_point;
@@ -67,7 +65,6 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
         
         let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
         
-        // The error structure from the SDK might be nested under 'cause' or 'data'
         const errorDetails = error.cause?.cause?.[0] || error.cause?.[0] || error.data?.cause?.[0];
 
         if (errorDetails && errorDetails.description) {
@@ -132,7 +129,13 @@ export async function getUserProfileAction(userId: string): Promise<UserProfile 
 
         if (userDocSnap.exists) {
             const data = userDocSnap.data();
-            return (data?.profile as UserProfile) || null;
+            // Aseguramos que el rol siempre esté presente, por defecto 'cliente'
+            const profile: UserProfile = {
+                displayName: data?.profile?.displayName || '',
+                age: data?.profile?.age,
+                role: data?.profile?.role || 'cliente'
+            };
+            return profile;
         }
         return null;
     } catch (error) {
@@ -502,7 +505,22 @@ export async function getClientsAction(professionalId: string): Promise<{ data: 
     const db = getDb();
     const clientsSnapshot = await db.collection('clients').where('professionalId', '==', professionalId).get();
     
-    const clients: Client[] = clientsSnapshot.docs.map(doc => doc.data() as Client);
+    if (clientsSnapshot.empty) {
+      return { data: [], error: null };
+    }
+    
+    const clients: Client[] = clientsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            email: data.email,
+            displayName: data.displayName || null,
+            photoURL: data.photoURL || null,
+            status: data.status,
+            invitationDate: data.invitationDate,
+            professionalId: data.professionalId,
+        };
+    });
     
     return { data: clients, error: null };
   } catch (error) {
@@ -525,8 +543,11 @@ export async function addClientAction(professionalId: string, clientEmail: strin
     if (!existingClientQuery.empty) {
         return { data: null, error: 'Este cliente ya ha sido invitado.' };
     }
+    
+    const clientRef = db.collection('clients').doc(); // Generate a unique ID for the invitation
 
-    const newClient: Omit<Client, 'id'> = {
+    const newClient: Client = {
+      id: clientRef.id, // Use the generated ID
       email: clientEmail,
       displayName: null,
       photoURL: null,
@@ -535,14 +556,11 @@ export async function addClientAction(professionalId: string, clientEmail: strin
       professionalId,
     };
 
-    // Use email as doc ID for easy lookup later
-    const clientRef = db.collection('clients').doc();
-    const finalClient = { ...newClient, id: clientRef.id };
-    await clientRef.set(finalClient);
+    await clientRef.set(newClient);
     
-    // TODO: Send an actual email invitation here
+    revalidatePath('/pro-dashboard');
 
-    return { data: finalClient, error: null };
+    return { data: newClient, error: null };
   } catch (error) {
     console.error("🔥 Error al añadir cliente:", error);
     return { data: null, error: "No se pudo invitar al cliente." };
@@ -580,6 +598,9 @@ export async function acceptInvitationAction(
             photoURL: clientUser.photoURL,
         });
         
+        // Revalidate the professional's dashboard path to show the updated status
+        revalidatePath('/pro-dashboard');
+
         return { success: true };
 
     } catch (error) {
@@ -587,5 +608,3 @@ export async function acceptInvitationAction(
         return { success: false, error: "No se pudo aceptar la invitación." };
     }
 }
-
-    

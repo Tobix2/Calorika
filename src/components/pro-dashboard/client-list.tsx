@@ -33,7 +33,7 @@ export default function ClientList({ clients }: ClientListProps) {
                 <TableHead>Cliente</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Fecha de Invitación</TableHead>
-                <TableHead>Acciones</TableHead>
+                <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -53,16 +53,16 @@ export default function ClientList({ clients }: ClientListProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={client.status === 'active' ? 'default' : 'secondary'}>
+                      <Badge variant={client.status === 'active' ? 'default' : 'secondary'} className={client.status === 'active' ? 'bg-green-500' : ''}>
                         {client.status === 'active' ? 'Activo' : 'Invitado'}
                       </Badge>
                     </TableCell>
                     <TableCell>
                         {client.invitationDate ? format(new Date(client.invitationDate), 'dd MMM yyyy', { locale: es }) : 'N/A'}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right">
                       {client.status === 'active' ? (
-                         <div className="flex items-center gap-2">
+                         <div className="flex items-center justify-end gap-2">
                            <Button variant="outline" size="icon" disabled>
                              <LayoutDashboard className="h-4 w-4" />
                              <span className="sr-only">Ver Dashboard</span>
@@ -77,7 +77,7 @@ export default function ClientList({ clients }: ClientListProps) {
                            </Button>
                          </div>
                        ) : (
-                        <span className="text-xs text-muted-foreground">N/A</span>
+                        <span className="text-xs text-muted-foreground">Pendiente</span>
                        )}
                     </TableCell>
                   </TableRow>
