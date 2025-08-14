@@ -86,6 +86,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
 
 
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
+  const [isSubscribeDialogOpen, setIsSubscribeDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showTutorial, setShowTutorial] = useState(false);
   
@@ -376,6 +377,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   };
   
   const handleSubscribe = (plan: 'premium_monthly' | 'premium_annual') => {
+        setIsSubscribeDialogOpen(false);
         if (!user || !user.email) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo obtener la información del usuario.'});
             return;
@@ -485,6 +487,47 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                                 onAddIngredient={handleAddIngredient}
                             />
                         </div>
+                        
+                        <AlertDialog open={isSubscribeDialogOpen} onOpenChange={setIsSubscribeDialogOpen}>
+                           <AlertDialogTrigger asChild>
+                             <Button>
+                               <Star className="mr-2 h-4 w-4" />
+                               Suscribirse
+                             </Button>
+                           </AlertDialogTrigger>
+                           <AlertDialogContent>
+                             <AlertDialogHeader>
+                               <AlertDialogTitle>Elige tu Plan Premium</AlertDialogTitle>
+                               <AlertDialogDescription>
+                                 Desbloquea todas las funcionalidades de Calorika para alcanzar tus metas más rápido.
+                               </AlertDialogDescription>
+                             </AlertDialogHeader>
+                             <div className="flex flex-col sm:flex-row gap-4 py-4">
+                               <Button
+                                 onClick={() => handleSubscribe('premium_monthly')}
+                                 disabled={isSubscribing}
+                                 className="w-full h-auto flex flex-col p-4"
+                               >
+                                 {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                 <span className="text-lg font-semibold">Plan Mensual</span>
+                                 <span className="text-sm font-normal">$10.000 / mes</span>
+                               </Button>
+                               <Button
+                                 onClick={() => handleSubscribe('premium_annual')}
+                                 disabled={isSubscribing}
+                                 className="w-full h-auto flex flex-col p-4"
+                               >
+                                 {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                                 <span className="text-lg font-semibold">Plan Anual</span>
+                                 <span className="text-sm font-normal">$100.000 / año</span>
+                                 <span className="text-xs font-bold mt-1 bg-yellow-400 text-black px-2 py-0.5 rounded-full">¡Ahorra 2 meses!</span>
+                               </Button>
+                             </div>
+                             <AlertDialogFooter>
+                               <AlertDialogCancel disabled={isSubscribing}>Cancelar</AlertDialogCancel>
+                             </AlertDialogFooter>
+                           </AlertDialogContent>
+                        </AlertDialog>
 
                         <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -523,15 +566,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                                 <span>Mi Progreso</span>
                                 </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={() => handleSubscribe('premium_monthly')} disabled={isSubscribing}>
-                                    {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
-                                    <span>Suscripción Mensual</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleSubscribe('premium_annual')} disabled={isSubscribing}>
-                                    {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
-                                    <span>Suscripción Anual</span>
-                                </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={auth.logout}>
                                 <LogOut className="mr-2 h-4 w-4" />
@@ -629,3 +663,5 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     </AuthGuard>
   );
 }
+
+    
