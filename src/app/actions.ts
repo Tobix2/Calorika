@@ -30,6 +30,8 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
     if (!userId || !payerEmail) {
         return { checkoutUrl: null, error: "Usuario o email no válido." };
     }
+    
+    console.log(`[LOG]: Creando suscripción para el usuario: ${userId} con email: ${payerEmail}`);
 
     try {
         const client = new MercadoPagoConfig({ accessToken });
@@ -49,6 +51,8 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
             site_id: 'MLA',
         };
         
+        console.log("[LOG]: Enviando solicitud a Mercado Pago con el cuerpo:", preapprovalData);
+        
         const response = await preapproval.create({ body: preapprovalData });
         
         const checkoutUrl = response.init_point;
@@ -65,6 +69,7 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
         
         let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
         
+        // La estructura del error en la v2 del SDK puede variar. Intentamos varios caminos.
         const errorDetails = error.cause?.cause?.[0] || error.cause?.[0] || error.data?.cause?.[0];
 
         if (errorDetails && errorDetails.description) {
@@ -144,7 +149,7 @@ export async function getUserProfileAction(userId: string): Promise<UserProfile 
     }
 }
 
-export async function saveUserProfileAction(userId: string, profile: UserProfile): Promise<void> {
+export async function saveUserProfileAction(userId: string, profile: Omit<UserProfile, 'role'>): Promise<void> {
     try {
         const db = getDb();
         const userDocRef = db.collection('users').doc(userId);
@@ -533,7 +538,6 @@ export async function addClientAction(professionalId: string, clientEmail: strin
   try {
     const db = getDb();
     
-    // Check if a client with this email already exists for this professional
     const existingClientQuery = await db.collection('clients')
         .where('professionalId', '==', professionalId)
         .where('email', '==', clientEmail)
@@ -544,10 +548,11 @@ export async function addClientAction(professionalId: string, clientEmail: strin
         return { data: null, error: 'Este cliente ya ha sido invitado.' };
     }
     
-    const clientRef = db.collection('clients').doc(); // Generate a unique ID for the invitation
+    // Use the client's email as the document ID for consistency.
+    const clientRef = db.collection('clients').doc(clientEmail); 
 
     const newClient: Client = {
-      id: clientRef.id, // Use the generated ID
+      id: '', // The user's UID will be added here upon registration
       email: clientEmail,
       displayName: null,
       photoURL: null,
@@ -558,9 +563,10 @@ export async function addClientAction(professionalId: string, clientEmail: strin
 
     await clientRef.set(newClient);
     
-    revalidatePath('/pro-dashboard');
+    // We pass back the client object with the email as the ID for the state update
+    const clientForState: Client = { ...newClient, id: clientEmail };
 
-    return { data: newClient, error: null };
+    return { data: clientForState, error: null };
   } catch (error) {
     console.error("🔥 Error al añadir cliente:", error);
     return { data: null, error: "No se pudo invitar al cliente." };
@@ -574,24 +580,25 @@ export async function acceptInvitationAction(
     try {
         const db = getDb();
         
-        // Find the invitation document by professionalId and client's email
-        const q = db.collection('clients')
-            .where('professionalId', '==', professionalId)
-            .where('email', '==', clientUser.email)
-            .where('status', '==', 'invited')
-            .limit(1);
+        // Find the invitation document by its ID, which is the client's email.
+        const invitationDocRef = db.collection('clients').doc(clientUser.email);
+        const invitationDocSnap = await invitationDocRef.get();
 
-        const querySnapshot = await q.get();
-
-        if (querySnapshot.empty) {
-            console.warn(`No pending invitation found for email ${clientUser.email} with professional ${professionalId}.`);
-            // This isn't a critical failure, the user just wasn't pre-invited.
+        if (!invitationDocSnap.exists) {
+            console.warn(`No pending invitation found for email ${clientUser.email}. This might happen if they were not pre-invited.`);
             return { success: true }; 
         }
 
+        const invitationData = invitationDocSnap.data();
+
+        // Double-check that the professional ID matches and status is 'invited'
+        if (invitationData?.professionalId !== professionalId || invitationData?.status !== 'invited') {
+             console.warn(`Invitation for ${clientUser.email} is either for another professional or already active.`);
+             return { success: false, error: 'La invitación no es válida o ya ha sido aceptada.' };
+        }
+
         // Update the existing invitation document
-        const invitationDoc = querySnapshot.docs[0];
-        await invitationDoc.ref.update({
+        await invitationDocRef.update({
             id: clientUser.uid, // This is the new client's Firebase Auth UID
             status: 'active',
             displayName: clientUser.displayName,

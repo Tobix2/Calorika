@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useTransition } from 'react';
@@ -53,6 +54,7 @@ export default function ProDashboardPage() {
                 description: result.error || 'No se pudo añadir al cliente.',
             });
         } else {
+            // The result.data contains the client object with the email as the ID
             setClients((prev) => [...prev, result.data!]);
             toast({
                 title: '¡Cliente invitado!',
