@@ -369,8 +369,8 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[], pro
             const docSnap = await docRef.get();
             if (docSnap.exists) {
                 const data = docSnap.data();
-                // Ensure goals exist, if not, use the profile goals or empty goals
-                const goals = data?.goals || profileGoals || emptyGoals;
+                // Prioritize goals from the daily plan document. Fallback to profile goals.
+                const goals = data?.goals && data.goals.calorieGoal > 0 ? data.goals : profileGoals || emptyGoals;
                 return { 
                     date: dateString, 
                     plan: (data?.plan || initialDailyPlan) as DailyPlan,
@@ -546,13 +546,6 @@ export async function acceptInvitationAction(
         // Use the client's email as the document ID for consistency when creating
         const clientRef = db.collection('clients').doc(clientUser.email);
         
-        const clientDoc = await clientRef.get();
-
-        if (clientDoc.exists && clientDoc.data()?.professionalId !== professionalId) {
-             console.warn(`[DEBUG] Client ${clientUser.email} is already associated with another professional.`);
-             return { success: false, error: 'Este cliente ya está asociado con otro profesional.' };
-        }
-
         const newClientData: Client = {
             id: clientUser.uid, // The client's Firebase Auth UID
             email: clientUser.email,

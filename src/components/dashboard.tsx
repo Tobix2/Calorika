@@ -72,7 +72,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   const [customMeals, setCustomMeals] = useState<CustomMeal[]>([]);
   
   const [isAiPending, startAiTransition] = useTransition();
-  const [isSaving, startSavingTransition] = useTransition();
   const [isSubscribing, startSubscribingTransition] = useTransition();
 
   const { toast } = useToast();
@@ -147,7 +146,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     }
     loadInitialData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId, toast]);
+  }, [effectiveUserId]);
   
 
   // This effect reloads the weekly plan ONLY when the week itself changes.
@@ -156,7 +155,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         loadWeeklyPlan(effectiveUserId, weekDates, profileGoals);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekDates, effectiveUserId, profileGoals]);
+  }, [weekDates]);
 
   // Debounced save effect
   useEffect(() => {
@@ -166,6 +165,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     
     const handler = setTimeout(() => {
       const dayToSave = weeklyPlan[selectedDateKey];
+      // We only save if there is data for that day (it has been "touched")
       if (dayToSave) {
         console.log(`[AUTOSAVE]: Guardando plan para ${selectedDateKey} para el usuario ${effectiveUserId}`);
         saveDailyPlanAction(effectiveUserId, currentDate, dayToSave.plan, dayToSave.goals);
@@ -180,43 +180,33 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
 
   // Effect to update current day's goals if they don't exist yet
    useEffect(() => {
-    if (isProfessionalView || isBefore(currentDate, startOfToday())) return;
-    
     const currentDayData = weeklyPlan[selectedDateKey];
     if (profileGoals && (!currentDayData || !currentDayData.goals.calorieGoal)) {
-        updateDayData({ goals: profileGoals });
-    }
-  }, [currentDate, profileGoals, weeklyPlan, selectedDateKey, isProfessionalView]);
-
-
-  const updateDayData = (newDayData: Partial<DayData>) => {
-    const dateKey = format(currentDate, 'yyyy-MM-dd');
-    setWeeklyPlan(prevWeeklyPlan => {
-        // Create a deep copy to ensure immutability
-        const newWeeklyPlan = JSON.parse(JSON.stringify(prevWeeklyPlan));
-        
-        // Ensure the day object exists
-        if (!newWeeklyPlan[dateKey]) {
-            newWeeklyPlan[dateKey] = JSON.parse(JSON.stringify(initialDayData));
+        // Apply profile goals only if the day is today or in the future
+        if (!isBefore(currentDate, startOfToday()) || isProfessionalView) {
+            updateDayData({ goals: profileGoals });
         }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentDate, profileGoals, selectedDateKey, isProfessionalView]);
+
+
+  const updateDayData = useCallback((newDayData: Partial<DayData>) => {
+    const dateKey = format(currentDate, 'yyyy-MM-dd');
+    setWeeklyPlan(prev => {
+        const newWeeklyPlan = JSON.parse(JSON.stringify(prev));
+        const currentDay = newWeeklyPlan[dateKey] || JSON.parse(JSON.stringify(initialDayData));
         
-        // Merge the new data
-        const currentDay = newWeeklyPlan[dateKey];
         const updatedDayData = {
             ...currentDay,
-            ...newDayData,
             plan: newDayData.plan || currentDay.plan,
-            goals: {
-                ...currentDay.goals,
-                ...newDayData.goals,
-            }
+            goals: newDayData.goals ? { ...currentDay.goals, ...newDayData.goals } : currentDay.goals
         };
         
         newWeeklyPlan[dateKey] = updatedDayData;
-        
         return newWeeklyPlan;
     });
-  };
+}, [currentDate]);
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
     const newMeals = meals.map((meal: Meal) => {
@@ -268,9 +258,9 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     updateDayData({ plan: newMeals });
   };
 
-  const handleSetGoal = (newGoals: UserGoals) => {
+  const handleSetGoal = useCallback((newGoals: UserGoals) => {
     updateDayData({ goals: newGoals });
-  };
+  }, [updateDayData]);
 
   const handleCreateMeal = async (newMealData: Omit<CustomMeal, 'id'>) => {
     if (!effectiveUserId) {
@@ -569,8 +559,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                 <CalorieRecommendationForm onGoalSet={(newGoals) => {
                     handleSetGoal(newGoals);
                     if (effectiveUserId && !isProfessionalView) {
-                      startSavingTransition(async () => {
-                        await saveUserGoalsAction(effectiveUserId, newGoals);
+                      saveUserGoalsAction(effectiveUserId, newGoals).then(() => {
                         setProfileGoals(newGoals);
                       });
                     }
