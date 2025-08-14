@@ -506,6 +506,38 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
 
 // --- Professional Dashboard Actions ---
 
+export async function checkClientSlotAction(professionalId: string): Promise<{ available: boolean; error?: string }> {
+    try {
+        const db = getDb();
+        const professionalDoc = await db.collection('users').doc(professionalId).get();
+        if (!professionalDoc.exists) {
+            return { available: false, error: 'El profesional especificado no existe.' };
+        }
+        const professionalData = professionalDoc.data();
+        const paidSlots = professionalData?.paidClientSlots || 0;
+        
+        const clientsSnapshot = await db.collection('clients')
+            .where('professionalId', '==', professionalId)
+            .where('status', '==', 'active')
+            .get();
+
+        const activeClientsCount = clientsSnapshot.size;
+        
+        const FREE_SLOTS = 2;
+        const totalSlots = FREE_SLOTS + paidSlots;
+
+        if (activeClientsCount >= totalSlots) {
+             return { available: false, error: `El profesional ha alcanzado su límite de clientes. Por favor, pídale que compre un nuevo cupo.` };
+        }
+        
+        return { available: true };
+
+    } catch (error) {
+        console.error("🔥 Error al verificar el cupo de cliente:", error);
+        return { available: false, error: "No se pudo verificar la disponibilidad de cupos en el servidor." };
+    }
+}
+
 export async function getClientsAction(professionalId: string): Promise<{ data: Client[] | null; error: string | null }> {
   try {
     const db = getDb();
@@ -546,27 +578,6 @@ export async function acceptInvitationAction(
 
         const db = getDb();
         
-        const professionalDoc = await db.collection('users').doc(professionalId).get();
-        if (!professionalDoc.exists) {
-            return { success: false, error: 'El profesional especificado no existe.' };
-        }
-        const professionalData = professionalDoc.data();
-        const paidSlots = professionalData?.paidClientSlots || 0;
-        
-        const clientsSnapshot = await db.collection('clients')
-            .where('professionalId', '==', professionalId)
-            .where('status', '==', 'active')
-            .get();
-
-        const activeClientsCount = clientsSnapshot.size;
-        
-        const FREE_SLOTS = 2;
-        const totalSlots = FREE_SLOTS + paidSlots;
-
-        if (activeClientsCount >= totalSlots) {
-             return { success: false, error: `El profesional ha alcanzado su límite de clientes. Por favor, pídale que compre un nuevo cupo.` };
-        }
-
         const clientRef = db.collection('clients').doc(clientUser.email);
         const clientDoc = await clientRef.get();
 

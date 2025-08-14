@@ -15,7 +15,7 @@ import {
 import { auth } from "@/lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { createSubscriptionAction, saveUserProfileAction, acceptInvitationAction, getUserProfileAction } from "@/app/actions";
+import { createSubscriptionAction, saveUserProfileAction, acceptInvitationAction, getUserProfileAction, checkClientSlotAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
 import type { UserRole, UserProfile } from "@/lib/types";
 
@@ -73,10 +73,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             console.error("Failed to save user profile", error);
         }
 
-        console.log(`[DEBUG] handleSuccessfulAuth: proId = ${proId}`);
-
         if (proId) {
-            console.log('[DEBUG] proId detectado. Llamando a acceptInvitationAction...');
             try {
                 const result = await acceptInvitationAction(proId, {
                     uid: user.uid,
@@ -84,7 +81,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     displayName: user.displayName,
                     photoURL: user.photoURL
                 });
-                console.log('[DEBUG] Resultado de acceptInvitationAction:', result);
                  if (!result.success) {
                      toast({ variant: "destructive", title: "Error de Invitación", description: result.error || "No se pudo completar la asociación con tu profesional." });
                  }
@@ -128,17 +124,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const signInWithGoogle = async (paymentIntent: string | null = null, role: UserRole = 'cliente', proId: string | null = null) => {
-    const provider = new GoogleAuthProvider();
     setLoading(true);
     try {
+        if (proId) {
+            const slotCheck = await checkClientSlotAction(proId);
+            if (!slotCheck.available) {
+                toast({ variant: "destructive", title: "Límite de Clientes Alcanzado", description: slotCheck.error });
+                setLoading(false);
+                return;
+            }
+        }
+      const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      
       const profile = await getUserProfileAction(result.user.uid);
       const finalRole = profile?.role || role;
 
       await handleSuccessfulAuth(result.user, finalRole, paymentIntent, proId);
     } catch (error: any) {
-        if (error.code === 'auth/popup-closed-by-user') return;
+        if (error.code === 'auth/popup-closed-by-user') {
+          setLoading(false);
+          return;
+        };
         console.error("Error signing in with Google", error);
         toast({ variant: "destructive", title: "Error de Autenticación", description: "No se pudo iniciar sesión con Google." });
     } finally {
@@ -149,6 +155,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signUpWithEmail = async (email: string, pass: string, name: string, role: UserRole, paymentIntent: string | null = null, proId: string | null = null) => {
     setLoading(true);
     try {
+        if (proId) {
+            const slotCheck = await checkClientSlotAction(proId);
+            if (!slotCheck.available) {
+                toast({ variant: "destructive", title: "Límite de Clientes Alcanzado", description: slotCheck.error });
+                setLoading(false);
+                return null;
+            }
+        }
         const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
         await updateProfile(userCredential.user, { displayName: name });
         setUser({ ...userCredential.user, displayName: name });
