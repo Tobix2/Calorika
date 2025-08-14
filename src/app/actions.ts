@@ -19,65 +19,70 @@ import { revalidatePath } from 'next/cache';
 
 // --- Mercado Pago Action ---
 
-export async function createSubscriptionAction(userId: string, payerEmail: string, plan: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
+export async function createSubscriptionAction(
+    userId: string,
+    payerEmail: string,
+    plan: string
+  ): Promise<{ checkoutUrl: string | null; error: string | null }> {
+  
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) {
-        console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
-        return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
+      console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
+      return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
     }
-
+  
     if (!userId || !payerEmail) {
-        return { checkoutUrl: null, error: "Usuario o email no válido." };
+      return { checkoutUrl: null, error: "Usuario o email no válido." };
     }
-    
+  
     console.log(`[LOG]: Creando suscripción para el usuario: ${userId} con email: ${payerEmail} y plan: ${plan}`);
-    
+  
     const client = new MercadoPagoConfig({ accessToken });
     const preapproval = new PreApproval(client);
-
+  
+    // Configuración de plan
     const isAnnual = plan === 'premium_annual';
-
     const preapprovalData = {
-        reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
-        auto_recurring: {
-            frequency: 1,
-            frequency_type: isAnnual ? 'years' : 'months',
-            transaction_amount: isAnnual ? 100000 : 10000,
-            currency_id: 'ARS',
-        },
-        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-        payer_email: payerEmail,
-        external_reference: userId,
+      reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
+      auto_recurring: {
+        frequency: isAnnual ? 12 : 1,  // 12 meses para anual
+        frequency_type: 'months',       // siempre months
+        transaction_amount: isAnnual ? 100000 : 10000,
+        currency_id: 'ARS',
+      },
+      back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+      payer_email: payerEmail,
+      external_reference: userId,
     };
-        
+  
     console.log("[LOG]: Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
-    
+  
     try {
-        const response = await preapproval.create({ body: preapprovalData });
-        
-        const checkoutUrl = response.init_point;
-        if (!checkoutUrl) {
-           console.error("La respuesta de Mercado Pago no contiene un init_point (URL de checkout).");
-           return { checkoutUrl: null, error: "No se pudo generar el enlace de pago." };
-        }
-
-        console.log("URL de checkout de Mercado Pago generada exitosamente.");
-        return { checkoutUrl, error: null };
-
+      const response = await preapproval.create({ body: preapprovalData });
+  
+      const checkoutUrl = response.init_point;
+      if (!checkoutUrl) {
+        console.error("La respuesta de Mercado Pago no contiene un init_point (URL de checkout).");
+        return { checkoutUrl: null, error: "No se pudo generar el enlace de pago." };
+      }
+  
+      console.log("URL de checkout de Mercado Pago generada exitosamente:", checkoutUrl);
+      return { checkoutUrl, error: null };
+  
     } catch (error: any) {
-        console.error("❌ Error al crear la suscripción de Mercado Pago:", error);
-        
-        let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
-        if (error.cause && Array.isArray(error.cause) && error.cause.length > 0) {
-            errorMessage = `Error de Mercado Pago: ${error.cause[0].description || error.message}`;
-        } else if (error.message) {
-             errorMessage = `Error de Mercado Pago: ${error.message}`;
-        }
-       
-        return { checkoutUrl: null, error: errorMessage };
+      console.error("❌ Error al crear la suscripción de Mercado Pago:", error);
+  
+      let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
+      if (error.cause && Array.isArray(error.cause) && error.cause.length > 0) {
+        errorMessage = `Error de Mercado Pago: ${error.cause[0].description || error.message}`;
+      } else if (error.message) {
+        errorMessage = `Error de Mercado Pago: ${error.message}`;
+      }
+  
+      return { checkoutUrl: null, error: errorMessage };
     }
-}
-
+  }
+  
 
 // --- AI Actions ---
 

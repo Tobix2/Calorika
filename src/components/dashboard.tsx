@@ -7,9 +7,10 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
+import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star, BrainCircuit, BarChart2 } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
 import { Button } from '@/components/ui/button';
 import { generateMealPlanAction, saveDailyPlanAction, getWeeklyPlanAction, getFoodsAction, addCustomMealAction, deleteCustomMealAction, deleteFoodAction, getCustomMealsAction, addFoodAction, getUserGoalsAction, saveUserGoalsAction, createSubscriptionAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
@@ -99,20 +100,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
 
-  const loadWeeklyPlan = useCallback(async (uid: string, dates: Date[], goals: UserGoals | null) => {
-      try {
-          const plan = await getWeeklyPlanAction(uid, dates, goals);
-          setWeeklyPlan(plan);
-      } catch (error) {
-          console.error("No se pudo cargar el plan semanal", error);
-          toast({
-              variant: 'destructive',
-              title: 'Error',
-              description: 'No se pudo cargar tu plan. Por favor, intenta refrescar.'
-          });
-      }
-  }, [toast]);
-  
   const updateDayData = useCallback((newDayData: Partial<DayData>) => {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
     setWeeklyPlan(prev => {
@@ -130,6 +117,20 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     });
   }, [currentDate]);
 
+  const loadWeeklyPlan = useCallback(async (uid: string, dates: Date[], goals: UserGoals | null) => {
+      try {
+          const plan = await getWeeklyPlanAction(uid, dates, goals);
+          setWeeklyPlan(plan);
+      } catch (error) {
+          console.error("No se pudo cargar el plan semanal", error);
+          toast({
+              variant: 'destructive',
+              title: 'Error',
+              description: 'No se pudo cargar tu plan. Por favor, intenta refrescar.'
+          });
+      }
+  }, [toast]);
+  
 
   // Initial data load for user profile, foods, and custom meals.
   useEffect(() => {
@@ -548,36 +549,52 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                 />
                 </div>
                 <div className="space-y-6">
-                <CalorieRecommendationForm onGoalSet={(newGoals) => {
-                    handleSetGoal(newGoals);
-                    if (effectiveUserId && !isProfessionalView) {
-                      saveUserGoalsAction(effectiveUserId, newGoals).then(() => {
-                        setProfileGoals(newGoals);
-                      });
-                    }
-                }} />
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Desglose de Calorías por Comida</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ResponsiveContainer width="100%" height={300}>
-                            <BarChart data={chartData}>
-                                <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                <Tooltip
-                                contentStyle={{
-                                    background: "hsl(var(--background))",
-                                    border: "1px solid hsl(var(--border))",
-                                    borderRadius: "var(--radius)",
-                                }}
-                                />
-                                <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
+                    <Tabs defaultValue="asesor-ia" className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="asesor-ia">
+                                 <BrainCircuit className="mr-2 h-4 w-4" />
+                                Asesor IA
+                            </TabsTrigger>
+                            <TabsTrigger value="desglose">
+                                 <BarChart2 className="mr-2 h-4 w-4" />
+                                Desglose
+                            </TabsTrigger>
+                        </TabsList>
+                        <TabsContent value="asesor-ia" className="mt-6">
+                            <CalorieRecommendationForm onGoalSet={(newGoals) => {
+                                handleSetGoal(newGoals);
+                                if (effectiveUserId && !isProfessionalView) {
+                                saveUserGoalsAction(effectiveUserId, newGoals).then(() => {
+                                    setProfileGoals(newGoals);
+                                });
+                                }
+                            }} />
+                        </TabsContent>
+                        <TabsContent value="desglose" className="mt-6">
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle>Desglose de Calorías por Comida</CardTitle>
+                                    <CardDescription>Visualiza cómo se distribuyen las calorías en tus comidas del día.</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                    <ResponsiveContainer width="100%" height={300}>
+                                        <RechartsBarChart data={chartData}>
+                                            <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                            <Tooltip
+                                            contentStyle={{
+                                                background: "hsl(var(--background))",
+                                                border: "1px solid hsl(var(--border))",
+                                                borderRadius: "var(--radius)",
+                                            }}
+                                            />
+                                            <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                        </RechartsBarChart>
+                                    </ResponsiveContainer>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </div>
         </main>
