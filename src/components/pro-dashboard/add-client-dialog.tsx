@@ -38,7 +38,7 @@ export default function AddClientDialog({ onAddClient, isAdding }: AddClientDial
       <DialogTrigger asChild>
         <Button>
           <UserPlus className="mr-2 h-4 w-4" />
-          Invitar Cliente
+          Añadir Cliente
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
