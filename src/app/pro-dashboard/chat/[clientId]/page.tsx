@@ -10,13 +10,13 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import type { ChatMessage, UserProfile } from '@/lib/types';
 import { sendMessageAction, getUserProfileAction } from '@/app/actions';
-import { ArrowLeft, Loader2, MessageSquare, Send } from 'lucide-react';
-import Link from 'next/link';
+import { Loader2, Send } from 'lucide-react';
 import { collection, query, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 
 export default function ProfessionalChatPage() {
   const { user } = useAuth();
@@ -34,6 +34,7 @@ export default function ProfessionalChatPage() {
 
   useEffect(() => {
     if (clientId) {
+      setIsLoading(true);
       getUserProfileAction(clientId).then(setClientProfile);
     }
   }, [clientId]);
@@ -95,39 +96,28 @@ export default function ProfessionalChatPage() {
         setNewMessage(textToSend);
     }
   };
+  
+  if (isLoading) {
+    return (
+        <div className="flex h-full items-center justify-center bg-background">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+    )
+  }
 
   return (
     <AuthGuard>
-      <div className="flex flex-col h-screen bg-background">
-        <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-4">
-                <Button variant="outline" size="icon" asChild>
-                  <Link href="/pro-dashboard">
-                    <ArrowLeft />
-                  </Link>
-                </Button>
-                <div className="flex items-center gap-2">
-                  <MessageSquare className="h-8 w-8 text-primary" />
-                  <h1 className="text-xl md:text-2xl font-bold font-headline text-foreground">
-                    Chat con: <span className="text-primary">{clientProfile?.displayName || 'Cliente'}</span>
-                  </h1>
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        <main className="flex-grow flex flex-col container mx-auto p-4 sm:p-6 lg:p-8 overflow-hidden">
-          {isLoading ? (
-            <div className="flex-grow flex items-center justify-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-          ) : (
-            <>
-              <ScrollArea className="flex-grow -mx-4" ref={scrollAreaRef}>
-                <div className="px-4 py-2 space-y-4">
+      <div className="flex flex-col h-full bg-background">
+          <header className="flex items-center gap-4 border-b bg-card p-4">
+             <Avatar>
+              <AvatarImage src={clientProfile?.displayName || ''} />
+              <AvatarFallback>{clientProfile?.displayName?.charAt(0) || 'C'}</AvatarFallback>
+            </Avatar>
+            <h2 className="text-lg font-semibold">{clientProfile?.displayName || 'Cliente'}</h2>
+          </header>
+          
+          <ScrollArea className="flex-grow p-4" ref={scrollAreaRef}>
+             <div className="space-y-4">
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
@@ -159,22 +149,22 @@ export default function ProfessionalChatPage() {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
-              <form onSubmit={handleSendMessage} className="flex items-center gap-2 border-t pt-4 mt-4">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Escribe un mensaje..."
-                  disabled={isSending}
-                />
-                <Button type="submit" disabled={isSending || !newMessage.trim()}>
-                  {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                  <span className="sr-only">Enviar</span>
-                </Button>
+          </ScrollArea>
+           <div className="border-t bg-card p-4">
+              <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Escribe un mensaje..."
+                    disabled={isSending}
+                    autoComplete='off'
+                  />
+                  <Button type="submit" size="icon" disabled={isSending || !newMessage.trim()}>
+                    {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    <span className="sr-only">Enviar</span>
+                  </Button>
               </form>
-            </>
-          )}
-        </main>
+            </div>
       </div>
     </AuthGuard>
   );
