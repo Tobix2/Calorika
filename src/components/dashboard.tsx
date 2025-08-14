@@ -7,7 +7,7 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star, BrainCircuit, BarChart2 } from 'lucide-react';
+import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star, BrainCircuit, BarChart2, LayoutDashboard } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
@@ -93,13 +93,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   const { plan: meals, goals } = dayData;
   const { calorieGoal, proteinGoal, carbsGoal, fatsGoal } = goals || initialDayData.goals;
 
-
-  const weekDates = useMemo(() => {
-    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
-    const end = endOfWeek(currentDate, { weekStartsOn: 1 });
-    return eachDayOfInterval({ start, end });
-  }, [currentDate]);
-
   const updateDayData = useCallback((newDayData: Partial<DayData>) => {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
     setWeeklyPlan(prev => {
@@ -115,6 +108,13 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         newWeeklyPlan[dateKey] = updatedDayData;
         return newWeeklyPlan;
     });
+  }, [currentDate]);
+
+
+  const weekDates = useMemo(() => {
+    const start = startOfWeek(currentDate, { weekStartsOn: 1 });
+    const end = endOfWeek(currentDate, { weekStartsOn: 1 });
+    return eachDayOfInterval({ start, end });
   }, [currentDate]);
 
   const loadWeeklyPlan = useCallback(async (uid: string, dates: Date[], goals: UserGoals | null) => {
@@ -520,83 +520,85 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
             </header>
         )}
         <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                <WeekNavigator 
-                    currentDate={currentDate}
-                    setCurrentDate={setCurrentDate}
-                    weekDates={weekDates}
-                />
-                <DailySummary
-                    totalCalories={totalCalories}
-                    calorieGoal={calorieGoal}
-                    protein={totalProtein}
-                    proteinGoal={proteinGoal}
-                    carbs={totalCarbs}
-                    carbsGoal={carbsGoal}
-                    fats={totalFats}
-                    fatsGoal={fatsGoal}
-                    onGoalChange={handleSetGoal}
-                />
-                <MealList
-                    meals={meals}
-                    customMeals={customMeals}
-                    foodDatabase={foodDatabase}
-                    onAddFood={handleAddFood}
-                    onAddCustomMeal={handleAddCustomMeal}
-                    onRemoveFood={handleRemoveFood}
-                    onDeleteItem={handleDeleteItem}
-                />
-                </div>
-                <div className="space-y-6">
-                    <Tabs defaultValue="asesor-ia" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="asesor-ia">
-                                 <BrainCircuit className="mr-2 h-4 w-4" />
-                                Asesor IA
-                            </TabsTrigger>
-                            <TabsTrigger value="desglose">
-                                 <BarChart2 className="mr-2 h-4 w-4" />
-                                Desglose
-                            </TabsTrigger>
-                        </TabsList>
-                        <TabsContent value="asesor-ia" className="mt-6">
-                            <CalorieRecommendationForm onGoalSet={(newGoals) => {
-                                handleSetGoal(newGoals);
-                                if (effectiveUserId && !isProfessionalView) {
-                                saveUserGoalsAction(effectiveUserId, newGoals).then(() => {
-                                    setProfileGoals(newGoals);
-                                });
-                                }
-                            }} />
-                        </TabsContent>
-                        <TabsContent value="desglose" className="mt-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle>Desglose de Calorías por Comida</CardTitle>
-                                    <CardDescription>Visualiza cómo se distribuyen las calorías en tus comidas del día.</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    <ResponsiveContainer width="100%" height={300}>
-                                        <RechartsBarChart data={chartData}>
-                                            <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                            <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                                            <Tooltip
-                                            contentStyle={{
-                                                background: "hsl(var(--background))",
-                                                border: "1px solid hsl(var(--border))",
-                                                borderRadius: "var(--radius)",
-                                            }}
-                                            />
-                                            <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                                        </RechartsBarChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
-                </div>
-            </div>
+            <WeekNavigator 
+                currentDate={currentDate}
+                setCurrentDate={setCurrentDate}
+                weekDates={weekDates}
+            />
+            <Tabs defaultValue="panel" className="w-full mt-6">
+                <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="panel">
+                         <LayoutDashboard className="mr-2 h-4 w-4" />
+                        Panel
+                    </TabsTrigger>
+                    <TabsTrigger value="asesor-ia">
+                         <BrainCircuit className="mr-2 h-4 w-4" />
+                        Asesor IA
+                    </TabsTrigger>
+                    <TabsTrigger value="desglose">
+                         <BarChart2 className="mr-2 h-4 w-4" />
+                        Desglose
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="panel" className="mt-6">
+                    <div className="space-y-6">
+                        <DailySummary
+                            totalCalories={totalCalories}
+                            calorieGoal={calorieGoal}
+                            protein={totalProtein}
+                            proteinGoal={proteinGoal}
+                            carbs={totalCarbs}
+                            carbsGoal={carbsGoal}
+                            fats={totalFats}
+                            fatsGoal={fatsGoal}
+                            onGoalChange={handleSetGoal}
+                        />
+                        <MealList
+                            meals={meals}
+                            customMeals={customMeals}
+                            foodDatabase={foodDatabase}
+                            onAddFood={handleAddFood}
+                            onAddCustomMeal={handleAddCustomMeal}
+                            onRemoveFood={handleRemoveFood}
+                            onDeleteItem={handleDeleteItem}
+                        />
+                    </div>
+                </TabsContent>
+                <TabsContent value="asesor-ia" className="mt-6">
+                    <CalorieRecommendationForm onGoalSet={(newGoals) => {
+                        handleSetGoal(newGoals);
+                        if (effectiveUserId && !isProfessionalView) {
+                        saveUserGoalsAction(effectiveUserId, newGoals).then(() => {
+                            setProfileGoals(newGoals);
+                        });
+                        }
+                    }} />
+                </TabsContent>
+                <TabsContent value="desglose" className="mt-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Desglose de Calorías por Comida</CardTitle>
+                            <CardDescription>Visualiza cómo se distribuyen las calorías en tus comidas del día.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <ResponsiveContainer width="100%" height={300}>
+                                <RechartsBarChart data={chartData}>
+                                    <XAxis dataKey="name" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                    <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                                    <Tooltip
+                                    contentStyle={{
+                                        background: "hsl(var(--background))",
+                                        border: "1px solid hsl(var(--border))",
+                                        borderRadius: "var(--radius)",
+                                    }}
+                                    />
+                                    <Bar dataKey="calories" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                </RechartsBarChart>
+                            </ResponsiveContainer>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
         </main>
       </div>
     </AuthGuard>
