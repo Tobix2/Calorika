@@ -39,7 +39,7 @@ export default function ClientList({ clients }: ClientListProps) {
             <TableBody>
               {clients.length > 0 ? (
                 clients.map((client) => (
-                  <TableRow key={client.id}>
+                  <TableRow key={client.email}>
                     <TableCell>
                       <div className="flex items-center gap-3">
                         <Avatar>

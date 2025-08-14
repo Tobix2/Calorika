@@ -548,7 +548,7 @@ export async function addClientAction(professionalId: string, clientEmail: strin
     const clientRef = db.collection('clients').doc(clientEmail); 
 
     const newClientData: Client = {
-      id: '', // The user's UID will be added here upon registration
+      id: clientEmail, // Use email as temporary ID
       email: clientEmail,
       displayName: null,
       photoURL: null,
