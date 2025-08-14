@@ -22,6 +22,7 @@ function LoginContent() {
     const searchParams = useSearchParams();
     const plan = searchParams.get('plan');
     const proId = searchParams.get('pro_id');
+    const defaultView = searchParams.get('view');
 
 
     const handleEmailSubmit = (e: React.FormEvent) => {
@@ -30,7 +31,9 @@ function LoginContent() {
     };
 
     const handleGoogleSignIn = () => {
-        signInWithGoogle(plan, 'cliente', proId).catch(err => {
+        // When signing in with Google via invite link, role is always 'cliente'
+        const role: UserRole = proId ? 'cliente' : 'cliente';
+        signInWithGoogle(plan, role, proId).catch(err => {
             if (err.code !== 'auth/popup-closed-by-user') {
                 console.error("❌ Sign in failed:", err);
             }
@@ -38,10 +41,35 @@ function LoginContent() {
     };
     
     const isLoading = loading || isSubscribing;
+    
+    // If it's an invitation, show only the registration form
+    if (proId) {
+        return (
+             <div className="w-full">
+                <RegisterForm isInvitation={true} />
+                 <div className="relative my-6">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-background px-2 text-muted-foreground">
+                        O regístrate con
+                        </span>
+                    </div>
+                </div>
+
+                <Button onClick={handleGoogleSignIn} variant="outline" size="lg" className="w-full" disabled={isLoading}>
+                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    <svg role="img" viewBox="0 0 24 24" className="mr-2 h-4 w-4"><path fill="currentColor" d="M12.48 10.92v3.28h7.84c-.24 1.84-.85 3.18-1.73 4.1-1.02 1.02-2.3 1.63-4.5 1.63-5.4 0-9.82-4.42-9.82-9.82s4.42-9.82 9.82-9.82c3.1 0 5.14 1.25 6.32 2.39l-2.4 2.42c-.87-.83-2-1.4-3.92-1.4-3.27 0-5.93 2.66-5.93 5.93s2.66 5.93 5.93 5.93c2.25 0 3.45-1.02 3.96-1.5-.45-.34-.87-.75-1.1-1.13z"></path></svg>
+                    Google
+                </Button>
+            </div>
+        )
+    }
 
     return (
         <>
-            <Tabs defaultValue="login" className="w-full">
+            <Tabs defaultValue={defaultView === 'register' ? 'register' : 'login'} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="login">Iniciar Sesión</TabsTrigger>
                     <TabsTrigger value="register">Registrarse</TabsTrigger>
@@ -73,7 +101,7 @@ function LoginContent() {
                     </Card>
                 </TabsContent>
                 <TabsContent value="register">
-                    <RegisterForm />
+                    <RegisterForm isInvitation={false} />
                 </TabsContent>
             </Tabs>
             
@@ -98,7 +126,7 @@ function LoginContent() {
 }
 
 
-function RegisterForm() {
+function RegisterForm({ isInvitation = false }: { isInvitation?: boolean }) {
     const { signUpWithEmail, loading, isSubscribing } = useAuth();
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -127,8 +155,8 @@ function RegisterForm() {
         <form onSubmit={handleSubmit}>
            <Card>
                 <CardHeader>
-                    <CardTitle>Crea una Cuenta</CardTitle>
-                    <CardDescription>Es rápido y fácil. Comienza tu viaje hacia una mejor nutrición.</CardDescription>
+                    <CardTitle>{isInvitation ? 'Únete como Cliente' : 'Crea una Cuenta'}</CardTitle>
+                    <CardDescription>{isInvitation ? 'Completa tu registro para unirte al panel de tu profesional.' : 'Es rápido y fácil. Comienza tu viaje hacia una mejor nutrición.'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                     <div className="space-y-2">
@@ -143,25 +171,27 @@ function RegisterForm() {
                         <Label htmlFor="reg-password">Contraseña</Label>
                         <Input id="reg-password" type="password" placeholder="Mínimo 6 caracteres" required value={password} onChange={e => setPassword(e.target.value)} />
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="role">¿Cómo usarás Calorika?</Label>
-                        <Select name="role" value={role} onValueChange={(value) => setRole(value as UserRole)} disabled={!!proId}>
-                            <SelectTrigger id="role">
-                                <SelectValue placeholder="Selecciona tu rol" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="cliente">Cliente (Uso personal)</SelectItem>
-                                <SelectItem value="profesional">Profesional (Entrenador/Nutricionista)</SelectItem>
-                                <SelectItem value="vendedor">Vendedor</SelectItem>
-                            </SelectContent>
-                        </Select>
-                         {proId && <p className="text-xs text-muted-foreground mt-1">Te estás registrando como cliente de un profesional.</p>}
-                    </div>
+                     {!isInvitation && (
+                        <div className="space-y-2">
+                            <Label htmlFor="role">¿Cómo usarás Calorika?</Label>
+                            <Select name="role" value={role} onValueChange={(value) => setRole(value as UserRole)} disabled={!!proId}>
+                                <SelectTrigger id="role">
+                                    <SelectValue placeholder="Selecciona tu rol" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="cliente">Cliente (Uso personal)</SelectItem>
+                                    <SelectItem value="profesional">Profesional (Entrenador/Nutricionista)</SelectItem>
+                                    <SelectItem value="vendedor">Vendedor</SelectItem>
+                                </SelectContent>
+                            </Select>
+                            {proId && <p className="text-xs text-muted-foreground mt-1">Te estás registrando como cliente de un profesional.</p>}
+                        </div>
+                    )}
                 </CardContent>
                 <CardFooter>
                     <Button type="submit" className="w-full" disabled={isLoading}>
                         {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Crear Cuenta
+                        {isInvitation ? 'Aceptar Invitación y Registrarse' : 'Crear Cuenta'}
                     </Button>
                 </CardFooter>
             </Card>

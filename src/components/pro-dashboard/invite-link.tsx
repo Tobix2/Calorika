@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -13,7 +14,7 @@ export default function InviteLink({ professionalId }: InviteLinkProps) {
   const { toast } = useToast();
   const [copied, setCopied] = useState(false);
 
-  const inviteUrl = `${window.location.origin}/login?pro_id=${professionalId}`;
+  const inviteUrl = `${window.location.origin}/login?pro_id=${professionalId}&view=register`;
 
   const handleCopy = () => {
     navigator.clipboard.writeText(inviteUrl).then(() => {
