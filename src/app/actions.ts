@@ -226,19 +226,14 @@ export async function getFoodsAction(userId: string): Promise<FoodItem[]> {
     try {
         const db = getDb();
         const userDocRef = db.collection('users').doc(userId);
-        const userDocSnap = await userDocRef.get();
-
-        if (!userDocSnap.exists) {
-            await userDocRef.set({ initialized: true }); // Mark user as initialized
-            return await populateInitialFoods(userId);
-        }
-
         const foodCollection = userDocRef.collection('foods');
         const snapshot = await foodCollection.get();
-        if (snapshot.empty) {
-             return await populateInitialFoods(userId);
-        }
 
+        if (snapshot.empty) {
+            await userDocRef.set({ initialized: true }, { merge: true });
+            return await populateInitialFoods(userId);
+        }
+        
         return snapshot.docs.map(doc => {
             const data = doc.data();
             return {
