@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Client } from '@/lib/types';
@@ -14,6 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Button } from '../ui/button';
+import { LayoutDashboard, LineChart, MessageSquare } from 'lucide-react';
 
 interface ClientListProps {
   clients: Client[];
@@ -30,6 +33,7 @@ export default function ClientList({ clients }: ClientListProps) {
                 <TableHead>Cliente</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Fecha de Invitación</TableHead>
+                <TableHead>Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -56,11 +60,31 @@ export default function ClientList({ clients }: ClientListProps) {
                     <TableCell>
                         {client.invitationDate ? format(new Date(client.invitationDate), 'dd MMM yyyy', { locale: es }) : 'N/A'}
                     </TableCell>
+                    <TableCell>
+                      {client.status === 'active' ? (
+                         <div className="flex items-center gap-2">
+                           <Button variant="outline" size="icon" disabled>
+                             <LayoutDashboard className="h-4 w-4" />
+                             <span className="sr-only">Ver Dashboard</span>
+                           </Button>
+                           <Button variant="outline" size="icon" disabled>
+                             <LineChart className="h-4 w-4" />
+                             <span className="sr-only">Ver Peso</span>
+                           </Button>
+                           <Button variant="outline" size="icon" disabled>
+                             <MessageSquare className="h-4 w-4" />
+                             <span className="sr-only">Chatear</span>
+                           </Button>
+                         </div>
+                       ) : (
+                        <span className="text-xs text-muted-foreground">N/A</span>
+                       )}
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center h-24">
+                  <TableCell colSpan={4} className="text-center h-24">
                     Aún no has invitado a ningún cliente.
                   </TableCell>
                 </TableRow>
