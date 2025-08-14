@@ -22,8 +22,6 @@ import {
   DialogFooter,
   DialogDescription,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
 type ViewMode = 'list' | 'grid';
@@ -38,7 +36,6 @@ export default function ProDashboardPage() {
 
   // State for the "Add Client" dialog
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
-  const [newClientEmail, setNewClientEmail] = useState('');
 
   const activeClients = clients.filter(c => c.status === 'active').length;
   const FREE_SLOTS = 2;
@@ -63,31 +60,30 @@ export default function ProDashboardPage() {
     }
   }, [user, toast]);
   
-  const handleAddClient = () => {
-    if (!user || !user.email || !newClientEmail) {
-        toast({ variant: 'destructive', title: 'Error', description: 'El email del cliente es requerido.' });
+  const handleAddClientSlot = () => {
+    if (!user || !user.email) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para realizar esta acción.' });
         return;
     }
     
     startSubscribingTransition(async () => {
+        // No client email is needed here anymore, we are just buying a "slot"
         const { checkoutUrl, error } = await createSubscriptionAction(
             user.uid,
             user.email!,
-            'professional_client',
-            { client_email: newClientEmail }
+            'professional_client'
         );
 
         if (error || !checkoutUrl) {
             toast({
                 variant: 'destructive',
-                title: 'Error al añadir cliente',
+                title: 'Error al comprar cupo',
                 description: error || 'No se pudo generar el enlace de pago.'
             });
         } else {
             window.location.href = checkoutUrl;
         }
         setIsAddClientDialogOpen(false);
-        setNewClientEmail('');
     });
   }
 
@@ -122,31 +118,21 @@ export default function ProDashboardPage() {
                             <DialogTrigger asChild>
                                 <Button>
                                     <PlusCircle className="mr-2 h-4 w-4"/>
-                                    Añadir Cliente
+                                    Comprar Cupo de Cliente
                                 </Button>
                             </DialogTrigger>
                             <DialogContent>
                                 <DialogHeader>
-                                    <DialogTitle>Añadir Nuevo Cliente</DialogTitle>
+                                    <DialogTitle>Comprar Nuevo Cupo de Cliente</DialogTitle>
                                     <DialogDescription>
-                                        Esto iniciará una suscripción de $5.000/mes para un nuevo cupo de cliente. Introduce el email del cliente que deseas invitar.
+                                        Esto iniciará una suscripción de $5.000/mes para un nuevo cupo de cliente. Una vez completado el pago, podrás invitar a un cliente más.
                                     </DialogDescription>
                                 </DialogHeader>
-                                <div className="py-4 space-y-2">
-                                    <Label htmlFor="client-email">Email del Cliente</Label>
-                                    <Input 
-                                        id="client-email" 
-                                        type="email" 
-                                        placeholder="cliente@email.com"
-                                        value={newClientEmail}
-                                        onChange={(e) => setNewClientEmail(e.target.value)}
-                                    />
-                                </div>
                                 <DialogFooter>
                                     <Button variant="outline" onClick={() => setIsAddClientDialogOpen(false)}>Cancelar</Button>
-                                    <Button onClick={handleAddClient} disabled={isSubscribing || !newClientEmail}>
+                                    <Button onClick={handleAddClientSlot} disabled={isSubscribing}>
                                         {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Pagar y Añadir Cliente
+                                        Pagar y Activar Cupo
                                     </Button>
                                 </DialogFooter>
                             </DialogContent>

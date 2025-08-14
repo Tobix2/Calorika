@@ -553,10 +553,15 @@ export async function acceptInvitationAction(
 
         const activeClientsCount = clientsSnapshot.size;
         
+        const professionalDoc = await db.collection('users').doc(professionalId).get();
+        const professionalData = professionalDoc.data();
+        const paidSlots = professionalData?.paidClientSlots || 0;
         const FREE_SLOTS = 2;
+        const totalSlots = FREE_SLOTS + paidSlots;
 
-        if (activeClientsCount >= FREE_SLOTS) {
-             return { success: false, error: `Se ha alcanzado el límite de ${FREE_SLOTS} clientes gratuitos. El profesional debe comprar un nuevo cupo.` };
+
+        if (activeClientsCount >= totalSlots) {
+             return { success: false, error: `El profesional ha alcanzado su límite de clientes. Por favor, pídale que compre un nuevo cupo.` };
         }
 
         const clientRef = db.collection('clients').doc(clientUser.email);
@@ -583,56 +588,26 @@ export async function acceptInvitationAction(
     }
 }
 
-export async function activateClientSlotAction(professionalId: string, clientEmail: string): Promise<{ success: boolean, error?: string }> {
-    if (!professionalId || !clientEmail) {
-        return { success: false, error: 'Faltan IDs de profesional o cliente.' };
+export async function activateClientSlotAction(professionalId: string): Promise<{ success: boolean, error?: string }> {
+    if (!professionalId) {
+        return { success: false, error: 'Falta el ID del profesional.' };
     }
 
     try {
         const db = getDb();
-        const clientQuery = await db.collection('users').where('profile.email', '==', clientEmail).limit(1).get();
+        const professionalRef = db.collection('users').doc(professionalId);
         
-        if (clientQuery.empty) {
-            console.warn(`Webhook: No se encontró usuario con email ${clientEmail} para activar.`);
-            // Maybe just invite them instead? For now, we'll assume they exist.
-            // Let's create an invitation document.
-            const invitationRef = db.collection('clients').doc(clientEmail);
-            await invitationRef.set({
-                id: null, // No UID yet
-                email: clientEmail,
-                displayName: null,
-                photoURL: null,
-                status: 'invited',
-                invitationDate: new Date().toISOString(),
-                professionalId: professionalId,
-            });
-            return { success: true };
-        }
-
-        const clientDoc = clientQuery.docs[0];
-        const clientData = clientDoc.data();
-        const clientUid = clientDoc.id;
+        // Atomically increment the number of paid client slots
+        await professionalRef.update({
+            paidClientSlots: admin.firestore.FieldValue.increment(1)
+        });
         
-        const clientRef = db.collection('clients').doc(clientEmail);
-        
-        const newClientData: Client = {
-            id: clientUid,
-            email: clientEmail,
-            displayName: clientData.profile?.displayName || null,
-            photoURL: clientData.profile?.photoURL || null,
-            status: 'active',
-            invitationDate: new Date().toISOString(),
-            professionalId: professionalId,
-        };
-
-        await clientRef.set(newClientData, { merge: true });
-        
-        console.log(`✅ Cliente ${clientEmail} activado para el profesional ${professionalId}.`);
+        console.log(`✅ Cupo de cliente pagado activado para el profesional ${professionalId}.`);
         revalidatePath('/pro-dashboard');
         return { success: true };
 
     } catch (error) {
-        console.error(`🔥 Error al activar el cupo del cliente ${clientEmail}:`, error);
-        return { success: false, error: 'Error del servidor al activar el cliente.' };
+        console.error(`🔥 Error al activar el cupo de cliente para ${professionalId}:`, error);
+        return { success: false, error: 'Error del servidor al activar el cupo.' };
     }
 }

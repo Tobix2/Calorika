@@ -33,16 +33,15 @@ export async function POST(req: NextRequest) {
       // Check if this is a subscription for a new client slot
       if (subscriptionDetails.metadata?.plan_type === 'professional_client') {
           const professionalId = subscriptionDetails.external_reference;
-          const clientEmail = subscriptionDetails.metadata?.client_email;
 
-          if (!professionalId || !clientEmail) {
-              console.error(`Webhook Error: Falta professionalId (${professionalId}) o clientEmail (${clientEmail}) en la metadata.`);
+          if (!professionalId) {
+              console.error(`Webhook Error: Falta professionalId (${professionalId}) en la metadata.`);
               return NextResponse.json({ status: 'error', message: 'Missing metadata' }, { status: 400 });
           }
 
-          console.log(`Activando cupo para el cliente ${clientEmail} para el profesional ${professionalId}`);
+          console.log(`Activando cupo para el profesional ${professionalId}`);
           
-          const result = await activateClientSlotAction(professionalId, clientEmail);
+          const result = await activateClientSlotAction(professionalId);
 
           if (!result.success) {
                console.error(`Webhook Error: Falló la activación del cupo: ${result.error}`);
