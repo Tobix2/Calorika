@@ -22,7 +22,8 @@ import { revalidatePath } from 'next/cache';
 export async function createSubscriptionAction(
     userId: string,
     payerEmail: string,
-    plan: string
+    plan: string,
+    metadata?: Record<string, any>
   ): Promise<{ checkoutUrl: string | null; error: string | null }> {
   
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
@@ -40,20 +41,43 @@ export async function createSubscriptionAction(
     const client = new MercadoPagoConfig({ accessToken });
     const preapproval = new PreApproval(client);
   
-    // Configuración de plan
-    const isAnnual = plan === 'premium_annual';
-    const preapprovalData = {
-      reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
-      auto_recurring: {
-        frequency: isAnnual ? 1 : 1,
-        frequency_type: isAnnual ? 'years' : 'months',
-        transaction_amount: isAnnual ? 100000 : 10000,
-        currency_id: 'ARS',
-      },
-      back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-      payer_email: payerEmail,
-      external_reference: userId,
-    };
+    let preapprovalData: any;
+
+    if (plan.startsWith('premium')) {
+        const isAnnual = plan === 'premium_annual';
+        preapprovalData = {
+          reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
+          auto_recurring: {
+            frequency: isAnnual ? 1 : 1,
+            frequency_type: isAnnual ? 'years' : 'months',
+            transaction_amount: isAnnual ? 100000 : 10000,
+            currency_id: 'ARS',
+          },
+          back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+          payer_email: payerEmail,
+          external_reference: userId,
+        };
+    } else if (plan === 'professional_client') {
+        preapprovalData = {
+          reason: `Suscripción para cliente adicional - ${metadata?.client_email || ''}`,
+          auto_recurring: {
+            frequency: 1,
+            frequency_type: 'months',
+            transaction_amount: 5000,
+            currency_id: 'ARS',
+          },
+          back_url: `${process.env.NEXT_PUBLIC_APP_URL}/pro-dashboard?payment=success`,
+          payer_email: payerEmail,
+          external_reference: userId, // Professional's ID
+          metadata: {
+            ...metadata,
+            plan_type: 'professional_client' // For webhook identification
+          }
+        };
+    } else {
+        return { checkoutUrl: null, error: "Plan no válido." };
+    }
+    
   
     console.log("[LOG]: Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
   
@@ -521,6 +545,20 @@ export async function acceptInvitationAction(
 
         const db = getDb();
         
+        // Check current client count for the professional
+        const clientsSnapshot = await db.collection('clients')
+            .where('professionalId', '==', professionalId)
+            .where('status', '==', 'active')
+            .get();
+
+        const activeClientsCount = clientsSnapshot.size;
+        
+        const FREE_SLOTS = 2;
+
+        if (activeClientsCount >= FREE_SLOTS) {
+             return { success: false, error: `Se ha alcanzado el límite de ${FREE_SLOTS} clientes gratuitos. El profesional debe comprar un nuevo cupo.` };
+        }
+
         const clientRef = db.collection('clients').doc(clientUser.email);
         
         const newClientData: Client = {
@@ -542,5 +580,59 @@ export async function acceptInvitationAction(
     } catch (error) {
         console.error("🔥 Error al aceptar la invitación:", error);
         return { success: false, error: "No se pudo procesar la invitación en el servidor." };
+    }
+}
+
+export async function activateClientSlotAction(professionalId: string, clientEmail: string): Promise<{ success: boolean, error?: string }> {
+    if (!professionalId || !clientEmail) {
+        return { success: false, error: 'Faltan IDs de profesional o cliente.' };
+    }
+
+    try {
+        const db = getDb();
+        const clientQuery = await db.collection('users').where('profile.email', '==', clientEmail).limit(1).get();
+        
+        if (clientQuery.empty) {
+            console.warn(`Webhook: No se encontró usuario con email ${clientEmail} para activar.`);
+            // Maybe just invite them instead? For now, we'll assume they exist.
+            // Let's create an invitation document.
+            const invitationRef = db.collection('clients').doc(clientEmail);
+            await invitationRef.set({
+                id: null, // No UID yet
+                email: clientEmail,
+                displayName: null,
+                photoURL: null,
+                status: 'invited',
+                invitationDate: new Date().toISOString(),
+                professionalId: professionalId,
+            });
+            return { success: true };
+        }
+
+        const clientDoc = clientQuery.docs[0];
+        const clientData = clientDoc.data();
+        const clientUid = clientDoc.id;
+        
+        const clientRef = db.collection('clients').doc(clientEmail);
+        
+        const newClientData: Client = {
+            id: clientUid,
+            email: clientEmail,
+            displayName: clientData.profile?.displayName || null,
+            photoURL: clientData.profile?.photoURL || null,
+            status: 'active',
+            invitationDate: new Date().toISOString(),
+            professionalId: professionalId,
+        };
+
+        await clientRef.set(newClientData, { merge: true });
+        
+        console.log(`✅ Cliente ${clientEmail} activado para el profesional ${professionalId}.`);
+        revalidatePath('/pro-dashboard');
+        return { success: true };
+
+    } catch (error) {
+        console.error(`🔥 Error al activar el cupo del cliente ${clientEmail}:`, error);
+        return { success: false, error: 'Error del servidor al activar el cliente.' };
     }
 }

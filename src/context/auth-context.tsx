@@ -96,7 +96,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const destination = role === 'profesional' ? '/pro-dashboard' : '/dashboard';
 
-        if ((paymentIntent?.startsWith('premium') || paymentIntent === 'professional') && user.email) {
+        if ((paymentIntent?.startsWith('premium')) && user.email) {
             startSubscribingTransition(async () => {
                 const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email!, paymentIntent!);
                 if (error || !checkoutUrl) {
