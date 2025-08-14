@@ -20,7 +20,7 @@ export type MealItem = FoodItem & {
   isCustom?: boolean; // Flag for manually added meals
 };
 
-export type MealName = "Breakfast" | "Lunch" | "Dinner" | "Snacks";
+export type MealName = "Breakfast" | "Lunch" | "Dinner" | "Snacks" | "Merienda";
 
 export type Meal = {
   name: MealName;

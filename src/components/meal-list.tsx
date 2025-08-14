@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import type { Meal, MealName, FoodItem, CustomMeal, MealItem } from '@/lib/types';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import AddFoodDialog from './add-food-dialog';
-import { Apple, Salad, Drumstick, Cookie, Flame, Trash2, PlusCircle, Beef, Wheat, Droplets } from 'lucide-react';
+import { Apple, Salad, Drumstick, Cookie, Flame, Trash2, PlusCircle, Beef, Wheat, Droplets, Sandwich } from 'lucide-react';
 
 interface MealListProps {
   meals: Meal[];
@@ -19,6 +20,7 @@ interface MealListProps {
 const mealIcons: Record<MealName, React.ReactNode> = {
   Breakfast: <Apple className="h-6 w-6 text-red-500" />,
   Lunch: <Salad className="h-6 w-6 text-green-500" />,
+  Merienda: <Sandwich className="h-6 w-6 text-amber-500" />,
   Dinner: <Drumstick className="h-6 w-6 text-yellow-600" />,
   Snacks: <Cookie className="h-6 w-6 text-orange-400" />,
 };
@@ -27,7 +29,8 @@ const mealNames: Record<MealName, string> = {
     Breakfast: "Desayuno",
     Lunch: "Almuerzo",
     Dinner: "Cena",
-    Snacks: "Snacks"
+    Snacks: "Snacks",
+    Merienda: "Merienda",
 }
 
 const calculateNutrients = (item: MealItem) => {
@@ -52,7 +55,7 @@ const calculateNutrients = (item: MealItem) => {
 export default function MealList({ meals, customMeals, foodDatabase, onAddFood, onRemoveFood, onAddCustomMeal, onDeleteItem }: MealListProps) {
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {meals.map(meal => {
         const mealCalories = meal.items.reduce((sum, item) => {
             return sum + calculateNutrients(item).calories;

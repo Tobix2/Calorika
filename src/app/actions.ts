@@ -45,8 +45,8 @@ export async function createSubscriptionAction(
     const preapprovalData = {
       reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
       auto_recurring: {
-        frequency: isAnnual ? 12 : 1,  // 12 meses para anual
-        frequency_type: 'months',       // siempre months
+        frequency: isAnnual ? 1 : 1,
+        frequency_type: isAnnual ? 'years' : 'months',
         transaction_amount: isAnnual ? 100000 : 10000,
         currency_id: 'ARS',
       },
@@ -156,17 +156,6 @@ export async function saveUserProfileAction(userId: string, profile: Partial<Use
     } catch (error) {
         console.error("🔥 Error al guardar perfil en Firestore:", error);
         throw new Error("No se pudo guardar el perfil del usuario.");
-    }
-}
-
-export async function saveUserRoleAction(userId: string, role: UserRole): Promise<void> {
-    try {
-        const db = getDb();
-        const userDocRef = db.collection('users').doc(userId);
-        await userDocRef.set({ profile: { role } }, { merge: true });
-    } catch (error) {
-        console.error("🔥 Error al guardar rol en Firestore:", error);
-        throw new Error("No se pudo guardar el rol del usuario.");
     }
 }
 
@@ -349,6 +338,7 @@ export async function deleteCustomMealAction(userId: string, mealId: string): Pr
 const initialDailyPlan: DailyPlan = [
   { name: 'Breakfast', items: [] },
   { name: 'Lunch', items: [] },
+  { name: 'Merienda', items: [] },
   { name: 'Dinner', items: [] },
   { name: 'Snacks', items: [] },
 ];
