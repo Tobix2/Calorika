@@ -15,6 +15,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { FoodItem } from '@/lib/types';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 
 interface AddIngredientDialogProps {
   onAddIngredient: (food: Omit<FoodItem, 'id'>) => Promise<FoodItem | null>;
@@ -96,8 +97,17 @@ export default function AddIngredientDialog({ onAddIngredient, children }: AddIn
                       <Input id="servingSize" type="number" value={servingSize} onChange={(e) => setServingSize(e.target.value === '' ? '' : parseFloat(e.target.value))} placeholder="Ej: 100"/>
                   </div>
                    <div className="space-y-2">
-                      <Label htmlFor="servingUnit">Unidad</Label>
-                      <Input id="servingUnit" value={servingUnit} onChange={(e) => setServingUnit(e.target.value)} placeholder="Ej: g, ml, taza"/>
+                        <Label htmlFor="servingUnit">Unidad</Label>
+                        <Select name="servingUnit" value={servingUnit} onValueChange={setServingUnit}>
+                            <SelectTrigger id="servingUnit">
+                                <SelectValue placeholder="Selecciona unidad" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="g">g (gramos)</SelectItem>
+                                <SelectItem value="unidad">unidad(es)</SelectItem>
+                                <SelectItem value="ración">ración(es)</SelectItem>
+                            </SelectContent>
+                        </Select>
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-4">

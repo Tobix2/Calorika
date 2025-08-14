@@ -294,6 +294,7 @@ export default function CreateMealDialog({ onCreateMeal, foodDatabase, setFoodDa
                                       </SelectTrigger>
                                       <SelectContent>
                                         <SelectItem value="g">g (gramos)</SelectItem>
+                                        <SelectItem value="unidad">unidad(es)</SelectItem>
                                         <SelectItem value="ración">ración(es)</SelectItem>
                                       </SelectContent>
                                     </Select>
