@@ -167,7 +167,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     const handler = setTimeout(() => {
       const dayToSave = weeklyPlan[selectedDateKey];
       if (dayToSave) {
-        console.log(`Autosaving plan for ${selectedDateKey}`);
+        console.log(`[AUTOSAVE]: Guardando plan para ${selectedDateKey} para el usuario ${effectiveUserId}`);
         saveDailyPlanAction(effectiveUserId, currentDate, dayToSave.plan, dayToSave.goals);
       }
     }, 1500);
@@ -190,23 +190,33 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
 
 
   const updateDayData = (newDayData: Partial<DayData>) => {
-    const currentDay = weeklyPlan[selectedDateKey] || initialDayData;
-
-    const updatedDayData = {
-        ...currentDay,
-        ...newDayData,
-        plan: newDayData.plan || currentDay.plan,
-        goals: {
-            ...currentDay.goals,
-            ...newDayData.goals,
+    const dateKey = format(currentDate, 'yyyy-MM-dd');
+    setWeeklyPlan(prevWeeklyPlan => {
+        // Create a deep copy to ensure immutability
+        const newWeeklyPlan = JSON.parse(JSON.stringify(prevWeeklyPlan));
+        
+        // Ensure the day object exists
+        if (!newWeeklyPlan[dateKey]) {
+            newWeeklyPlan[dateKey] = JSON.parse(JSON.stringify(initialDayData));
         }
-    };
-    
-    setWeeklyPlan(prev => ({
-        ...prev,
-        [selectedDateKey]: updatedDayData
-    }));
-  }
+        
+        // Merge the new data
+        const currentDay = newWeeklyPlan[dateKey];
+        const updatedDayData = {
+            ...currentDay,
+            ...newDayData,
+            plan: newDayData.plan || currentDay.plan,
+            goals: {
+                ...currentDay.goals,
+                ...newDayData.goals,
+            }
+        };
+        
+        newWeeklyPlan[dateKey] = updatedDayData;
+        
+        return newWeeklyPlan;
+    });
+  };
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
     const newMeals = meals.map((meal: Meal) => {
@@ -261,36 +271,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   const handleSetGoal = (newGoals: UserGoals) => {
     updateDayData({ goals: newGoals });
   };
-  
-  const handleSaveDay = () => {
-    if (!effectiveUserId) {
-        toast({ variant: 'destructive', title: 'Error', description: 'ID de usuario no encontrado.' });
-        return;
-    }
-    const dayToSave = weeklyPlan[selectedDateKey];
-    if (!dayToSave) {
-        toast({ variant: 'destructive', title: 'Error', description: 'No hay datos para guardar.' });
-        return;
-    }
-
-    startSavingTransition(async () => {
-        try {
-            await saveDailyPlanAction(effectiveUserId, currentDate, dayToSave.plan, dayToSave.goals);
-
-            toast({
-                title: '¡Día Guardado!',
-                description: `Los cambios para el ${format(currentDate, 'PPP', { locale: es })} se han guardado.`,
-            });
-        } catch (error) {
-             const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
-             toast({
-                variant: 'destructive',
-                title: 'Error al Guardar',
-                description: errorMessage,
-            });
-        }
-    });
-  }
 
   const handleCreateMeal = async (newMealData: Omit<CustomMeal, 'id'>) => {
     if (!effectiveUserId) {
@@ -574,8 +554,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                     fats={totalFats}
                     fatsGoal={fatsGoal}
                     onGoalChange={handleSetGoal}
-                    onSaveGoals={handleSaveDay}
-                    isSaving={isSaving}
                 />
                 <MealList
                     meals={meals}

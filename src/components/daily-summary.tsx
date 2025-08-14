@@ -19,8 +19,6 @@ interface DailySummaryProps {
   fats: number;
   fatsGoal: number;
   onGoalChange: (goals: UserGoals) => void;
-  onSaveGoals: () => void;
-  isSaving: boolean;
 }
 
 export default function DailySummary({
@@ -33,8 +31,6 @@ export default function DailySummary({
   fats,
   fatsGoal,
   onGoalChange,
-  onSaveGoals,
-  isSaving
 }: DailySummaryProps) {
   const progress = calorieGoal > 0 ? (totalCalories / calorieGoal) * 100 : 0;
   
