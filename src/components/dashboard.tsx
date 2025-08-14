@@ -164,11 +164,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
       return;
     }
     
-    // Disable autosave for professional view
-    if (isProfessionalView) {
-      return;
-    }
-
     const handler = setTimeout(() => {
       const dayToSave = weeklyPlan[selectedDateKey];
       if (dayToSave) {
@@ -180,7 +175,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     return () => {
       clearTimeout(handler);
     };
-  }, [weeklyPlan, currentDate, effectiveUserId, selectedDateKey, isProfessionalView]);
+  }, [weeklyPlan, currentDate, effectiveUserId, selectedDateKey]);
 
 
   // Effect to update current day's goals if they don't exist yet

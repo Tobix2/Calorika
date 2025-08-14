@@ -79,16 +79,8 @@ export default function DailySummary({
         <div className="flex justify-between items-start">
             <div>
                 <CardTitle className="font-headline text-2xl">Resumen Diario</CardTitle>
-                <CardDescription>Tu ingesta y objetivos nutricionales para hoy. Haz clic en Guardar para persistir los cambios.</CardDescription>
+                <CardDescription>Tu ingesta y objetivos nutricionales. Los cambios se guardan automáticamente.</CardDescription>
             </div>
-             <Button onClick={onSaveGoals} disabled={isSaving}>
-                {isSaving ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                    <Save className="mr-2 h-4 w-4" />
-                )}
-                Guardar Día
-             </Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
