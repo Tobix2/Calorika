@@ -163,10 +163,16 @@ export default function LandingPage() {
                             </TabsList>
                             <TabsContent value="monthly">
                                 <p className="mt-4 text-4xl font-bold">$10.000<span className="text-lg font-medium text-muted-foreground">/mes</span></p>
+                                <Button asChild className="mt-8 w-full">
+                                    <Link href="/login?plan=premium_monthly">Elegir Plan Mensual</Link>
+                                </Button>
                             </TabsContent>
                             <TabsContent value="annual">
                                <p className="mt-4 text-4xl font-bold">$100.000<span className="text-lg font-medium text-muted-foreground">/año</span></p>
                                <p className="text-sm font-bold text-primary">¡Ahorra 2 meses!</p>
+                               <Button asChild className="mt-2 w-full">
+                                   <Link href="/login?plan=premium_annual">Elegir Plan Anual</Link>
+                               </Button>
                             </TabsContent>
                         </Tabs>
                         <ul className="mt-6 space-y-4 text-left flex-grow">
@@ -175,9 +181,6 @@ export default function LandingPage() {
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Base de datos de recetas</li>
                             <li className="flex items-center"><CheckCircle className="h-5 w-5 text-green-500 mr-2"/>Soporte prioritario</li>
                         </ul>
-                         <Button asChild className="mt-8 w-full">
-                           <Link href="/login?plan=pro">Elegir Plan Premium</Link>
-                         </Button>
                     </div>
 
                     {/* Plan Profesional */}

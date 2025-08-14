@@ -19,7 +19,7 @@ import { revalidatePath } from 'next/cache';
 
 // --- Mercado Pago Action ---
 
-export async function createSubscriptionAction(userId: string, payerEmail: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
+export async function createSubscriptionAction(userId: string, payerEmail: string, plan: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
     if (!accessToken) {
         console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
@@ -30,23 +30,23 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
         return { checkoutUrl: null, error: "Usuario o email no válido." };
     }
     
-    console.log(`[LOG]: Creando suscripción para el usuario: ${userId} con email: ${payerEmail}`);
+    console.log(`[LOG]: Creando suscripción para el usuario: ${userId} con email: ${payerEmail} y plan: ${plan}`);
     
     const client = new MercadoPagoConfig({ accessToken });
     const preapproval = new PreApproval(client);
 
+    const isAnnual = plan === 'premium_annual';
+
     const preapprovalData = {
-        reason: 'Suscripción Pro a Calorika',
+        reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
         auto_recurring: {
             frequency: 1,
-            frequency_type: 'months',
-            transaction_amount: 10000,
+            frequency_type: isAnnual ? 'years' : 'months',
+            transaction_amount: isAnnual ? 100000 : 10000,
             currency_id: 'ARS',
         },
         back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-        payer: {
-            email: payerEmail,
-        },
+        payer_email: payerEmail,
         external_reference: userId,
     };
         
@@ -129,7 +129,6 @@ export async function getUserProfileAction(userId: string): Promise<UserProfile 
 
         if (userDocSnap.exists) {
             const data = userDocSnap.data();
-            // Aseguramos que el rol siempre esté presente, por defecto 'cliente'
             const profile: UserProfile = {
                 displayName: data?.profile?.displayName || '',
                 age: data?.profile?.age,
@@ -159,7 +158,6 @@ export async function saveUserRoleAction(userId: string, role: UserRole): Promis
     try {
         const db = getDb();
         const userDocRef = db.collection('users').doc(userId);
-        // Using set with merge:true is safer and will create the doc if it doesn't exist
         await userDocRef.set({ profile: { role } }, { merge: true });
     } catch (error) {
         console.error("🔥 Error al guardar rol en Firestore:", error);
@@ -368,7 +366,6 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[], pro
             const docSnap = await docRef.get();
             if (docSnap.exists) {
                 const data = docSnap.data();
-                // Prioritize goals from the daily plan document if they exist and are valid. Fallback to profile goals.
                 const goals = data?.goals && data.goals.calorieGoal > 0 ? data.goals : profileGoals || emptyGoals;
                 return { 
                     date: dateString, 
@@ -376,7 +373,6 @@ export async function getWeeklyPlanAction(userId: string, weekDates: Date[], pro
                     goals: goals as UserGoals,
                 };
             }
-            // For days without a record, use the profile goals passed into the function
             return { 
                 date: dateString, 
                 plan: initialDailyPlan, 
@@ -406,7 +402,6 @@ export async function saveDailyPlanAction(userId: string, date: Date, plan: Dail
         const dateString = format(date, 'yyyy-MM-dd');
         const docRef = db.collection('users').doc(userId).collection('dailyPlans').doc(dateString);
         
-        // Ensure plan and goals are plain objects before saving to avoid any serialization issues.
         const plainPlanObject = JSON.parse(JSON.stringify(plan));
         const plainGoalsObject = JSON.parse(JSON.stringify(goals));
         
@@ -430,11 +425,9 @@ export async function addWeightEntryAction(userId: string, weightEntry: Omit<Wee
         const weightCollection = db.collection('users').doc(userId).collection('weightHistory');
         const entryDate = new Date(weightEntry.date);
         
-        // Find the start of the week (assuming week starts on Monday)
         const weekStart = startOfWeek(entryDate, { weekStartsOn: 1 });
         const weekEnd = endOfWeek(entryDate, { weekStartsOn: 1 });
 
-        // Query for an existing entry in the same week
         const query = weightCollection
             .where('date', '>=', admin.firestore.Timestamp.fromDate(weekStart))
             .where('date', '<=', admin.firestore.Timestamp.fromDate(weekEnd));
@@ -442,10 +435,9 @@ export async function addWeightEntryAction(userId: string, weightEntry: Omit<Wee
         const snapshot = await query.get();
 
         if (snapshot.empty) {
-            // No entry for this week, create a new one
             const dataToSave = {
                 weight: weightEntry.weight,
-                date: admin.firestore.Timestamp.fromDate(weekStart), // Store the start of the week
+                date: admin.firestore.Timestamp.fromDate(weekStart), 
             };
             const docRef = await weightCollection.add(dataToSave);
             return {
@@ -457,7 +449,6 @@ export async function addWeightEntryAction(userId: string, weightEntry: Omit<Wee
                 updated: false
             };
         } else {
-            // Entry exists, update it
             const doc = snapshot.docs[0];
             await doc.ref.update({ weight: weightEntry.weight });
             return {
@@ -512,7 +503,7 @@ export async function getClientsAction(professionalId: string): Promise<{ data: 
     const clients: Client[] = clientsSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
-            id: data.id, // This should now hold the client's UID after registration
+            id: data.id, 
             email: data.email,
             displayName: data.displayName || null,
             photoURL: data.photoURL || null,
@@ -540,23 +531,20 @@ export async function acceptInvitationAction(
 
         const db = getDb();
         
-        // Use the client's email as the document ID for consistency when creating
         const clientRef = db.collection('clients').doc(clientUser.email);
         
         const newClientData: Client = {
-            id: clientUser.uid, // The client's Firebase Auth UID
+            id: clientUser.uid,
             email: clientUser.email,
             displayName: clientUser.displayName,
             photoURL: clientUser.photoURL,
             status: 'active',
-            invitationDate: new Date().toISOString(), // The date they signed up
+            invitationDate: new Date().toISOString(),
             professionalId,
         };
 
-        // Create or overwrite the client document
         await clientRef.set(newClientData);
         
-        // Revalidate the professional's dashboard path to show the updated status
         revalidatePath('/pro-dashboard');
 
         return { success: true };
@@ -566,5 +554,3 @@ export async function acceptInvitationAction(
         return { success: false, error: "No se pudo procesar la invitación en el servidor." };
     }
 }
-
-    

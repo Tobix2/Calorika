@@ -63,7 +63,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   const handleSuccessfulAuth = async (user: User, role: UserRole, paymentIntent: string | null, proId: string | null) => {
-        // Save user profile to Firestore for new sign-ups
         try {
             const profileData: Partial<UserProfile> = {
                 displayName: user.displayName || '',
@@ -97,9 +96,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         const destination = role === 'profesional' ? '/pro-dashboard' : '/dashboard';
 
-        if ((paymentIntent === 'pro' || paymentIntent === 'professional') && user.email) {
+        if ((paymentIntent?.startsWith('premium') || paymentIntent === 'professional') && user.email) {
             startSubscribingTransition(async () => {
-                const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email!);
+                const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email!, paymentIntent!);
                 if (error || !checkoutUrl) {
                     toast({ variant: 'destructive', title: 'Error de Suscripción', description: error || 'No se pudo crear el enlace de pago.' });
                     router.push(destination);

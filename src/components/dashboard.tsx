@@ -128,7 +128,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                 setFoodDatabase(foods);
                 setCustomMeals(mealsData);
                 setProfileGoals(goals);
-                // Load the first week's plan with the fetched goals
                 await loadWeeklyPlan(effectiveUserId, weekDates, goals);
             } catch (error) {
                 console.error("No se pudieron cargar los datos iniciales", error);
@@ -144,8 +143,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         }
     }
     loadInitialData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [effectiveUserId]);
+  }, [effectiveUserId, loadWeeklyPlan, toast, weekDates]);
   
 
   // This effect reloads the weekly plan ONLY when the week itself changes (via weekDates).
@@ -153,8 +151,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     if(effectiveUserId && !isInitialLoadRef.current) {
         loadWeeklyPlan(effectiveUserId, weekDates, profileGoals);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekDates]);
+  }, [weekDates, effectiveUserId, loadWeeklyPlan, profileGoals]);
 
   // Instant save effect
   useEffect(() => {
@@ -179,19 +176,15 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
              updateDayData({ goals: profileGoals });
         }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileGoals, currentDate, isProfessionalView]);
+  }, [profileGoals, currentDate, isProfessionalView, weeklyPlan, updateDayData]);
 
 
   const updateDayData = useCallback((newDayData: Partial<DayData>) => {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
     setWeeklyPlan(prev => {
-        // Create a new object for the weekly plan to ensure React detects the change.
         const newWeeklyPlan = { ...prev };
-        // Get the current day's data, or create a fresh initial copy if it doesn't exist.
         const currentDay = prev[dateKey] ? { ...prev[dateKey] } : JSON.parse(JSON.stringify(initialDayData));
         
-        // Merge the new data immutably.
         const updatedDayData: DayData = {
             ...currentDay,
             plan: newDayData.plan ? JSON.parse(JSON.stringify(newDayData.plan)) : currentDay.plan,
@@ -372,13 +365,13 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     }
   };
   
-  const handleSubscribe = () => {
+  const handleSubscribe = (plan: 'premium_monthly' | 'premium_annual') => {
         if (!user || !user.email) {
             toast({ variant: 'destructive', title: 'Error', description: 'No se pudo obtener la información del usuario.'});
             return;
         };
         startSubscribingTransition(async () => {
-            const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email!);
+            const { checkoutUrl, error } = await createSubscriptionAction(user.uid, user.email!, plan);
             if (error || !checkoutUrl) {
                 toast({
                     variant: 'destructive',
@@ -505,9 +498,13 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
-                                <DropdownMenuItem onClick={handleSubscribe} disabled={isSubscribing}>
+                                <DropdownMenuItem onClick={() => handleSubscribe('premium_monthly')} disabled={isSubscribing}>
                                     {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
-                                    <span>Suscribirse al Plan Premium</span>
+                                    <span>Suscripción Mensual</span>
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleSubscribe('premium_annual')} disabled={isSubscribing}>
+                                    {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
+                                    <span>Suscripción Anual</span>
                                 </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={auth.logout}>
@@ -588,5 +585,3 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     </AuthGuard>
   );
 }
-
-    
