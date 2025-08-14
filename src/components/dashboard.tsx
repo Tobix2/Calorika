@@ -139,7 +139,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                 });
             } finally {
                 setIsLoading(false);
-                setTimeout(() => { isInitialLoadRef.current = false; }, 200);
+                setTimeout(() => { isInitialLoadRef.current = false; }, 50); 
             }
         }
     }
@@ -156,23 +156,16 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [weekDates]);
 
-  // Debounced save effect
+  // Instant save effect
   useEffect(() => {
     if (isInitialLoadRef.current || !effectiveUserId) {
       return;
     }
     
-    const handler = setTimeout(() => {
-      const dayToSave = weeklyPlan[selectedDateKey];
-      if (dayToSave) {
+    const dayToSave = weeklyPlan[selectedDateKey];
+    if (dayToSave) {
         saveDailyPlanAction(effectiveUserId, currentDate, dayToSave.plan, dayToSave.goals);
-      }
-    }, 1500);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  // The dependency array is crucial. We watch the entire weeklyPlan object.
+    }
   }, [weeklyPlan, currentDate, effectiveUserId, selectedDateKey]);
 
 
@@ -187,20 +180,21 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [profileGoals, weeklyPlan, currentDate, isProfessionalView]);
+  }, [profileGoals, currentDate, isProfessionalView]);
 
 
   const updateDayData = useCallback((newDayData: Partial<DayData>) => {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
     setWeeklyPlan(prev => {
-        // Create deep copies to ensure immutability and trigger re-renders/effects
-        const newWeeklyPlan = JSON.parse(JSON.stringify(prev)); 
-        const currentDay = newWeeklyPlan[dateKey] || JSON.parse(JSON.stringify(initialDayData));
+        // Create a new object for the weekly plan to ensure React detects the change.
+        const newWeeklyPlan = { ...prev };
+        // Get the current day's data, or create a fresh initial copy if it doesn't exist.
+        const currentDay = prev[dateKey] ? { ...prev[dateKey] } : JSON.parse(JSON.stringify(initialDayData));
         
-        // Merge the new data into the current day's data
-        const updatedDayData = {
+        // Merge the new data immutably.
+        const updatedDayData: DayData = {
             ...currentDay,
-            plan: newDayData.plan || currentDay.plan,
+            plan: newDayData.plan ? JSON.parse(JSON.stringify(newDayData.plan)) : currentDay.plan,
             goals: newDayData.goals ? { ...currentDay.goals, ...newDayData.goals } : currentDay.goals,
         };
         
