@@ -7,7 +7,7 @@ import DailySummary from './daily-summary';
 import MealList from './meal-list';
 import CalorieRecommendationForm from './calorie-recommendation-form';
 import CreateMealDialog from './create-meal-dialog';
-import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star, BrainCircuit, BarChart2, LayoutDashboard } from 'lucide-react';
+import { Leaf, Bot, Loader2, LogOut, WeightIcon, User, Star, BrainCircuit, BarChart2, LayoutDashboard, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Bar, BarChart as RechartsBarChart, ResponsiveContainer, XAxis, YAxis, Tooltip } from 'recharts';
@@ -491,6 +491,12 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                                 <Link href="/profile">
                                 <User className="mr-2 h-4 w-4" />
                                 <span>Perfil</span>
+                                </Link>
+                            </DropdownMenuItem>
+                             <DropdownMenuItem asChild>
+                                <Link href="/chat">
+                                <MessageSquare className="mr-2 h-4 w-4" />
+                                <span>Chatear con mi Profesional</span>
                                 </Link>
                             </DropdownMenuItem>
                             <DropdownMenuItem asChild>

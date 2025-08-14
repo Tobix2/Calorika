@@ -76,9 +76,11 @@ export default function ClientList({ clients }: ClientListProps) {
                                <span className="sr-only">Ver Peso</span>
                              </Link>
                            </Button>
-                           <Button variant="outline" size="icon" disabled>
-                             <MessageSquare className="h-4 w-4" />
-                             <span className="sr-only">Chatear</span>
+                           <Button variant="outline" size="icon" asChild>
+                             <Link href={`/pro-dashboard/chat/${client.id}`}>
+                               <MessageSquare className="h-4 w-4" />
+                               <span className="sr-only">Chatear</span>
+                             </Link>
                            </Button>
                          </div>
                        ) : (

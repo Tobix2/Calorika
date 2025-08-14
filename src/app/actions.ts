@@ -48,8 +48,8 @@ export async function createSubscriptionAction(
       preapprovalData = {
         reason: isAnnual ? 'Suscripción Anual Premium a Calorika' : 'Suscripción Mensual Premium a Calorika',
         auto_recurring: {
-          frequency: isAnnual ? 12 : 1,   // 12 meses para anual, 1 para mensual
-          frequency_type: 'months',       // siempre 'months'
+          frequency: isAnnual ? 12 : 1,
+          frequency_type: 'months',
           transaction_amount: isAnnual ? 100000 : 10000,
           currency_id: 'ARS',
         },
@@ -59,11 +59,11 @@ export async function createSubscriptionAction(
       };
     } else if (plan === 'professional_client') {
       preapprovalData = {
-        reason: `Suscripción para cliente adicional${metadata?.client_email ? ' - ' + metadata.client_email : ''}`,
+        reason: `Suscripción para cliente adicional`,
         auto_recurring: {
           frequency: 1,
           frequency_type: 'months',
-          transaction_amount: 500,
+          transaction_amount: 5000,
           currency_id: 'ARS',
         },
         back_url: `${process.env.NEXT_PUBLIC_APP_URL}/pro-dashboard?payment=success`,
@@ -581,7 +581,6 @@ export async function acceptInvitationAction(
         const clientRef = db.collection('clients').doc(clientUser.email);
         const clientDoc = await clientRef.get();
 
-        // Check if the client already exists and is active with another professional
         if (clientDoc.exists && clientDoc.data()?.professionalId !== professionalId) {
              return { success: false, error: 'Este cliente ya está asociado con otro profesional.' };
         }
@@ -629,4 +628,50 @@ export async function activateClientSlotAction(professionalId: string): Promise<
         console.error(`🔥 Error al activar el cupo de cliente para ${professionalId}:`, error);
         return { success: false, error: 'Error del servidor al activar el cupo.' };
     }
+}
+
+
+// --- Chat Actions ---
+
+export async function sendMessageAction(
+  chatRoomId: string,
+  message: { text: string; senderId: string }
+): Promise<{ success: boolean; error?: string }> {
+  if (!chatRoomId || !message.text || !message.senderId) {
+    return { success: false, error: 'Faltan datos para enviar el mensaje.' };
+  }
+
+  try {
+    const db = getDb();
+    const chatRoomRef = db.collection('chats').doc(chatRoomId);
+    const messagesCollection = chatRoomRef.collection('messages');
+    
+    await messagesCollection.add({
+      ...message,
+      timestamp: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('🔥 Error al enviar mensaje:', error);
+    return { success: false, error: 'No se pudo enviar el mensaje.' };
+  }
+}
+
+export async function getProfessionalForClientAction(clientId: string): Promise<{ professionalId: string | null; error?: string }> {
+  try {
+    const db = getDb();
+    const clientsSnapshot = await db.collection('clients').where('id', '==', clientId).limit(1).get();
+
+    if (clientsSnapshot.empty) {
+      return { professionalId: null, error: 'No estás asociado a ningún profesional.' };
+    }
+
+    const clientData = clientsSnapshot.docs[0].data();
+    return { professionalId: clientData.professionalId };
+
+  } catch (error) {
+    console.error('🔥 Error al buscar profesional:', error);
+    return { professionalId: null, error: 'No se pudo encontrar a tu profesional.' };
+  }
 }

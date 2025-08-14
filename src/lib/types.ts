@@ -92,3 +92,11 @@ export type Client = {
   invitationDate: string; // ISO 8601 format
   professionalId: string; // UID of the professional who invited them
 };
+
+// Types for Chat
+export type ChatMessage = {
+  id: string;
+  text: string;
+  senderId: string;
+  timestamp: Date;
+};
