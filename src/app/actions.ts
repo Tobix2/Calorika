@@ -568,14 +568,19 @@ export async function addClientAction(professionalId: string, clientEmail: strin
 
 export async function acceptInvitationAction(
     professionalId: string,
-    clientUser: { uid: string; email: string; displayName: string | null; photoURL: string | null }
+    clientUser: { uid: string; email: string | null; displayName: string | null; photoURL: string | null }
 ): Promise<{ success: boolean; error?: string }> {
     console.log('[DEBUG] acceptInvitationAction: Iniciando...', { professionalId, clientUser });
     try {
+        if (!clientUser.email) {
+            console.warn('[DEBUG] El usuario cliente no tiene email. No se puede aceptar la invitación.');
+            return { success: false, error: 'La cuenta de usuario no tiene un email asociado.' };
+        }
+
         const db = getDb();
         
         // Find the invitation document by its ID, which is the client's email.
-        const invitationDocRef = db.collection('clients').doc(clientUser.email!);
+        const invitationDocRef = db.collection('clients').doc(clientUser.email);
         const invitationDocSnap = await invitationDocRef.get();
 
         if (!invitationDocSnap.exists) {
