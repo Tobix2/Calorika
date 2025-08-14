@@ -161,7 +161,8 @@ export async function getUserProfileAction(userId: string): Promise<UserProfile 
             const profile: UserProfile = {
                 displayName: data?.profile?.displayName || '',
                 age: data?.profile?.age,
-                role: data?.profile?.role || 'cliente'
+                role: data?.profile?.role || 'cliente',
+                paidClientSlots: data?.paidClientSlots || 0,
             };
             return profile;
         }
@@ -545,7 +546,13 @@ export async function acceptInvitationAction(
 
         const db = getDb();
         
-        // Check current client count for the professional
+        const professionalDoc = await db.collection('users').doc(professionalId).get();
+        if (!professionalDoc.exists) {
+            return { success: false, error: 'El profesional especificado no existe.' };
+        }
+        const professionalData = professionalDoc.data();
+        const paidSlots = professionalData?.paidClientSlots || 0;
+        
         const clientsSnapshot = await db.collection('clients')
             .where('professionalId', '==', professionalId)
             .where('status', '==', 'active')
@@ -553,18 +560,20 @@ export async function acceptInvitationAction(
 
         const activeClientsCount = clientsSnapshot.size;
         
-        const professionalDoc = await db.collection('users').doc(professionalId).get();
-        const professionalData = professionalDoc.data();
-        const paidSlots = professionalData?.paidClientSlots || 0;
         const FREE_SLOTS = 2;
         const totalSlots = FREE_SLOTS + paidSlots;
-
 
         if (activeClientsCount >= totalSlots) {
              return { success: false, error: `El profesional ha alcanzado su límite de clientes. Por favor, pídale que compre un nuevo cupo.` };
         }
 
         const clientRef = db.collection('clients').doc(clientUser.email);
+        const clientDoc = await clientRef.get();
+
+        // Check if the client already exists and is active with another professional
+        if (clientDoc.exists && clientDoc.data()?.professionalId !== professionalId) {
+             return { success: false, error: 'Este cliente ya está asociado con otro profesional.' };
+        }
         
         const newClientData: Client = {
             id: clientUser.uid,
@@ -576,7 +585,7 @@ export async function acceptInvitationAction(
             professionalId,
         };
 
-        await clientRef.set(newClientData);
+        await clientRef.set(newClientData, { merge: true });
         
         revalidatePath('/pro-dashboard');
 
@@ -597,10 +606,9 @@ export async function activateClientSlotAction(professionalId: string): Promise<
         const db = getDb();
         const professionalRef = db.collection('users').doc(professionalId);
         
-        // Atomically increment the number of paid client slots
-        await professionalRef.update({
+        await professionalRef.set({
             paidClientSlots: admin.firestore.FieldValue.increment(1)
-        });
+        }, { merge: true });
         
         console.log(`✅ Cupo de cliente pagado activado para el profesional ${professionalId}.`);
         revalidatePath('/pro-dashboard');

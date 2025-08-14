@@ -4,8 +4,8 @@
 import { useEffect, useState, useTransition } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { getClientsAction, createSubscriptionAction } from '@/app/actions';
-import type { Client } from '@/lib/types';
+import { getClientsAction, createSubscriptionAction, getUserProfileAction } from '@/app/actions';
+import type { Client, UserProfile } from '@/lib/types';
 import { Loader2, Users, List, LayoutGrid, PlusCircle } from 'lucide-react';
 import Header from '@/components/pro-dashboard/header';
 import ClientList from '@/components/pro-dashboard/client-list';
@@ -23,6 +23,7 @@ import {
   DialogDescription,
 } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 type ViewMode = 'list' | 'grid';
 
@@ -30,31 +31,41 @@ export default function ProDashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubscribing, startSubscribingTransition] = useTransition();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-
-  // State for the "Add Client" dialog
   const [isAddClientDialogOpen, setIsAddClientDialogOpen] = useState(false);
 
-  const activeClients = clients.filter(c => c.status === 'active').length;
+  const activeClientsCount = clients.filter(c => c.status === 'active').length;
   const FREE_SLOTS = 2;
-
+  const paidSlots = profile?.paidClientSlots || 0;
+  const totalSlots = FREE_SLOTS + paidSlots;
 
   useEffect(() => {
     if (user?.uid) {
       setIsLoading(true);
-      getClientsAction(user.uid)
-        .then((result) => {
-          if (result.error) {
+      Promise.all([
+        getClientsAction(user.uid),
+        getUserProfileAction(user.uid)
+      ]).then(([clientsResult, profileResult]) => {
+          if (clientsResult.error) {
             toast({
               variant: 'destructive',
               title: 'Error al cargar clientes',
-              description: result.error,
+              description: clientsResult.error,
             });
           } else {
-            setClients(result.data || []);
+            setClients(clientsResult.data || []);
           }
+          setProfile(profileResult);
+        })
+        .catch(err => {
+            toast({
+              variant: 'destructive',
+              title: 'Error Inesperado',
+              description: 'No se pudieron cargar los datos del panel.',
+            });
         })
         .finally(() => setIsLoading(false));
     }
@@ -67,7 +78,6 @@ export default function ProDashboardPage() {
     }
     
     startSubscribingTransition(async () => {
-        // No client email is needed here anymore, we are just buying a "slot"
         const { checkoutUrl, error } = await createSubscriptionAction(
             user.uid,
             user.email!,
@@ -105,48 +115,64 @@ export default function ProDashboardPage() {
                     <div className="flex items-center gap-3">
                         <Users className="h-8 w-8 text-primary" />
                         <h1 className="text-2xl sm:text-3xl font-bold font-headline text-foreground">
-                            Panel de Clientes ({activeClients})
+                            Panel de Clientes
                         </h1>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
-                        <div className='flex flex-col text-sm text-muted-foreground'>
-                            <InviteLink professionalId={user?.uid || ''} />
-                            <span>(Para tus primeros {FREE_SLOTS} clientes gratis)</span>
-                        </div>
-
-                         <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>
-                            <DialogTrigger asChild>
-                                <Button>
-                                    <PlusCircle className="mr-2 h-4 w-4"/>
-                                    Comprar Cupo de Cliente
-                                </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                                <DialogHeader>
-                                    <DialogTitle>Comprar Nuevo Cupo de Cliente</DialogTitle>
-                                    <DialogDescription>
-                                        Esto iniciará una suscripción de $5.000/mes para un nuevo cupo de cliente. Una vez completado el pago, podrás invitar a un cliente más.
-                                    </DialogDescription>
-                                </DialogHeader>
-                                <DialogFooter>
-                                    <Button variant="outline" onClick={() => setIsAddClientDialogOpen(false)}>Cancelar</Button>
-                                    <Button onClick={handleAddClientSlot} disabled={isSubscribing}>
-                                        {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                        Pagar y Activar Cupo
-                                    </Button>
-                                </DialogFooter>
-                            </DialogContent>
-                        </Dialog>
-
-                         <div className="flex items-center gap-1 rounded-md bg-background p-1 border">
-                           <Button variant="ghost" size="icon" className={cn("h-8 w-8", viewMode === 'grid' && 'bg-muted')} onClick={() => setViewMode('grid')}>
-                                <LayoutGrid className="h-4 w-4"/>
-                           </Button>
-                           <Button variant="ghost" size="icon" className={cn("h-8 w-8", viewMode === 'list' && 'bg-muted')} onClick={() => setViewMode('list')}>
-                                <List className="h-4 w-4"/>
-                           </Button>
-                        </div>
+                     <div className="flex items-center gap-1 rounded-md bg-background p-1 border self-end">
+                       <Button variant="ghost" size="icon" className={cn("h-8 w-8", viewMode === 'grid' && 'bg-muted')} onClick={() => setViewMode('grid')}>
+                            <LayoutGrid className="h-4 w-4"/>
+                       </Button>
+                       <Button variant="ghost" size="icon" className={cn("h-8 w-8", viewMode === 'list' && 'bg-muted')} onClick={() => setViewMode('list')}>
+                            <List className="h-4 w-4"/>
+                       </Button>
                     </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                    <Card className="lg:col-span-2">
+                         <CardHeader>
+                            <CardTitle>Enlace de Invitación</CardTitle>
+                            <CardDescription>Comparte este enlace único con tus clientes para que se unan a tu panel.</CardDescription>
+                         </CardHeader>
+                         <CardContent>
+                             <InviteLink professionalId={user?.uid || ''} />
+                         </CardContent>
+                    </Card>
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Cupos de Clientes</CardTitle>
+                            <CardDescription>Gestiona tus cupos de clientes disponibles.</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                           <div className="text-center">
+                             <p className="text-4xl font-bold">{activeClientsCount}/{totalSlots}</p>
+                             <p className="text-sm text-muted-foreground">Cupos Utilizados</p>
+                           </div>
+                           <Dialog open={isAddClientDialogOpen} onOpenChange={setIsAddClientDialogOpen}>
+                                <DialogTrigger asChild>
+                                    <Button className="w-full">
+                                        <PlusCircle className="mr-2 h-4 w-4"/>
+                                        Comprar Cupo Adicional
+                                    </Button>
+                                </DialogTrigger>
+                                <DialogContent>
+                                    <DialogHeader>
+                                        <DialogTitle>Comprar Nuevo Cupo de Cliente</DialogTitle>
+                                        <DialogDescription>
+                                           Esto iniciará una suscripción de $5.000/mes para un nuevo cupo de cliente. Una vez que el pago se complete con éxito, tu límite de clientes aumentará en uno y podrás invitar a un cliente más a través de tu enlace.
+                                        </DialogDescription>
+                                    </DialogHeader>
+                                    <DialogFooter>
+                                        <Button variant="outline" onClick={() => setIsAddClientDialogOpen(false)}>Cancelar</Button>
+                                        <Button onClick={handleAddClientSlot} disabled={isSubscribing}>
+                                            {isSubscribing && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                            Pagar y Activar Cupo
+                                        </Button>
+                                    </DialogFooter>
+                                </DialogContent>
+                            </Dialog>
+                        </CardContent>
+                    </Card>
                 </div>
 
                 {viewMode === 'list' ? <ClientList clients={clients} /> : <ClientGrid clients={clients} />}

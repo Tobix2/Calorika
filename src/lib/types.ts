@@ -79,6 +79,7 @@ export type UserProfile = {
   displayName: string;
   age?: number;
   role?: UserRole;
+  paidClientSlots?: number;
 };
 
 // Types for Professional Dashboard
