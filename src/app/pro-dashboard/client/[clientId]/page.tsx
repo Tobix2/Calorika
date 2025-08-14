@@ -2,20 +2,17 @@
 "use client";
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Dashboard from '@/components/dashboard';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import { getUserProfileAction } from '@/app/actions';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 
-interface ClientDashboardPageProps {
-  params: {
-    clientId: string;
-  };
-}
-
-export default function ClientDashboardPage({ params }: ClientDashboardPageProps) {
-  const { clientId } = params;
+export default function ClientDashboardPage() {
+  const params = useParams();
+  const clientId = Array.isArray(params.clientId) ? params.clientId[0] : params.clientId;
+  
   const [clientName, setClientName] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -28,6 +25,8 @@ export default function ClientDashboardPage({ params }: ClientDashboardPageProps
           }
         })
         .finally(() => setIsLoading(false));
+    } else {
+        setIsLoading(false);
     }
   }, [clientId]);
 
