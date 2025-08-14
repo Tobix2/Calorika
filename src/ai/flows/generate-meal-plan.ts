@@ -74,10 +74,10 @@ export async function generateMealPlan(input: GenerateMealPlanInput): Promise<Ge
         availableMeals: input.availableMeals?.map(m => ({
             id: m.id,
             name: m.name,
-            calories: m.totalCalories,
-            protein: m.totalProtein,
-            carbs: m.totalCarbs,
-            fats: m.totalFats,
+            calories: m.calories,
+            protein: m.protein,
+            carbs: m.carbs,
+            fats: m.fats,
             servingSize: m.servingSize,
             servingUnit: m.servingUnit,
         })) || []
