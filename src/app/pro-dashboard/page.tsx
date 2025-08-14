@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useEffect, useState, useTransition } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
-import { getClientsAction, addClientAction } from '@/app/actions';
+import { getClientsAction } from '@/app/actions';
 import type { Client } from '@/lib/types';
 import { Loader2, Users } from 'lucide-react';
 import Header from '@/components/pro-dashboard/header';
-import AddClientDialog from '@/components/pro-dashboard/add-client-dialog';
 import ClientList from '@/components/pro-dashboard/client-list';
 import InviteLink from '@/components/pro-dashboard/invite-link';
 import AuthGuard from '@/components/auth-guard';
@@ -18,7 +17,6 @@ export default function ProDashboardPage() {
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAddingClient, startAddingClientTransition] = useTransition();
 
   useEffect(() => {
     if (user?.uid) {
@@ -38,31 +36,6 @@ export default function ProDashboardPage() {
         .finally(() => setIsLoading(false));
     }
   }, [user, toast]);
-
-  const handleAddClient = async (clientEmail: string) => {
-    if (!user?.uid) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión.' });
-        return;
-    }
-
-    startAddingClientTransition(async () => {
-        const result = await addClientAction(user.uid, clientEmail);
-        if (result.error || !result.data) {
-            toast({
-                variant: 'destructive',
-                title: 'Error al añadir cliente',
-                description: result.error || 'No se pudo añadir al cliente.',
-            });
-        } else {
-            // The result.data contains the client object with the email as the ID
-            setClients((prev) => [...prev, result.data!]);
-            toast({
-                title: '¡Cliente invitado!',
-                description: `${clientEmail} ha sido invitado y añadido a tu lista.`,
-            });
-        }
-    });
-  };
 
   if (isLoading) {
     return (
@@ -86,7 +59,6 @@ export default function ProDashboardPage() {
                     </div>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
                         <InviteLink professionalId={user?.uid || ''} />
-                         <AddClientDialog onAddClient={handleAddClient} isAdding={isAddingClient} />
                     </div>
                 </div>
 

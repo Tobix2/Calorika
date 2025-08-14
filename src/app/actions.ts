@@ -530,42 +530,6 @@ export async function getClientsAction(professionalId: string): Promise<{ data: 
   }
 }
 
-export async function addClientAction(professionalId: string, clientEmail: string): Promise<{ data: Client | null; error: string | null }> {
-  try {
-    const db = getDb();
-    
-    const existingClientQuery = await db.collection('clients')
-        .where('professionalId', '==', professionalId)
-        .where('email', '==', clientEmail)
-        .limit(1)
-        .get();
-
-    if (!existingClientQuery.empty) {
-        return { data: null, error: 'Este cliente ya ha sido invitado.' };
-    }
-    
-    // Use the client's email as the document ID for consistency.
-    const clientRef = db.collection('clients').doc(clientEmail); 
-
-    const newClientData: Client = {
-      id: clientEmail, // Use email as temporary ID
-      email: clientEmail,
-      displayName: null,
-      photoURL: null,
-      status: 'invited',
-      invitationDate: new Date().toISOString(),
-      professionalId,
-    };
-
-    await clientRef.set(newClientData);
-
-    return { data: newClientData, error: null };
-  } catch (error) {
-    console.error("🔥 Error al añadir cliente:", error);
-    return { data: null, error: "No se pudo invitar al cliente." };
-  }
-}
-
 export async function acceptInvitationAction(
     professionalId: string,
     clientUser: { uid: string; email: string | null; displayName: string | null; photoURL: string | null }
@@ -579,34 +543,30 @@ export async function acceptInvitationAction(
 
         const db = getDb();
         
-        // Find the invitation document by its ID, which is the client's email.
-        const invitationDocRef = db.collection('clients').doc(clientUser.email);
-        const invitationDocSnap = await invitationDocRef.get();
+        // Use the client's email as the document ID for consistency when creating
+        const clientRef = db.collection('clients').doc(clientUser.email);
+        
+        const clientDoc = await clientRef.get();
 
-        if (!invitationDocSnap.exists) {
-            console.warn(`[DEBUG] No se encontró una invitación pendiente para el email ${clientUser.email}.`);
-            // This isn't necessarily an error, could be a direct signup.
-            // Silently succeed. If it was a real invite, the professional will see it as "invited".
-            return { success: true }; 
+        if (clientDoc.exists && clientDoc.data()?.professionalId !== professionalId) {
+             console.warn(`[DEBUG] Client ${clientUser.email} is already associated with another professional.`);
+             return { success: false, error: 'Este cliente ya está asociado con otro profesional.' };
         }
 
-        console.log('[DEBUG] Se encontró un documento de invitación.');
-        const invitationData = invitationDocSnap.data();
-
-        if (invitationData?.professionalId !== professionalId) {
-             console.warn(`[DEBUG] La invitación para ${clientUser.email} es para otro profesional.`);
-             return { success: false, error: 'La invitación no es válida para este profesional.' };
-        }
-
-        // Update the existing invitation document
-        await invitationDocRef.update({
-            id: clientUser.uid, // This is the new client's Firebase Auth UID
-            status: 'active',
+        const newClientData: Client = {
+            id: clientUser.uid, // The client's Firebase Auth UID
+            email: clientUser.email,
             displayName: clientUser.displayName,
             photoURL: clientUser.photoURL,
-        });
+            status: 'active',
+            invitationDate: new Date().toISOString(), // The date they signed up
+            professionalId,
+        };
+
+        // Create or overwrite the client document
+        await clientRef.set(newClientData);
         
-        console.log(`[DEBUG] Documento del cliente ${clientUser.email} actualizado a estado 'active'.`);
+        console.log(`[DEBUG] Documento del cliente ${clientUser.email} creado/actualizado a estado 'active'.`);
 
         // Revalidate the professional's dashboard path to show the updated status
         revalidatePath('/pro-dashboard');
