@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '../ui/button';
-import { LayoutDashboard, LineChart, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, LineChart, MessageSquare, UserCircle } from 'lucide-react';
 
 interface ClientListProps {
   clients: Client[];
@@ -84,8 +84,12 @@ export default function ClientList({ clients }: ClientListProps) {
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={4} className="text-center h-24">
-                    Aún no has invitado a ningún cliente.
+                  <TableCell colSpan={4} className="h-48 text-center">
+                     <div className="flex flex-col items-center justify-center gap-2">
+                        <UserCircle className="h-12 w-12 text-muted-foreground"/>
+                        <p className="font-medium text-muted-foreground">Aún no has invitado a ningún cliente.</p>
+                        <p className="text-sm text-muted-foreground">Comparte tu enlace de invitación para empezar.</p>
+                    </div>
                   </TableCell>
                 </TableRow>
               )}

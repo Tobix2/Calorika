@@ -6,17 +6,23 @@ import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { getClientsAction } from '@/app/actions';
 import type { Client } from '@/lib/types';
-import { Loader2, Users } from 'lucide-react';
+import { Loader2, Users, List, LayoutGrid } from 'lucide-react';
 import Header from '@/components/pro-dashboard/header';
 import ClientList from '@/components/pro-dashboard/client-list';
+import ClientGrid from '@/components/pro-dashboard/client-grid';
 import InviteLink from '@/components/pro-dashboard/invite-link';
 import AuthGuard from '@/components/auth-guard';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+
+type ViewMode = 'list' | 'grid';
 
 export default function ProDashboardPage() {
   const { user } = useAuth();
   const { toast } = useToast();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
 
   useEffect(() => {
     if (user?.uid) {
@@ -59,10 +65,18 @@ export default function ProDashboardPage() {
                     </div>
                     <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
                         <InviteLink professionalId={user?.uid || ''} />
+                         <div className="flex items-center gap-1 rounded-md bg-background p-1 border">
+                           <Button variant="ghost" size="icon" className={cn("h-8 w-8", viewMode === 'grid' && 'bg-muted')} onClick={() => setViewMode('grid')}>
+                                <LayoutGrid className="h-4 w-4"/>
+                           </Button>
+                           <Button variant="ghost" size="icon" className={cn("h-8 w-8", viewMode === 'list' && 'bg-muted')} onClick={() => setViewMode('list')}>
+                                <List className="h-4 w-4"/>
+                           </Button>
+                        </div>
                     </div>
                 </div>
 
-                <ClientList clients={clients} />
+                {viewMode === 'list' ? <ClientList clients={clients} /> : <ClientGrid clients={clients} />}
             </main>
         </div>
     </AuthGuard>
