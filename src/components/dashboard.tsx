@@ -112,6 +112,24 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
           });
       }
   }, [toast]);
+  
+  const updateDayData = useCallback((newDayData: Partial<DayData>) => {
+    const dateKey = format(currentDate, 'yyyy-MM-dd');
+    setWeeklyPlan(prev => {
+        const newWeeklyPlan = { ...prev };
+        const currentDay = prev[dateKey] ? { ...prev[dateKey] } : JSON.parse(JSON.stringify(initialDayData));
+        
+        const updatedDayData: DayData = {
+            ...currentDay,
+            plan: newDayData.plan ? JSON.parse(JSON.stringify(newDayData.plan)) : currentDay.plan,
+            goals: newDayData.goals ? { ...currentDay.goals, ...newDayData.goals } : currentDay.goals,
+        };
+        
+        newWeeklyPlan[dateKey] = updatedDayData;
+        return newWeeklyPlan;
+    });
+  }, [currentDate]);
+
 
   // Initial data load for user profile, foods, and custom meals.
   useEffect(() => {
@@ -177,24 +195,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         }
     }
   }, [profileGoals, currentDate, isProfessionalView, weeklyPlan, updateDayData]);
-
-
-  const updateDayData = useCallback((newDayData: Partial<DayData>) => {
-    const dateKey = format(currentDate, 'yyyy-MM-dd');
-    setWeeklyPlan(prev => {
-        const newWeeklyPlan = { ...prev };
-        const currentDay = prev[dateKey] ? { ...prev[dateKey] } : JSON.parse(JSON.stringify(initialDayData));
-        
-        const updatedDayData: DayData = {
-            ...currentDay,
-            plan: newDayData.plan ? JSON.parse(JSON.stringify(newDayData.plan)) : currentDay.plan,
-            goals: newDayData.goals ? { ...currentDay.goals, ...newDayData.goals } : currentDay.goals,
-        };
-        
-        newWeeklyPlan[dateKey] = updatedDayData;
-        return newWeeklyPlan;
-    });
-  }, [currentDate]);
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
     const newMeals = meals.map((meal: Meal) => {
