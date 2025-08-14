@@ -21,6 +21,8 @@ function LoginContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const plan = searchParams.get('plan');
+    const proId = searchParams.get('pro_id');
+
 
     const handleEmailSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -28,9 +30,7 @@ function LoginContent() {
     };
 
     const handleGoogleSignIn = () => {
-        // For simplicity, we can ask for role after Google Sign-in or default it
-        // Here we'll default to 'cliente' for Google Sign-in for now.
-        signInWithGoogle(plan, 'cliente').catch(err => {
+        signInWithGoogle(plan, 'cliente', proId).catch(err => {
             if (err.code !== 'auth/popup-closed-by-user') {
                 console.error("❌ Sign in failed:", err);
             }
@@ -106,10 +106,19 @@ function RegisterForm() {
     const [role, setRole] = useState<UserRole>('cliente');
     const searchParams = useSearchParams();
     const plan = searchParams.get('plan');
+    const proId = searchParams.get('pro_id');
+
+
+    useEffect(() => {
+        if (proId) {
+            setRole('cliente');
+        }
+    }, [proId]);
+
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        signUpWithEmail(email, password, name, role, plan);
+        signUpWithEmail(email, password, name, role, plan, proId);
     };
     
     const isLoading = loading || isSubscribing;
@@ -136,7 +145,7 @@ function RegisterForm() {
                     </div>
                     <div className="space-y-2">
                         <Label htmlFor="role">¿Cómo usarás Calorika?</Label>
-                        <Select name="role" value={role} onValueChange={(value) => setRole(value as UserRole)}>
+                        <Select name="role" value={role} onValueChange={(value) => setRole(value as UserRole)} disabled={!!proId}>
                             <SelectTrigger id="role">
                                 <SelectValue placeholder="Selecciona tu rol" />
                             </SelectTrigger>
@@ -146,6 +155,7 @@ function RegisterForm() {
                                 <SelectItem value="vendedor">Vendedor</SelectItem>
                             </SelectContent>
                         </Select>
+                         {proId && <p className="text-xs text-muted-foreground mt-1">Te estás registrando como cliente de un profesional.</p>}
                     </div>
                 </CardContent>
                 <CardFooter>

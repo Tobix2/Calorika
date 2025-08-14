@@ -17,10 +17,10 @@ import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 
 
 // --- Mercado Pago Action ---
+
 export async function createSubscriptionAction(userId: string, payerEmail: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
-    console.log(`Creando suscripción para el usuario: ${userId} con email: ${payerEmail}`);
-    
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+    
     if (!accessToken) {
         console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
         return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
@@ -29,31 +29,29 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
     if (!userId || !payerEmail) {
         return { checkoutUrl: null, error: "Usuario o email no válido." };
     }
-    
-    const client = new MercadoPagoConfig({ accessToken });
-    const preapproval = new PreApproval(client);
-
-    const preapprovalData = {
-        reason: 'Suscripción Pro a Calorika',
-        auto_recurring: {
-            frequency: 1,
-            frequency_type: 'months',
-            transaction_amount: 10000,
-            currency_id: 'ARS',
-        },
-        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-        payer_email: payerEmail,
-        external_reference: userId,
-        site_id: "MLA",
-    };
-    
-    console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
-
 
     try {
-        const response = await preapproval.create({ body: preapprovalData });
+        const client = new MercadoPagoConfig({ accessToken });
+        const preapproval = new PreApproval(client);
+
+        const preapprovalData = {
+            reason: 'Suscripción Pro a Calorika',
+            auto_recurring: {
+                frequency: 1,
+                frequency_type: 'months',
+                transaction_amount: 10000,
+                currency_id: 'ARS',
+            },
+            back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+            payer_email: payerEmail,
+            external_reference: userId,
+            site_id: 'MLA',
+        };
         
-        console.log("Respuesta de Mercado Pago recibida con éxito.");
+        console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
+
+
+        const response = await preapproval.create({ body: preapprovalData });
         
         const checkoutUrl = response.init_point;
         if (!checkoutUrl) {
@@ -69,11 +67,12 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
         
         let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
         
-        // The error structure for this SDK version might be different
-        if (error.cause && Array.isArray(error.cause) && error.cause.length > 0) {
-             const errorDetail = error.cause[0];
-             console.error("Detalles del error de la API de Mercado Pago:", JSON.stringify(errorDetail, null, 2));
-             errorMessage = `Error de Mercado Pago: ${errorDetail.description || 'Error desconocido.'}`;
+        // The error structure from the SDK might be nested under 'cause' or 'data'
+        const errorDetails = error.cause?.cause?.[0] || error.cause?.[0] || error.data?.cause?.[0];
+
+        if (errorDetails && errorDetails.description) {
+             console.error("Detalles del error de la API de Mercado Pago:", JSON.stringify(errorDetails, null, 2));
+             errorMessage = `Error de Mercado Pago: ${errorDetails.description}`;
         } else if (error.message) {
             errorMessage = `Error de Mercado Pago: ${error.message}`;
         }
@@ -157,6 +156,7 @@ export async function saveUserRoleAction(userId: string, role: UserRole): Promis
     try {
         const db = getDb();
         const userDocRef = db.collection('users').doc(userId);
+        // Using set with merge:true is safer and will create the doc if it doesn't exist
         await userDocRef.set({ profile: { role } }, { merge: true });
     } catch (error) {
         console.error("🔥 Error al guardar rol en Firestore:", error);
@@ -514,7 +514,6 @@ export async function getClientsAction(professionalId: string): Promise<{ data: 
 export async function addClientAction(professionalId: string, clientEmail: string): Promise<{ data: Client | null; error: string | null }> {
   try {
     const db = getDb();
-    const auth = admin.auth();
     
     // Check if a client with this email already exists for this professional
     const existingClientQuery = await db.collection('clients')
@@ -527,34 +526,66 @@ export async function addClientAction(professionalId: string, clientEmail: strin
         return { data: null, error: 'Este cliente ya ha sido invitado.' };
     }
 
-    let clientUser;
-    try {
-        clientUser = await auth.getUserByEmail(clientEmail);
-    } catch (error: any) {
-        if (error.code !== 'auth/user-not-found') {
-            throw error; // Re-throw unexpected errors
-        }
-        // User does not exist, which is fine. They will register.
-    }
-
-    const newClient: Client = {
-      id: clientUser?.uid || '', // It will be empty if user doesn't exist yet
+    const newClient: Omit<Client, 'id'> = {
       email: clientEmail,
-      displayName: clientUser?.displayName || null,
-      photoURL: clientUser?.photoURL || null,
+      displayName: null,
+      photoURL: null,
       status: 'invited',
       invitationDate: new Date().toISOString(),
       professionalId,
     };
 
-    // Use email as doc ID for easy lookup
-    await db.collection('clients').doc(clientEmail).set(newClient);
+    // Use email as doc ID for easy lookup later
+    const clientRef = db.collection('clients').doc();
+    const finalClient = { ...newClient, id: clientRef.id };
+    await clientRef.set(finalClient);
     
     // TODO: Send an actual email invitation here
 
-    return { data: newClient, error: null };
+    return { data: finalClient, error: null };
   } catch (error) {
     console.error("🔥 Error al añadir cliente:", error);
     return { data: null, error: "No se pudo invitar al cliente." };
   }
 }
+
+export async function acceptInvitationAction(
+    professionalId: string,
+    clientUser: { uid: string; email: string; displayName: string | null; photoURL: string | null }
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        const db = getDb();
+        
+        // Find the invitation document by professionalId and client's email
+        const q = db.collection('clients')
+            .where('professionalId', '==', professionalId)
+            .where('email', '==', clientUser.email)
+            .where('status', '==', 'invited')
+            .limit(1);
+
+        const querySnapshot = await q.get();
+
+        if (querySnapshot.empty) {
+            console.warn(`No pending invitation found for email ${clientUser.email} with professional ${professionalId}.`);
+            // This isn't a critical failure, the user just wasn't pre-invited.
+            return { success: true }; 
+        }
+
+        // Update the existing invitation document
+        const invitationDoc = querySnapshot.docs[0];
+        await invitationDoc.ref.update({
+            id: clientUser.uid, // This is the new client's Firebase Auth UID
+            status: 'active',
+            displayName: clientUser.displayName,
+            photoURL: clientUser.photoURL,
+        });
+        
+        return { success: true };
+
+    } catch (error) {
+        console.error("🔥 Error accepting invitation:", error);
+        return { success: false, error: "No se pudo aceptar la invitación." };
+    }
+}
+
+    
