@@ -615,3 +615,5 @@ export async function acceptInvitationAction(
         return { success: false, error: "No se pudo aceptar la invitación." };
     }
 }
+
+    
