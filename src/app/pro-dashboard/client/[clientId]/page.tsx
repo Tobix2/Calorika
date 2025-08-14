@@ -18,9 +18,11 @@ export default function ClientDashboardPage() {
 
   useEffect(() => {
     if (clientId) {
+      console.log("Client ID de params:", clientId);
       setIsLoading(true);
       getUserProfileAction(clientId)
         .then(profile => {
+          console.log("Perfil devuelto:", profile);
           if (profile) {
             setClientName(profile.displayName);
           }
