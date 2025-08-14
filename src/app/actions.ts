@@ -48,7 +48,6 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
             email: payerEmail,
         },
         external_reference: userId,
-        site_id: 'MLA',
     };
         
     console.log("[LOG]: Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
@@ -567,3 +566,5 @@ export async function acceptInvitationAction(
         return { success: false, error: "No se pudo procesar la invitación en el servidor." };
     }
 }
+
+    
