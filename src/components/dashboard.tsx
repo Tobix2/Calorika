@@ -40,6 +40,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import WelcomeTutorial from './welcome-tutorial';
 
 
 const initialDayData: DayData = {
@@ -85,6 +86,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
 
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showTutorial, setShowTutorial] = useState(false);
   
   const isInitialLoadRef = useRef(true);
 
@@ -140,6 +142,11 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
             isInitialLoadRef.current = true;
             setIsLoading(true);
             try {
+                // Check if tutorial has been seen
+                const hasSeenTutorial = localStorage.getItem('calorika_tutorial_seen');
+                if (!hasSeenTutorial && !isProfessionalView) {
+                    setShowTutorial(true);
+                }
                 const [foods, mealsData, goals] = await Promise.all([
                     getFoodsAction(effectiveUserId),
                     getCustomMealsAction(effectiveUserId),
@@ -163,7 +170,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         }
     }
     loadInitialData();
-  }, [effectiveUserId, loadWeeklyPlan, toast, weekDates]);
+  }, [effectiveUserId, loadWeeklyPlan, toast, weekDates, isProfessionalView]);
   
 
   // This effect reloads the weekly plan ONLY when the week itself changes (via weekDates).
@@ -429,6 +436,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   return (
     <AuthGuard>
       <div className="flex flex-col min-h-screen">
+        <WelcomeTutorial open={showTutorial} onOpenChange={setShowTutorial} />
         {!isProfessionalView && (
             <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-10">
                 <div className="container mx-auto px-4 sm:px-6 lg:px-8">
