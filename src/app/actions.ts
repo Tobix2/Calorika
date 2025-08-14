@@ -21,7 +21,6 @@ import { revalidatePath } from 'next/cache';
 
 export async function createSubscriptionAction(userId: string, payerEmail: string): Promise<{ checkoutUrl: string | null; error: string | null }> {
     const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-    
     if (!accessToken) {
         console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
         return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
@@ -32,27 +31,29 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
     }
     
     console.log(`[LOG]: Creando suscripción para el usuario: ${userId} con email: ${payerEmail}`);
+    
+    const client = new MercadoPagoConfig({ accessToken });
+    const preapproval = new PreApproval(client);
 
+    const preapprovalData = {
+        reason: 'Suscripción Pro a Calorika',
+        auto_recurring: {
+            frequency: 1,
+            frequency_type: 'months',
+            transaction_amount: 10000,
+            currency_id: 'ARS',
+        },
+        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+        payer: {
+            email: payerEmail,
+        },
+        external_reference: userId,
+        site_id: 'MLA',
+    };
+        
+    console.log("[LOG]: Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
+    
     try {
-        const client = new MercadoPagoConfig({ accessToken });
-        const preapproval = new PreApproval(client);
-
-        const preapprovalData = {
-            reason: 'Suscripción Pro a Calorika',
-            auto_recurring: {
-                frequency: 1,
-                frequency_type: 'months',
-                transaction_amount: 10000,
-                currency_id: 'ARS',
-            },
-            back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
-            payer_email: payerEmail,
-            external_reference: userId,
-            site_id: 'MLA',
-        };
-        
-        console.log("[LOG]: Enviando solicitud a Mercado Pago con el cuerpo:", preapprovalData);
-        
         const response = await preapproval.create({ body: preapprovalData });
         
         const checkoutUrl = response.init_point;
@@ -68,15 +69,10 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
         console.error("❌ Error al crear la suscripción de Mercado Pago:", error);
         
         let errorMessage = "No se pudo conectar con Mercado Pago. Por favor, intenta de nuevo.";
-        
-        // La estructura del error en la v2 del SDK puede variar. Intentamos varios caminos.
-        const errorDetails = error.cause?.cause?.[0] || error.cause?.[0] || error.data?.cause?.[0];
-
-        if (errorDetails && errorDetails.description) {
-             console.error("Detalles del error de la API de Mercado Pago:", JSON.stringify(errorDetails, null, 2));
-             errorMessage = `Error de Mercado Pago: ${errorDetails.description}`;
+        if (error.cause && Array.isArray(error.cause) && error.cause.length > 0) {
+            errorMessage = `Error de Mercado Pago: ${error.cause[0].description || error.message}`;
         } else if (error.message) {
-            errorMessage = `Error de Mercado Pago: ${error.message}`;
+             errorMessage = `Error de Mercado Pago: ${error.message}`;
         }
        
         return { checkoutUrl: null, error: errorMessage };
@@ -517,7 +513,7 @@ export async function getClientsAction(professionalId: string): Promise<{ data: 
     const clients: Client[] = clientsSnapshot.docs.map(doc => {
         const data = doc.data();
         return {
-            id: doc.id,
+            id: data.id, // This should now hold the client's UID after registration
             email: data.email,
             displayName: data.displayName || null,
             photoURL: data.photoURL || null,
@@ -551,7 +547,7 @@ export async function addClientAction(professionalId: string, clientEmail: strin
     // Use the client's email as the document ID for consistency.
     const clientRef = db.collection('clients').doc(clientEmail); 
 
-    const newClient: Client = {
+    const newClientData: Client = {
       id: '', // The user's UID will be added here upon registration
       email: clientEmail,
       displayName: null,
@@ -561,12 +557,9 @@ export async function addClientAction(professionalId: string, clientEmail: strin
       professionalId,
     };
 
-    await clientRef.set(newClient);
-    
-    // We pass back the client object with the email as the ID for the state update
-    const clientForState: Client = { ...newClient, id: clientEmail };
+    await clientRef.set(newClientData);
 
-    return { data: clientForState, error: null };
+    return { data: newClientData, error: null };
   } catch (error) {
     console.error("🔥 Error al añadir cliente:", error);
     return { data: null, error: "No se pudo invitar al cliente." };
@@ -581,7 +574,7 @@ export async function acceptInvitationAction(
         const db = getDb();
         
         // Find the invitation document by its ID, which is the client's email.
-        const invitationDocRef = db.collection('clients').doc(clientUser.email);
+        const invitationDocRef = db.collection('clients').doc(clientUser.email!);
         const invitationDocSnap = await invitationDocRef.get();
 
         if (!invitationDocSnap.exists) {
@@ -591,10 +584,9 @@ export async function acceptInvitationAction(
 
         const invitationData = invitationDocSnap.data();
 
-        // Double-check that the professional ID matches and status is 'invited'
-        if (invitationData?.professionalId !== professionalId || invitationData?.status !== 'invited') {
-             console.warn(`Invitation for ${clientUser.email} is either for another professional or already active.`);
-             return { success: false, error: 'La invitación no es válida o ya ha sido aceptada.' };
+        if (invitationData?.professionalId !== professionalId) {
+             console.warn(`Invitation for ${clientUser.email} is for another professional.`);
+             return { success: false, error: 'La invitación no es válida.' };
         }
 
         // Update the existing invitation document
