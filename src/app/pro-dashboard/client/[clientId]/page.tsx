@@ -18,6 +18,7 @@ export default function ClientDashboardPage() {
 
   useEffect(() => {
     if (clientId) {
+      setIsLoading(true);
       getUserProfileAction(clientId)
         .then(profile => {
           if (profile) {
