@@ -9,7 +9,7 @@ import {
 import {
   generateMealPlan,
 } from '@/ai/flows/generate-meal-plan';
-import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeeklyWeightEntry, UserGoals, UserProfile } from '@/lib/types';
+import type { GenerateMealPlanInput, GenerateMealPlanOutput, FoodItem, CustomMeal, WeeklyPlan, DailyPlan, MealItem, WeeklyWeightEntry, UserGoals, UserProfile, Client } from '@/lib/types';
 import { getDb } from '@/lib/firebase-admin';
 import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
@@ -46,10 +46,11 @@ export async function createSubscriptionAction(userId: string, payerEmail: strin
         external_reference: userId,
         site_id: "MLA",
     };
+    
+    console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
+
 
     try {
-        console.log("Enviando solicitud a Mercado Pago con el cuerpo:", JSON.stringify(preapprovalData, null, 2));
-
         const response = await preapproval.create({ body: preapprovalData });
         
         console.log("Respuesta de Mercado Pago recibida con éxito.");
@@ -481,4 +482,67 @@ export async function getWeightHistoryAction(userId: string): Promise<WeeklyWeig
     }
 }
 
+
+// --- Professional Dashboard Actions ---
+
+export async function getClientsAction(professionalId: string): Promise<{ data: Client[] | null; error: string | null }> {
+  try {
+    const db = getDb();
+    const clientsSnapshot = await db.collection('clients').where('professionalId', '==', professionalId).get();
     
+    const clients: Client[] = clientsSnapshot.docs.map(doc => doc.data() as Client);
+    
+    return { data: clients, error: null };
+  } catch (error) {
+    console.error("🔥 Error al obtener clientes:", error);
+    return { data: null, error: "No se pudieron obtener los clientes." };
+  }
+}
+
+export async function addClientAction(professionalId: string, clientEmail: string): Promise<{ data: Client | null; error: string | null }> {
+  try {
+    const db = getDb();
+    const auth = admin.auth();
+    
+    // Check if a client with this email already exists for this professional
+    const existingClientQuery = await db.collection('clients')
+        .where('professionalId', '==', professionalId)
+        .where('email', '==', clientEmail)
+        .limit(1)
+        .get();
+
+    if (!existingClientQuery.empty) {
+        return { data: null, error: 'Este cliente ya ha sido invitado.' };
+    }
+
+    let clientUser;
+    try {
+        clientUser = await auth.getUserByEmail(clientEmail);
+    } catch (error: any) {
+        if (error.code !== 'auth/user-not-found') {
+            throw error; // Re-throw unexpected errors
+        }
+        // User does not exist, which is fine. They will register.
+    }
+
+    const newClient: Client = {
+      id: clientUser?.uid || '', // It will be empty if user doesn't exist yet
+      email: clientEmail,
+      displayName: clientUser?.displayName || null,
+      photoURL: clientUser?.photoURL || null,
+      status: 'invited',
+      invitationDate: new Date().toISOString(),
+      professionalId,
+    };
+
+    // Use email as doc ID for easy lookup
+    await db.collection('clients').doc(clientEmail).set(newClient);
+    
+    // TODO: Send an actual email invitation here
+
+    return { data: newClient, error: null };
+  } catch (error) {
+    console.error("🔥 Error al añadir cliente:", error);
+    return { data: null, error: "No se pudo invitar al cliente." };
+  }
+}

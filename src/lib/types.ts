@@ -77,3 +77,14 @@ export type UserProfile = {
   displayName: string;
   age?: number;
 };
+
+// Types for Professional Dashboard
+export type Client = {
+  id: string; // Corresponds to the client's UID in Firebase Auth
+  email: string;
+  displayName: string | null;
+  photoURL: string | null;
+  status: 'invited' | 'active';
+  invitationDate: string; // ISO 8601 format
+  professionalId: string; // UID of the professional who invited them
+};
