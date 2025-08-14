@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button } from '../ui/button';
 import { LayoutDashboard, LineChart, MessageSquare, UserCircle } from 'lucide-react';
+import Link from 'next/link';
 
 interface ClientListProps {
   clients: Client[];
@@ -63,9 +64,11 @@ export default function ClientList({ clients }: ClientListProps) {
                     <TableCell className="text-right">
                       {client.status === 'active' ? (
                          <div className="flex items-center justify-end gap-2">
-                           <Button variant="outline" size="icon" disabled>
-                             <LayoutDashboard className="h-4 w-4" />
-                             <span className="sr-only">Ver Dashboard</span>
+                           <Button variant="outline" size="icon" asChild>
+                             <Link href={`/pro-dashboard/client/${client.id}`}>
+                               <LayoutDashboard className="h-4 w-4" />
+                               <span className="sr-only">Ver Dashboard</span>
+                             </Link>
                            </Button>
                            <Button variant="outline" size="icon" disabled>
                              <LineChart className="h-4 w-4" />

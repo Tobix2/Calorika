@@ -57,7 +57,12 @@ const initialDayData: DayData = {
 };
 
 
-export default function Dashboard() {
+interface DashboardProps {
+  userId?: string;
+  isProfessionalView?: boolean;
+}
+
+export default function Dashboard({ userId, isProfessionalView = false }: DashboardProps) {
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>({});
   const [currentDate, setCurrentDate] = useState(new Date());
   
@@ -71,7 +76,13 @@ export default function Dashboard() {
   const [isSubscribing, startSubscribingTransition] = useTransition();
 
   const { toast } = useToast();
-  const { user, logout } = useAuth();
+  const auth = useAuth();
+  
+  // Use the provided userId for professional view, otherwise use the logged-in user's ID
+  const effectiveUserId = userId || auth.user?.uid;
+  const user = auth.user;
+
+
   const [isGeneratePlanDialogOpen, setIsGeneratePlanDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -90,9 +101,9 @@ export default function Dashboard() {
     return eachDayOfInterval({ start, end });
   }, [currentDate]);
 
-  const loadWeeklyPlan = useCallback(async (user: any, dates: Date[], goals: UserGoals | null) => {
+  const loadWeeklyPlan = useCallback(async (uid: string, dates: Date[], goals: UserGoals | null) => {
       try {
-          const plan = await getWeeklyPlanAction(user.uid, dates, goals);
+          const plan = await getWeeklyPlanAction(uid, dates, goals);
           setWeeklyPlan(plan);
       } catch (error) {
           console.error("No se pudo cargar el plan semanal", error);
@@ -107,20 +118,20 @@ export default function Dashboard() {
   // Initial data load for user profile and first week
   useEffect(() => {
     async function loadInitialData() {
-        if (user) {
+        if (effectiveUserId) {
             setIsLoading(true);
             isInitialLoadRef.current = true;
             try {
                 const [foods, mealsData, goals] = await Promise.all([
-                    getFoodsAction(user.uid),
-                    getCustomMealsAction(user.uid),
-                    getUserGoalsAction(user.uid),
+                    getFoodsAction(effectiveUserId),
+                    getCustomMealsAction(effectiveUserId),
+                    getUserGoalsAction(effectiveUserId),
                 ]);
                 setFoodDatabase(foods);
                 setCustomMeals(mealsData);
                 setProfileGoals(goals);
                 // Carga la primera semana con las metas obtenidas
-                await loadWeeklyPlan(user, weekDates, goals);
+                await loadWeeklyPlan(effectiveUserId, weekDates, goals);
             } catch (error) {
                 console.error("No se pudieron cargar los datos iniciales", error);
                 toast({
@@ -136,48 +147,46 @@ export default function Dashboard() {
     }
     loadInitialData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, toast]);
+  }, [effectiveUserId, toast]);
   
 
   // This effect reloads the weekly plan ONLY when the week itself changes.
    useEffect(() => {
-    if(user && !isInitialLoadRef.current) {
-        loadWeeklyPlan(user, weekDates, profileGoals);
+    if(effectiveUserId && !isInitialLoadRef.current) {
+        loadWeeklyPlan(effectiveUserId, weekDates, profileGoals);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [weekDates, user, profileGoals]);
+  }, [weekDates, effectiveUserId, profileGoals]);
 
   // Debounced save effect
   useEffect(() => {
-    if (isInitialLoadRef.current || !user) {
+    if (isInitialLoadRef.current || !effectiveUserId || isProfessionalView) {
       return;
     }
     
     const handler = setTimeout(() => {
       const dayToSave = weeklyPlan[selectedDateKey];
-      // Eliminar la condición de fecha para permitir guardar cualquier día
       if (dayToSave) {
         console.log(`Autosaving plan for ${selectedDateKey}`);
-        saveDailyPlanAction(user.uid, currentDate, dayToSave.plan, dayToSave.goals);
+        saveDailyPlanAction(effectiveUserId, currentDate, dayToSave.plan, dayToSave.goals);
       }
     }, 1500);
 
     return () => {
       clearTimeout(handler);
     };
-  }, [weeklyPlan, currentDate, user, selectedDateKey]);
+  }, [weeklyPlan, currentDate, effectiveUserId, selectedDateKey, isProfessionalView]);
 
 
   // Effect to update current day's goals if they don't exist yet
    useEffect(() => {
-    // No modificar días pasados
-    if (isBefore(currentDate, startOfToday())) return;
+    if (isProfessionalView || isBefore(currentDate, startOfToday())) return;
     
     const currentDayData = weeklyPlan[selectedDateKey];
     if (profileGoals && (!currentDayData || !currentDayData.goals.calorieGoal)) {
         updateDayData({ goals: profileGoals });
     }
-  }, [currentDate, profileGoals, weeklyPlan, selectedDateKey]);
+  }, [currentDate, profileGoals, weeklyPlan, selectedDateKey, isProfessionalView]);
 
 
   const updateDayData = (newDayData: Partial<DayData>) => {
@@ -254,8 +263,8 @@ export default function Dashboard() {
   };
   
   const handleSaveDay = () => {
-    if (!user) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Debes iniciar sesión para guardar tus objetivos.' });
+    if (!effectiveUserId) {
+        toast({ variant: 'destructive', title: 'Error', description: 'ID de usuario no encontrado.' });
         return;
     }
     const dayToSave = weeklyPlan[selectedDateKey];
@@ -266,11 +275,11 @@ export default function Dashboard() {
 
     startSavingTransition(async () => {
         try {
-            await saveDailyPlanAction(user.uid, currentDate, dayToSave.plan, dayToSave.goals);
+            await saveDailyPlanAction(effectiveUserId, currentDate, dayToSave.plan, dayToSave.goals);
 
             toast({
                 title: '¡Día Guardado!',
-                description: `Tus cambios para el ${format(currentDate, 'PPP', { locale: es })} se han guardado.`,
+                description: `Los cambios para el ${format(currentDate, 'PPP', { locale: es })} se han guardado.`,
             });
         } catch (error) {
              const errorMessage = error instanceof Error ? error.message : 'Ocurrió un error desconocido.';
@@ -284,12 +293,12 @@ export default function Dashboard() {
   }
 
   const handleCreateMeal = async (newMealData: Omit<CustomMeal, 'id'>) => {
-    if (!user) {
+    if (!effectiveUserId) {
         toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para crear una comida." });
         return;
     }
     try {
-        const newMeal = await addCustomMealAction(user.uid, newMealData);
+        const newMeal = await addCustomMealAction(effectiveUserId, newMealData);
         setCustomMeals(prev => [...prev, newMeal]);
         toast({
             title: "¡Comida Creada!",
@@ -307,17 +316,17 @@ export default function Dashboard() {
   }
   
   const handleDeleteItem = async (item: FoodItem | CustomMeal) => {
-    if (!user) {
+    if (!effectiveUserId) {
         toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para borrar ítems." });
         return;
     }
     try {
       if ('items' in item) { 
-            await deleteCustomMealAction(user.uid, item.id);
+            await deleteCustomMealAction(effectiveUserId, item.id);
             setCustomMeals(prev => prev.filter(meal => meal.id !== item.id));
             toast({ title: "Comida Borrada", description: `${item.name} ha sido eliminada de tu base de datos.` });
         } else { // Es un FoodItem
-            await deleteFoodAction(user.uid, item.id);
+            await deleteFoodAction(effectiveUserId, item.id);
             setFoodDatabase(prev => prev.filter(food => food.id !== item.id));
             toast({ title: "Ingrediente Borrado", description: `${item.name} ha sido eliminado de tu base de datos.` });
         }
@@ -371,12 +380,12 @@ export default function Dashboard() {
   };
   
     const handleAddIngredient = async (newIngredientData: Omit<FoodItem, 'id'>) => {
-    if (!user) {
+    if (!effectiveUserId) {
         toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para añadir un ingrediente." });
         return null;
     }
     try {
-      const newIngredient = await addFoodAction(user.uid, newIngredientData);
+      const newIngredient = await addFoodAction(effectiveUserId, newIngredientData);
       
       setFoodDatabase(prev => [...prev, newIngredient]);
       
@@ -460,91 +469,93 @@ export default function Dashboard() {
   return (
     <AuthGuard>
       <div className="flex flex-col min-h-screen">
-        <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-10">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-2">
-                <Leaf className="h-8 w-8 text-primary" />
-                <h1 className="text-2xl font-bold font-headline text-foreground">Calorika</h1>
-              </div>
-              <div className="flex items-center gap-4">
-                
-                <AlertDialog open={isGeneratePlanDialogOpen} onOpenChange={setIsGeneratePlanDialogOpen}>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" disabled={isAiPending}>
-                      {isAiPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
-                      Generar Plan
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Generar Plan de Comidas para el {format(currentDate, 'PPP', { locale: es })}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Elige qué recursos debe usar la IA para generar tu plan de comidas.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
-                      <Button onClick={() => handleGeneratePlan('both')}>Usar Ingredientes y Mis Comidas</Button>
-                      <Button variant="secondary" onClick={() => handleGeneratePlan('ingredients')}>Usar Solo Ingredientes</Button>
-                      <Button variant="secondary" onClick={() => handleGeneratePlan('meals')}>Usar Solo Mis Comidas</Button>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+        {!isProfessionalView && (
+            <header className="bg-card/80 backdrop-blur-sm border-b sticky top-0 z-10">
+                <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+                    <div className="flex items-center justify-between h-16">
+                    <div className="flex items-center gap-2">
+                        <Leaf className="h-8 w-8 text-primary" />
+                        <h1 className="text-2xl font-bold font-headline text-foreground">Calorika</h1>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        
+                        <AlertDialog open={isGeneratePlanDialogOpen} onOpenChange={setIsGeneratePlanDialogOpen}>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="ghost" disabled={isAiPending}>
+                            {isAiPending ? <Loader2 className="mr-2 animate-spin" /> : <Bot className="mr-2" />}
+                            Generar Plan
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>Generar Plan de Comidas para el {format(currentDate, 'PPP', { locale: es })}</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                Elige qué recursos debe usar la IA para generar tu plan de comidas.
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter className="flex-col sm:flex-col sm:space-x-0 gap-2">
+                            <Button onClick={() => handleGeneratePlan('both')}>Usar Ingredientes y Mis Comidas</Button>
+                            <Button variant="secondary" onClick={() => handleGeneratePlan('ingredients')}>Usar Solo Ingredientes</Button>
+                            <Button variant="secondary" onClick={() => handleGeneratePlan('meals')}>Usar Solo Mis Comidas</Button>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                        </AlertDialog>
 
-                <CreateMealDialog 
-                  onCreateMeal={handleCreateMeal} 
-                  foodDatabase={foodDatabase} 
-                  setFoodDatabase={setFoodDatabase}
-                  onAddIngredient={handleAddIngredient}
-                />
-                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'Avatar'} />
-                          <AvatarFallback>{user?.displayName?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">{user?.displayName}</p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {user?.email}
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                       <DropdownMenuItem asChild>
-                         <Link href="/profile">
-                          <User className="mr-2 h-4 w-4" />
-                          <span>Perfil</span>
-                         </Link>
-                      </DropdownMenuItem>
-                       <DropdownMenuItem asChild>
-                         <Link href="/tracker">
-                          <WeightIcon className="mr-2 h-4 w-4" />
-                          <span>Mi Progreso</span>
-                         </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={handleSubscribe} disabled={isSubscribing}>
-                            {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
-                            <span>Suscribirse al Plan Pro</span>
-                        </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={logout}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Cerrar Sesión</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-              </div>
-            </div>
-          </div>
-        </header>
+                        <CreateMealDialog 
+                        onCreateMeal={handleCreateMeal} 
+                        foodDatabase={foodDatabase} 
+                        setFoodDatabase={setFoodDatabase}
+                        onAddIngredient={handleAddIngredient}
+                        />
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                                <Avatar className="h-8 w-8">
+                                <AvatarImage src={user?.photoURL || ''} alt={user?.displayName || 'Avatar'} />
+                                <AvatarFallback>{user?.displayName?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                            </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56" align="end" forceMount>
+                            <DropdownMenuLabel className="font-normal">
+                                <div className="flex flex-col space-y-1">
+                                <p className="text-sm font-medium leading-none">{user?.displayName}</p>
+                                <p className="text-xs leading-none text-muted-foreground">
+                                    {user?.email}
+                                </p>
+                                </div>
+                            </DropdownMenuLabel>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem asChild>
+                                <Link href="/profile">
+                                <User className="mr-2 h-4 w-4" />
+                                <span>Perfil</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                                <Link href="/tracker">
+                                <WeightIcon className="mr-2 h-4 w-4" />
+                                <span>Mi Progreso</span>
+                                </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleSubscribe} disabled={isSubscribing}>
+                                    {isSubscribing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Star className="mr-2 h-4 w-4" />}
+                                    <span>Suscribirse al Plan Pro</span>
+                                </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem onClick={auth.logout}>
+                                <LogOut className="mr-2 h-4 w-4" />
+                                <span>Cerrar Sesión</span>
+                            </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
+                    </div>
+                    </div>
+                </div>
+            </header>
+        )}
         <main className="flex-grow container mx-auto p-4 sm:p-6 lg:p-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="lg:col-span-2 space-y-6">
@@ -579,9 +590,9 @@ export default function Dashboard() {
                 <div className="space-y-6">
                 <CalorieRecommendationForm onGoalSet={(newGoals) => {
                     handleSetGoal(newGoals);
-                    if (user) {
+                    if (effectiveUserId && !isProfessionalView) {
                       startSavingTransition(async () => {
-                        await saveUserGoalsAction(user.uid, newGoals);
+                        await saveUserGoalsAction(effectiveUserId, newGoals);
                         setProfileGoals(newGoals);
                       });
                     }
