@@ -145,7 +145,7 @@ export async function getUserProfileAction(userId: string): Promise<UserProfile 
     }
 }
 
-export async function saveUserProfileAction(userId: string, profile: Omit<UserProfile, 'role'>): Promise<void> {
+export async function saveUserProfileAction(userId: string, profile: Partial<UserProfile>): Promise<void> {
     try {
         const db = getDb();
         const userDocRef = db.collection('users').doc(userId);
@@ -567,5 +567,3 @@ export async function acceptInvitationAction(
         return { success: false, error: "No se pudo procesar la invitación en el servidor." };
     }
 }
-
-    

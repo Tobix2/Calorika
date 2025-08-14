@@ -15,9 +15,9 @@ import {
 import { auth } from "@/lib/firebase";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
-import { createSubscriptionAction, saveUserRoleAction, acceptInvitationAction, getUserProfileAction } from "@/app/actions";
+import { createSubscriptionAction, saveUserProfileAction, acceptInvitationAction, getUserProfileAction } from "@/app/actions";
 import { Loader2 } from "lucide-react";
-import type { UserRole } from "@/lib/types";
+import type { UserRole, UserProfile } from "@/lib/types";
 
 interface AuthContextType {
   user: User | null;
@@ -63,11 +63,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const { toast } = useToast();
 
   const handleSuccessfulAuth = async (user: User, role: UserRole, paymentIntent: string | null, proId: string | null) => {
-        // Save user role to Firestore for new sign-ups
+        // Save user profile to Firestore for new sign-ups
         try {
-            await saveUserRoleAction(user.uid, role);
+            const profileData: Partial<UserProfile> = {
+                displayName: user.displayName || '',
+                role: role,
+            };
+            await saveUserProfileAction(user.uid, profileData);
         } catch (error) {
-            console.error("Failed to save user role", error);
+            console.error("Failed to save user profile", error);
         }
 
         console.log(`[DEBUG] handleSuccessfulAuth: proId = ${proId}`);
