@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -42,9 +43,9 @@ export default function AddClientDialog({ onAddClient, isAdding }: AddClientDial
       </DialogTrigger>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Invitar Nuevo Cliente</DialogTitle>
+          <DialogTitle>Añadir Nuevo Cliente</DialogTitle>
           <DialogDescription>
-            Introduce el correo electrónico del cliente para invitarlo a tu panel. Recibirá un email para aceptar y registrarse.
+            Introduce el correo del cliente para añadirlo a tu panel. Luego, comparte tu enlace de invitación para que pueda registrarse.
           </DialogDescription>
         </DialogHeader>
         <div className="py-4 space-y-2">
@@ -61,7 +62,7 @@ export default function AddClientDialog({ onAddClient, isAdding }: AddClientDial
           <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
           <Button onClick={handleAdd} disabled={isAdding || !email}>
             {isAdding && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            Enviar Invitación
+            Añadir Cliente
           </Button>
         </DialogFooter>
       </DialogContent>
