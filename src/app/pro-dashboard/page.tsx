@@ -82,7 +82,7 @@ export default function ProDashboardPage() {
                             Panel de Clientes ({clients.length})
                         </h1>
                     </div>
-                    <div className="flex flex-col sm:flex-row items-center gap-4">
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
                         <InviteLink professionalId={user?.uid || ''} />
                          <AddClientDialog onAddClient={handleAddClient} isAdding={isAddingClient} />
                     </div>
