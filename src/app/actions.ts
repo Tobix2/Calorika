@@ -19,6 +19,14 @@ import { revalidatePath } from 'next/cache';
 
 // --- Mercado Pago Action ---
 
+const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
+if (!accessToken) {
+  console.error("❌ FATAL: MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
+  throw new Error("Error de configuración del servidor. El administrador ha sido notificado.");
+}
+const mpClient = new MercadoPagoConfig({ accessToken });
+
+
 export async function createSubscriptionAction(
     userId: string,
     payerEmail: string,
@@ -26,12 +34,6 @@ export async function createSubscriptionAction(
     metadata?: Record<string, any>
   ): Promise<{ checkoutUrl: string | null; error: string | null }> {
   
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-    if (!accessToken) {
-      console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
-      return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
-    }
-
     const appUrl = process.env.NEXT_PUBLIC_APP_URL;
     if (!appUrl) {
       console.error("❌ NEXT_PUBLIC_APP_URL no está configurado en las variables de entorno.");
@@ -44,8 +46,7 @@ export async function createSubscriptionAction(
   
     console.log(`[LOG]: Creando suscripción para el usuario: ${userId} con email: ${payerEmail} y plan: ${plan}`);
   
-    const client = new MercadoPagoConfig({ accessToken });
-    const preapproval = new PreApproval(client);
+    const preapproval = new PreApproval(mpClient);
   
     let preapprovalData: any;
   
@@ -681,3 +682,5 @@ export async function getProfessionalForClientAction(clientId: string): Promise<
     return { professionalId: null, error: 'No se pudo encontrar a tu profesional.' };
   }
 }
+
+    
