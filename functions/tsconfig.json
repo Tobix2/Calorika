@@ -1,18 +1,15 @@
 {
   "compilerOptions": {
-    "module": "commonjs",
+    "target": "ES2020",                // Moderniza la salida JS
+    "module": "commonjs",              // Necesario para Firebase Functions
+    "lib": ["ES2020", "DOM"],          // Incluye APIs modernas y del navegador
+    "outDir": "lib",                   // Carpeta donde se genera JS compilado
+    "rootDir": "src",                  // Carpeta con TS
+    "strict": true,                     // Mantener reglas estrictas
     "esModuleInterop": true,
+    "skipLibCheck": true,
     "moduleResolution": "node",
-    "noImplicitReturns": true,
-    "noUnusedLocals": true,
-    "outDir": "lib",
-    "sourceMap": true,
-    "strict": true,
-    "target": "es2017",
-    "skipLibCheck": true
+    "sourceMap": true
   },
-  "compileOnSave": true,
-  "include": [
-    "src"
-  ]
+  "include": ["src"]
 }
