@@ -234,7 +234,7 @@ export default function LoginPage() {
                 Tu asistente de nutrición con IA.
             </p>
         </div>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="flex justify-center items-center h-96"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
             <LoginContent />
         </Suspense>
       </div>

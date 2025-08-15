@@ -31,6 +31,12 @@ export async function createSubscriptionAction(
       console.error("❌ MERCADOPAGO_ACCESS_TOKEN no está configurado en las variables de entorno.");
       return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
     }
+
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL;
+    if (!appUrl) {
+      console.error("❌ NEXT_PUBLIC_APP_URL no está configurado en las variables de entorno.");
+      return { checkoutUrl: null, error: "Error de configuración del servidor. El administrador ha sido notificado." };
+    }
   
     if (!userId || !payerEmail) {
       return { checkoutUrl: null, error: "Usuario o email no válido." };
@@ -53,7 +59,7 @@ export async function createSubscriptionAction(
           transaction_amount: isAnnual ? 100000 : 10000,
           currency_id: 'ARS',
         },
-        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?payment=success`,
+        back_url: `${appUrl}/dashboard?payment=success`,
         payer_email: payerEmail,
         external_reference: userId,
       };
@@ -66,7 +72,7 @@ export async function createSubscriptionAction(
           transaction_amount: 5000,
           currency_id: 'ARS',
         },
-        back_url: `${process.env.NEXT_PUBLIC_APP_URL}/pro-dashboard?payment=success`,
+        back_url: `${appUrl}/pro-dashboard?payment=success`,
         payer_email: payerEmail,
         external_reference: userId, // Professional's ID
         metadata: {
