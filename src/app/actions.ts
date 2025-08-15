@@ -322,10 +322,10 @@ export async function getCustomMealsAction(userId: string): Promise<CustomMeal[]
                 id: doc.id,
                 name: data.name,
                 items: data.items || [],
-                totalCalories: data.totalCalories ?? data.calories ?? 0,
-                totalProtein: data.totalProtein ?? data.protein ?? 0,
-                totalCarbs: data.totalCarbs ?? data.carbs ?? 0,
-                totalFats: data.totalFats ?? data.fats ?? 0,
+                totalCalories: typeof data.totalCalories === 'number' ? data.totalCalories : (typeof data.calories === 'number' ? data.calories : 0),
+                totalProtein: typeof data.totalProtein === 'number' ? data.totalProtein : (typeof data.protein === 'number' ? data.protein : 0),
+                totalCarbs: typeof data.totalCarbs === 'number' ? data.totalCarbs : (typeof data.carbs === 'number' ? data.carbs : 0),
+                totalFats: typeof data.totalFats === 'number' ? data.totalFats : (typeof data.fats === 'number' ? data.fats : 0),
                 servingSize: data.servingSize || 1,
                 servingUnit: data.servingUnit || 'ración',
             } as CustomMeal;
@@ -682,5 +682,7 @@ export async function getProfessionalForClientAction(clientId: string): Promise<
     return { professionalId: null, error: 'No se pudo encontrar a tu profesional.' };
   }
 }
+
+    
 
     
