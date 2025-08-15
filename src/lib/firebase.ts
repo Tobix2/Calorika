@@ -6,15 +6,14 @@ import {initializeApp, getApp, getApps} from 'firebase/app';
 import {getFirestore} from 'firebase/firestore';
 import { getAuth } from "firebase/auth";
 
-// Your web app's Firebase configuration
-// ❗️ PASTE YOUR FIREBASE CONFIGURATION HERE
+// Your web app's Firebase configuration is loaded from environment variables
 const firebaseConfig = {
-  apiKey: "AIzaSyAoqx3KBZd59k64fkrmFZUExv0_oSmSFOA",
-  authDomain: "nutritrack-vb9op.firebaseapp.com",
-  projectId: "nutritrack-vb9op",
-  storageBucket: "nutritrack-vb9op.firebasestorage.app",
-  messagingSenderId: "207242465394",
-  appId: "1:207242465394:web:c40cae0fc534f9e36672eb"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
 // Initialize Firebase
