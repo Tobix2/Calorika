@@ -23,6 +23,7 @@ const FoodItemSchema = z.object({
   fats: z.number(),
   servingSize: z.number(),
   servingUnit: z.string(),
+  isCustom: z.literal(false).describe('Set to false for individual food items.'),
 });
 
 const CustomMealSchema = z.object({
@@ -34,18 +35,17 @@ const CustomMealSchema = z.object({
     fats: z.number().describe("Total fats for the meal's serving size."),
     servingSize: z.number(),
     servingUnit: z.string(),
+    isCustom: z.literal(true).describe('Set to true for pre-made custom meals.'),
 });
 
 const MealItemSchema = z.union([
   FoodItemSchema.extend({
     mealItemId: z.string(),
     quantity: z.number(),
-    isCustom: z.boolean().describe('Set to false for individual food items.'),
   }),
   CustomMealSchema.extend({
     mealItemId: z.string(),
     quantity: z.number(),
-    isCustom: z.boolean().describe('Set to true for pre-made custom meals.'),
   })
 ]);
 
@@ -81,7 +81,12 @@ export async function generateMealPlan(input: GenerateMealPlanInput): Promise<Ge
             fats: m.fats,
             servingSize: m.servingSize,
             servingUnit: m.servingUnit,
-        })) || []
+            isCustom: true,
+        })) || [],
+        availableFoods: input.availableFoods?.map(f => ({
+            ...f,
+            isCustom: false,
+        })) || [],
     };
   return generateMealPlanFlow(mappedInput);
 }
