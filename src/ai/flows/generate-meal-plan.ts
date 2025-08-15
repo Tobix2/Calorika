@@ -90,7 +90,7 @@ const prompt = ai.definePrompt({
   name: 'generateMealPlanPrompt',
   input: { schema: GenerateMealPlanInputSchema },
   output: { schema: GenerateMealPlanOutputSchema },
-  prompt: `You are an expert nutritionist and meal planner. Your task is to create a template for a daily meal plan based on the user's nutritional goals, using only the food items and pre-made meals they have available. Your main job is to select appropriate foods and distribute them across meals. The output should be in Spanish.
+  prompt: `You are an expert nutritionist and meal planner. Your task is to create a template for a daily meal plan based on the user's nutritional goals, using only the food items and pre-made meals they have available. The output should be in Spanish.
 
 The user's goals are:
 - Calories: {{{calorieGoal}}} kcal
