@@ -91,49 +91,60 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   const [showTutorial, setShowTutorial] = useState(false);
   
   const isInitialLoadRef = useRef(true);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
 
   const selectedDateKey = format(currentDate, 'yyyy-MM-dd');
   const dayData = weeklyPlan[selectedDateKey] || initialDayData;
   const { plan: meals, goals } = dayData;
   const { calorieGoal, proteinGoal, carbsGoal, fatsGoal } = goals || initialDayData.goals;
+  
+  // Save debounced data effect
+  useEffect(() => {
+    // Clear any existing timer when dayData changes
+    if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set a new timer to save data after 1 second
+    debounceTimerRef.current = setTimeout(() => {
+        if (effectiveUserId && !isInitialLoadRef.current) {
+             const { plan, goals } = weeklyPlan[selectedDateKey] || initialDayData;
+             if (goals.calorieGoal > 0 || plan.some(m => m.items.length > 0)) {
+                saveDailyPlanAction(effectiveUserId, currentDate, plan, goals).catch(err => {
+                    console.error("Error al autoguardar plan diario:", err);
+                    toast({ variant: 'destructive', title: 'Error de Guardado', description: 'No se pudo guardar tu plan.' });
+                });
+             }
+        }
+    }, 1000); // 1-second debounce
+
+    // Cleanup timer on component unmount
+    return () => {
+        if (debounceTimerRef.current) {
+            clearTimeout(debounceTimerRef.current);
+        }
+    };
+}, [weeklyPlan, selectedDateKey, currentDate, effectiveUserId, toast]);
+
 
   const updateDayData = useCallback((newDayData: Partial<DayData>) => {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
   
     setWeeklyPlan(prev => {
-      const newWeeklyPlan = { ...prev };
-      const currentDay = prev[dateKey]
-        ? { ...prev[dateKey] }
-        : JSON.parse(JSON.stringify(initialDayData));
-  
-      const updatedDayData: DayData = {
-        ...currentDay,
-        plan: newDayData.plan
-          ? JSON.parse(JSON.stringify(newDayData.plan))
-          : currentDay.plan,
-        goals: newDayData.goals
-          ? { ...currentDay.goals, ...newDayData.goals }
-          : currentDay.goals,
-      };
-  
-      newWeeklyPlan[dateKey] = updatedDayData;
-  
-      // 🚀 Guardado optimista en el mismo momento del cambio
-      if (effectiveUserId) {
-        saveDailyPlanAction(
-          effectiveUserId,
-          currentDate,
-          updatedDayData.plan,
-          updatedDayData.goals
-        ).catch(err => {
-          console.error("Error guardando plan diario:", err);
-        });
-      }
-  
-      return newWeeklyPlan;
+        const newWeeklyPlan = { ...prev };
+        const currentDay = prev[dateKey] ? { ...prev[dateKey] } : JSON.parse(JSON.stringify(initialDayData));
+
+        const updatedDayData: DayData = {
+            ...currentDay,
+            plan: newDayData.plan ? JSON.parse(JSON.stringify(newDayData.plan)) : currentDay.plan,
+            goals: newDayData.goals ? { ...currentDay.goals, ...newDayData.goals } : currentDay.goals,
+        };
+
+        newWeeklyPlan[dateKey] = updatedDayData;
+        return newWeeklyPlan;
     });
-  }, [currentDate, effectiveUserId]);
+  }, [currentDate]);
 
 
   const weekDates = useMemo(() => {
@@ -199,7 +210,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
                 });
             } finally {
                 setIsLoading(false);
-                setTimeout(() => { isInitialLoadRef.current = false; }, 50); 
+                setTimeout(() => { isInitialLoadRef.current = false; }, 500); 
             }
         }
     }
@@ -677,5 +688,3 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     </AuthGuard>
   );
 }
-
-    
