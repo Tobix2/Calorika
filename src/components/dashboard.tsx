@@ -100,20 +100,40 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
 
   const updateDayData = useCallback((newDayData: Partial<DayData>) => {
     const dateKey = format(currentDate, 'yyyy-MM-dd');
+  
     setWeeklyPlan(prev => {
-        const newWeeklyPlan = { ...prev };
-        const currentDay = prev[dateKey] ? { ...prev[dateKey] } : JSON.parse(JSON.stringify(initialDayData));
-        
-        const updatedDayData: DayData = {
-            ...currentDay,
-            plan: newDayData.plan ? JSON.parse(JSON.stringify(newDayData.plan)) : currentDay.plan,
-            goals: newDayData.goals ? { ...currentDay.goals, ...newDayData.goals } : currentDay.goals,
-        };
-        
-        newWeeklyPlan[dateKey] = updatedDayData;
-        return newWeeklyPlan;
+      const newWeeklyPlan = { ...prev };
+      const currentDay = prev[dateKey]
+        ? { ...prev[dateKey] }
+        : JSON.parse(JSON.stringify(initialDayData));
+  
+      const updatedDayData: DayData = {
+        ...currentDay,
+        plan: newDayData.plan
+          ? JSON.parse(JSON.stringify(newDayData.plan))
+          : currentDay.plan,
+        goals: newDayData.goals
+          ? { ...currentDay.goals, ...newDayData.goals }
+          : currentDay.goals,
+      };
+  
+      newWeeklyPlan[dateKey] = updatedDayData;
+  
+      // 🚀 Guardado optimista en el mismo momento del cambio
+      if (effectiveUserId) {
+        saveDailyPlanAction(
+          effectiveUserId,
+          currentDate,
+          updatedDayData.plan,
+          updatedDayData.goals
+        ).catch(err => {
+          console.error("Error guardando plan diario:", err);
+        });
+      }
+  
+      return newWeeklyPlan;
     });
-  }, [currentDate]);
+  }, [currentDate, effectiveUserId]);
 
 
   const weekDates = useMemo(() => {
@@ -125,6 +145,18 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   const loadWeeklyPlan = useCallback(async (uid: string, dates: Date[], goals: UserGoals | null) => {
       try {
           const plan = await getWeeklyPlanAction(uid, dates, goals);
+          
+          // Logic to apply profile goals if the current day has no goals set
+          const todayKey = format(new Date(), 'yyyy-MM-dd');
+          if (goals && isSameDay(currentDate, new Date()) && !isProfessionalView) {
+              const currentDayData = plan[todayKey];
+              if (!currentDayData || currentDayData.goals.calorieGoal === 0) {
+                  plan[todayKey] = {
+                      ... (currentDayData || initialDayData),
+                      goals: goals
+                  };
+              }
+          }
           setWeeklyPlan(plan);
       } catch (error) {
           console.error("No se pudo cargar el plan semanal", error);
@@ -134,7 +166,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
               description: 'No se pudo cargar tu plan. Por favor, intenta refrescar.'
           });
       }
-  }, [toast]);
+  }, [toast, currentDate, isProfessionalView]);
   
 
   // Initial data load for user profile, foods, and custom meals.
@@ -182,30 +214,6 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
     }
   }, [weekDates, effectiveUserId, loadWeeklyPlan, profileGoals]);
 
-  // Instant save effect
-  useEffect(() => {
-    if (isInitialLoadRef.current || !effectiveUserId) {
-      return;
-    }
-    
-    const dayToSave = weeklyPlan[selectedDateKey];
-    if (dayToSave) {
-        saveDailyPlanAction(effectiveUserId, currentDate, dayToSave.plan, dayToSave.goals);
-    }
-  }, [weeklyPlan, currentDate, effectiveUserId, selectedDateKey]);
-
-
-  // Effect to apply profile goals to the current day if it doesn't have its own goals set yet.
-   useEffect(() => {
-    const todayKey = format(new Date(), 'yyyy-MM-dd');
-    const currentDayData = weeklyPlan[todayKey];
-    
-    if (profileGoals && (!currentDayData || currentDayData.goals.calorieGoal === 0)) {
-        if (isSameDay(currentDate, new Date()) && !isProfessionalView) {
-             updateDayData({ goals: profileGoals });
-        }
-    }
-  }, [profileGoals, currentDate, isProfessionalView, weeklyPlan, updateDayData]);
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
     console.log(`[ADD_FOOD] Añadiendo a ${mealName}:`, { food, quantity });
@@ -670,3 +678,4 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   );
 }
 
+    
