@@ -99,33 +99,32 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   const { plan: meals, goals } = dayData;
   const { calorieGoal, proteinGoal, carbsGoal, fatsGoal } = goals || initialDayData.goals;
   
-  // Save debounced data effect
   useEffect(() => {
-    // Clear any existing timer when dayData changes
-    if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
+    if (!effectiveUserId || isInitialLoadRef.current) return;
+  
+    const { plan, goals } = weeklyPlan[selectedDateKey] || initialDayData;
+  
+    // 👇 Aquí para ver que está detectando el cambio
+    console.log("🔄 Guardando plan diario:", {
+      date: selectedDateKey,
+      plan,
+      goals
+    });
+  
+    if (goals.calorieGoal > 0 || plan.some(m => m.items.length > 0)) {
+      saveDailyPlanAction(effectiveUserId, currentDate, plan, goals)
+        .catch(err => {
+          console.error("Error al autoguardar plan diario:", err);
+          toast({
+            variant: 'destructive',
+            title: 'Error de Guardado',
+            description: 'No se pudo guardar tu plan.'
+          });
+        });
     }
-
-    // Set a new timer to save data after 1 second
-    debounceTimerRef.current = setTimeout(() => {
-        if (effectiveUserId && !isInitialLoadRef.current) {
-             const { plan, goals } = weeklyPlan[selectedDateKey] || initialDayData;
-             if (goals.calorieGoal > 0 || plan.some(m => m.items.length > 0)) {
-                saveDailyPlanAction(effectiveUserId, currentDate, plan, goals).catch(err => {
-                    console.error("Error al autoguardar plan diario:", err);
-                    toast({ variant: 'destructive', title: 'Error de Guardado', description: 'No se pudo guardar tu plan.' });
-                });
-             }
-        }
-    }, 1000); // 1-second debounce
-
-    // Cleanup timer on component unmount
-    return () => {
-        if (debounceTimerRef.current) {
-            clearTimeout(debounceTimerRef.current);
-        }
-    };
-}, [weeklyPlan, selectedDateKey, currentDate, effectiveUserId, toast]);
+  }, [weeklyPlan, selectedDateKey, currentDate, effectiveUserId, toast]);
+  
+  
 
 
   const updateDayData = useCallback((newDayData: Partial<DayData>) => {

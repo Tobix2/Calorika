@@ -15,6 +15,7 @@ import { format, startOfWeek, endOfWeek } from 'date-fns';
 import admin from 'firebase-admin';
 import { MercadoPagoConfig, PreApproval } from 'mercadopago';
 import { revalidatePath } from 'next/cache';
+import { getDateKey } from '@/lib/date';
 
 
 // --- Mercado Pago Action ---
@@ -377,67 +378,97 @@ const emptyGoals: UserGoals = {
     fatsGoal: 0,
 };
 
-export async function getWeeklyPlanAction(userId: string, weekDates: Date[], profileGoals: UserGoals | null): Promise<WeeklyPlan> {
+export async function getWeeklyPlanAction(
+    userId: string,
+    weekDates: Date[],
+    profileGoals: UserGoals | null
+  ): Promise<WeeklyPlan> {
     try {
-        const db = getDb();
-        const plansCollection = db.collection('users').doc(userId).collection('dailyPlans');
-        const dateStrings = weekDates.map(d => format(d, 'yyyy-MM-dd'));
-        
-        const planPromises = dateStrings.map(async (dateString) => {
-            const docRef = plansCollection.doc(dateString);
-            const docSnap = await docRef.get();
-            if (docSnap.exists) {
-                const data = docSnap.data();
-                const goals = data?.goals && data.goals.calorieGoal > 0 ? data.goals : profileGoals || emptyGoals;
-                return { 
-                    date: dateString, 
-                    plan: (data?.plan || initialDailyPlan) as DailyPlan,
-                    goals: goals as UserGoals,
-                };
-            }
-            return { 
-                date: dateString, 
-                plan: initialDailyPlan, 
-                goals: profileGoals || emptyGoals
-            };
-        });
-
-        const dailyData = await Promise.all(planPromises);
-        
-        const weeklyPlan: WeeklyPlan = dailyData.reduce((acc, { date, plan, goals }) => {
-            acc[date] = { plan, goals };
-            return acc;
-        }, {} as WeeklyPlan);
-
-        return weeklyPlan;
-
-    } catch (error) {
-        console.error("🔥 Error al obtener el plan semanal:", error);
-        throw new Error("No se pudo obtener el plan semanal.");
-    }
-}
-
-
-export async function saveDailyPlanAction(userId: string, date: Date, plan: DailyPlan, goals: UserGoals): Promise<void> {
-    try {
-        const db = getDb();
-        const dateString = format(date, 'yyyy-MM-dd');
-        const docRef = db.collection('users').doc(userId).collection('dailyPlans').doc(dateString);
-        
-        const plainPlanObject = JSON.parse(JSON.stringify(plan));
-        const plainGoalsObject = JSON.parse(JSON.stringify(goals));
-        
-        const dataToSave = { 
-            plan: plainPlanObject,
-            goals: plainGoalsObject,
+      const db = getDb();
+      const plansCollection = db.collection("users").doc(userId).collection("dailyPlans");
+      const dateStrings = weekDates.map((d) => getDateKey(d)); // ✅ usa helper
+  
+      console.log("📥 Leyendo plan semanal de Firestore:", dateStrings);
+  
+      const planPromises = dateStrings.map(async (dateString) => {
+        const docRef = plansCollection.doc(dateString);
+        const docSnap = await docRef.get();
+  
+        if (docSnap.exists) {
+          const data = docSnap.data();
+          console.log(`📄 Data encontrada para ${dateString}:`, data);
+  
+          const goals =
+            data?.goals && data.goals.calorieGoal > 0
+              ? data.goals
+              : profileGoals || emptyGoals;
+  
+          return {
+            date: dateString,
+            plan: (data?.plan || initialDailyPlan) as DailyPlan,
+            goals: goals as UserGoals,
+          };
+        }
+  
+        return {
+          date: dateString,
+          plan: initialDailyPlan,
+          goals: profileGoals || emptyGoals,
         };
-
-        await docRef.set(dataToSave, { merge: true });
+      });
+  
+      const dailyData = await Promise.all(planPromises);
+  
+      const weeklyPlan: WeeklyPlan = dailyData.reduce((acc, { date, plan, goals }) => {
+        acc[date] = { plan, goals };
+        return acc;
+      }, {} as WeeklyPlan);
+  
+      return weeklyPlan;
     } catch (error) {
-        console.error(`🔥 Error al guardar el plan para ${format(date, 'yyyy-MM-dd')}:`, error);
-        throw new Error("No se pudo guardar el plan diario.");
+      console.error("🔥 Error al obtener el plan semanal:", error);
+      throw new Error("No se pudo obtener el plan semanal.");
     }
-}
+  }
+  
+
+
+export async function saveDailyPlanAction(
+    userId: string,
+    date: Date,
+    plan: DailyPlan,
+    goals: UserGoals
+  ): Promise<void> {
+    try {
+      const db = getDb();
+      const dateString = getDateKey(date); // ✅ usa helper
+      console.log("📤 Guardando en Firestore:", userId, dateString);
+  
+      const docRef = db
+        .collection("users")
+        .doc(userId)
+        .collection("dailyPlans")
+        .doc(dateString);
+  
+      const plainPlanObject = JSON.parse(JSON.stringify(plan));
+      const plainGoalsObject = JSON.parse(JSON.stringify(goals));
+  
+      await docRef.set(
+        {
+          plan: plainPlanObject,
+          goals: plainGoalsObject,
+        },
+        { merge: true }
+      );
+  
+      console.log("✅ Guardado exitoso en Firestore", dateString);
+    } catch (error) {
+      console.error("🔥 Error al guardar el plan:", error);
+      throw new Error("No se pudo guardar el plan diario.");
+    }
+  }
+  
+
 
 
 // Weight History
