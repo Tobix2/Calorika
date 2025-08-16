@@ -208,6 +208,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   }, [profileGoals, currentDate, isProfessionalView, weeklyPlan, updateDayData]);
 
   const handleAddFood = (mealName: MealName, food: FoodItem, quantity: number) => {
+    console.log(`[ADD_FOOD] Añadiendo a ${mealName}:`, { food, quantity });
     const newMeals = meals.map((meal: Meal) => {
         if (meal.name === mealName) {
             const newItem: MealItem = {
@@ -223,6 +224,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   };
 
   const handleAddCustomMeal = (mealName: MealName, customMeal: CustomMeal, servings: number) => {
+    console.log(`[ADD_CUSTOM_MEAL] Añadiendo a ${mealName}:`, { customMeal, servings });
     const mealItem: MealItem = {
         ...customMeal,
         id: customMeal.id,
@@ -249,6 +251,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   };
 
   const handleRemoveFood = (mealName: MealName, mealItemId: string) => {
+    console.log(`[REMOVE_FOOD] Quitando de ${mealName}:`, { mealItemId });
     const newMeals = meals.map((meal: Meal) =>
         meal.name === mealName
           ? { ...meal, items: meal.items.filter(item => item.mealItemId !== mealItemId) }
@@ -266,6 +269,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para crear una comida." });
         return;
     }
+    console.log("[CREATE_MEAL] Creando nueva comida:", newMealData);
     try {
         const newMeal = await addCustomMealAction(effectiveUserId, newMealData);
         setCustomMeals(prev => [...prev, newMeal]);
@@ -289,6 +293,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para borrar ítems." });
         return;
     }
+    console.log("[DELETE_ITEM] Borrando ítem:", item);
     try {
       if ('items' in item) { 
             await deleteCustomMealAction(effectiveUserId, item.id);
@@ -353,6 +358,7 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
         toast({ variant: "destructive", title: "Error de Autenticación", description: "Debes iniciar sesión para añadir un ingrediente." });
         return null;
     }
+    console.log("[ADD_INGREDIENT] Añadiendo nuevo ingrediente:", newIngredientData);
     try {
       const newIngredient = await addFoodAction(effectiveUserId, newIngredientData);
       
@@ -664,4 +670,3 @@ export default function Dashboard({ userId, isProfessionalView = false }: Dashbo
   );
 }
 
-    
